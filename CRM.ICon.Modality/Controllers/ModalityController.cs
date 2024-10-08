@@ -34,13 +34,13 @@ namespace CRM.ICon.Modality.Controllers
             customContext.Skill = new Skill { value = "vdm skill", isDisplayable = true };
 
             modalityInfo.CustomContext = customContext;
-            modalityResponse.Modalities.Add(modalityInfo);
+            (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfo);
 
             SkillInfo skill = new SkillInfo();
             skill.SkillValue = "27b98065-5c1f-ee11-8128-000d3af89ec9";
             skill.SkillLabel = "VDM Skill";
-            skill.SkillType = "Skill";         
-            modalityResponse.Skills.Add(skill);
+            skill.SkillType = "Skill";
+            (modalityResponse.Skills ??= new List<SkillInfo>()).Add(skill);
 
             return Ok(modalityResponse);
         }
