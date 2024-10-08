@@ -1,4 +1,5 @@
-﻿using Azure.Identity;
+﻿using Azure.Core;
+using Azure.Identity;
 using Microsoft.Identity.Client;
 using Microsoft.Identity.Web;
 using System.Text.Json.Serialization;
@@ -22,8 +23,21 @@ namespace CRM.ICon.Modality
 
             private async Task<string> RetrieveToken(string clientId, string managedIdentityClientId, string resource, string tenantId)
             {
+            try
+            {
+                var credentials = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+                {
+                    ManagedIdentityClientId = "15e4ae07-7153-4085-9333-ddd7b948ce5e"
+                });
 
-            ManagedIdentityClientAssertion managedIdentityClientAssertion = new ManagedIdentityClientAssertion("15e4ae07-7153-4085-9333-ddd7b948ce5e");
+                var result = await credentials.GetTokenAsync(new TokenRequestContext(new[] { "e5eea49c-5b3a-4795-9253-9bab3780f255/.default" })).ConfigureAwait(false);
+                return result.Token.ToString();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error generating token for VDM", ex);
+            }
+            /**ManagedIdentityClientAssertion managedIdentityClientAssertion = new ManagedIdentityClientAssertion("15e4ae07-7153-4085-9333-ddd7b948ce5e");
 
             var app = ConfidentialClientApplicationBuilder
                         .Create("caee4b01-a5c8-449f-ae78-ed7a3cdfcfe0")
@@ -32,7 +46,7 @@ namespace CRM.ICon.Modality
                         .Build();
 
             var result = await app.AcquireTokenForClient(new[] { "e5eea49c-5b3a-4795-9253-9bab3780f255/.default" }).ExecuteAsync();
-            return result.AccessToken.ToString();
+            return result.AccessToken.ToString();**/
         }
 
         private async Task<string> FetchExternalTokenAsync(ManagedIdentityClientAssertion managedIdentityClientAssertion)
