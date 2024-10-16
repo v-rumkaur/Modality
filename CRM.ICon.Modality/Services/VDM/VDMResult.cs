@@ -6,6 +6,6 @@ namespace CRM.ICon.Modality.Services.VDM
 {
     public class VDMResult
     {
-        public List<VDMResponse> results { get; set; }
+        public List<VDMResponse> purposefulResults { get; set; }
     }
 }

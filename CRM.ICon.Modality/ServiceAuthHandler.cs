@@ -9,17 +9,17 @@ namespace CRM.ICon.Modality
         private readonly string clientSecret;
         private readonly string resource;
         private readonly string tenantId;
-        private readonly string subKey;
+        private readonly string OrgId;
         private readonly string managedIdentityClientId;
 
-        public ServiceAuthHandler(AuthTokenClient tokenClient, string clientId, string managedIdentityClientId, string resource, string tenantId, string subKey)
+        public ServiceAuthHandler(AuthTokenClient tokenClient, string clientId, string managedIdentityClientId, string resource, string tenantId, string OrgId)
         {
             this.tokenClient = tokenClient;
             this.clientId = clientId;
             this.managedIdentityClientId = managedIdentityClientId;
             this.resource = resource;
             this.tenantId = tenantId;
-            this.subKey = subKey;
+            this.OrgId = OrgId;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -27,6 +27,7 @@ namespace CRM.ICon.Modality
             // TokenClient does caching internally
             var token = await tokenClient.GetToken(clientId, managedIdentityClientId, resource, tenantId);
             request.Headers.Add("Authorization", $"Bearer {token}");
+            request.Headers.Add("OrganizationId", OrgId);
             return await base.SendAsync(request, cancellationToken);
         }
     }
@@ -36,7 +37,7 @@ namespace CRM.ICon.Modality
         public string? ClientId;
         public string? ManagedIdentityClientId;
         public string? TenantId;
-        public string? SubKey;
+        public string? OrgId;
         public string? Resource;
     }
 
@@ -55,7 +56,7 @@ namespace CRM.ICon.Modality
                     p.ManagedIdentityClientId ?? authConfig.ManagedIdentityClientId,
                     p.Resource ?? "",
                     p.TenantId ?? authConfig.TenantId,
-                    p.SubKey ?? ""
+                    p.OrgId ?? ""
                 );
             });
         }

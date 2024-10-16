@@ -9,6 +9,6 @@
         public bool IsCopilot { get; set; }
         public Dictionary<string, string>? ExtensionAttributes { get; set; }
         public string? Theme { get; set; }
-        public SupportTicketAttribute? SupportTicketAttributes { get; set; }
+        public SupportTicketAttribute SupportTicketAttributes { get; set; }
     }
 }

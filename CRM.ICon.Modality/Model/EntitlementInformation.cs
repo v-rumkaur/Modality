@@ -3,5 +3,6 @@
     public class EntitlementInformation
     {
         public string? ServiceLevel { get; set; }
+        public string? EntitlementType { get; set; }
     }
 }

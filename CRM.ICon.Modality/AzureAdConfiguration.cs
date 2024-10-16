@@ -16,5 +16,8 @@
         /// Gets or sets the managed identity client id
         /// </summary>
         public string ManagedIdentityClientId { get; set; }
+
+        public string?  Instance { get; set; }
+        public string OAuthVersion { get; set; }
     }
 }

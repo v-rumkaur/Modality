@@ -1,29 +1,34 @@
 ﻿
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace CRM.ICon.Modality.Services.VDM
 {
     public class VDMService : IVDMService
     {
         private readonly HttpClient httpClient;
+        private readonly VDMConfiguration vdmConfiguration;
 
-        public VDMService(HttpClient httpClient)
+        public VDMService(HttpClient httpClient, IOptions<VDMConfiguration> vdmConfiguration)
         {
             this.httpClient = httpClient;
+            this.vdmConfiguration = vdmConfiguration.Value;
         }
         public async Task<VDMResponse> GetVDMSkill(VDMRequest request)
         {
-            var response = await httpClient.PostAsJsonAsync("https://vdmsdksvc-pb-ppe.azurewebsites.net/api/crmee_PredictSupportAreaPathCategories", request);
-            response.EnsureSuccessStatusCode();
-            
-            var deserializedResponse = await response.Content.ReadFromJsonAsync<VDMResult>();
-
-            if (deserializedResponse == null)
-            {
-                throw new InvalidDataException();
+            try
+            {   
+                var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, request);
+                response.EnsureSuccessStatusCode();
+                var stringresponse = await response.Content.ReadAsStringAsync();
+                var deserializedResponse = JsonConvert.DeserializeObject<VDMResult>(stringresponse);
+                return deserializedResponse.purposefulResults.FirstOrDefault();
             }
-
-            return deserializedResponse.results.FirstOrDefault();
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
     }
 }

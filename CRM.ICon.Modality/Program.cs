@@ -2,36 +2,29 @@ using CRM.ICon.Modality;
 using CRM.ICon.Modality.Services.VDM;
 using Microsoft.Extensions.Options;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddSingleton<AuthTokenClient>();
-
-builder.Services.AddHttpClient<IVDMService, VDMService>().ConfigureServiceAuthHandler<VDMConfiguration>((options) => new ServiceAuthHandlerParams
+public class Program
 {
-    Resource = options.Resource,
-    TenantId = options.TenantId,
-});
+    /// <summary>
+    /// Entry method
+    /// </summary>
+    /// <param name="args">Input arguments</param>
+    public static void Main(string[] args)
+    {
+        CreateHostBuilder(args).Build().Run();
+    }
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    /// <summary>
+    /// CreateHostBuilder
+    /// </summary>
+    /// <param name="args">args</param>
+    /// <returns>Webhost builder</returns>
+    public static IHostBuilder CreateHostBuilder(string[] args)
+    {
+       
+        return Host.CreateDefaultBuilder(args)
+        .ConfigureWebHostDefaults(webBuilder =>
+        {
+            webBuilder.UseStartup<Startup>();
+        });
+    }
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();

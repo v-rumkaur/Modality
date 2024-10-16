@@ -8,13 +8,10 @@
 
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.12.1" />
-    <PackageReference Include="Microsoft.Identity.Web" Version="3.2.1" />
+    <PackageReference Include="Microsoft.Identity.ServiceEssentials.AspNetCore" Version="1.30.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.2.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Services\Omnichannel\" />
   </ItemGroup>
 
 </Project>

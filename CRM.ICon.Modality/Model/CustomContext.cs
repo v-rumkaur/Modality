@@ -2,7 +2,7 @@
 {
     public class CustomContext
     {
-        public Entitlement Entitlement { get; set; }
+        public ServiceLevel Entitlement { get; set; }
         public Skill Skill { get; set; }
 
         public EnrichRoutingContext EnrichRoutingContext { get; set; }

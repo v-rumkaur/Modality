@@ -1,9 +1,9 @@
-﻿namespace CRM.ICon.Modality.Services.VDM
+﻿namespace CRM.ICon.Modality.Services.Omnichannel
 {
-    public class VDMConfiguration
+    public class OmnichannelConfiguration
     {
         /// <summary>
-        /// Gets or sets the OmnichannelServiceEndpoint
+        /// Gets or sets the VDMServiceEndpoint
         /// </summary>
         public string? ServiceEndpoint { get; set; }
         /// <summary>
@@ -14,5 +14,12 @@
         /// Gets or sets the Tenant Id
         /// </summary>
         public string? TenantId { get; set; }
+
+        public string? WorkstreamId { get; set; }
+
+        public string? OrgId { get; set; }
+
+        public string? OrgUrl { get; set; }
+
     }
 }
