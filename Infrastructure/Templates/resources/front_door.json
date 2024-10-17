@@ -1,0 +1,307 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Environment": {
+            "type": "string"
+        },
+        "ComponentId": {
+            "type": "string"
+        },
+        "ResourcePrefix": {
+            "type": "string"
+        },
+        "ResourceSuffix": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "ModalityRegionSuffixes": {
+            "type": "array"
+        },
+        "WafCustomRules": {
+            "type": "object",
+            "defaultValue": "[createObject('rules', createArray())]"
+        }
+    },
+    "variables": {
+        "frontDoorName": "[concat(parameters('ResourcePrefix'), '-services', parameters('ResourceSuffix'))]",
+        "defaultEndpointName": "[concat(parameters('ResourcePrefix'), '-services', parameters('ResourceSuffix'))]",
+        "appservice-modality": "[concat(parameters('ResourcePrefix'), '-appservice')]",
+        "webApplicationFirewallName": "[replace(concat(parameters('ResourcePrefix'), '-waf', parameters('ResourceSuffix')), '-', '')]",
+        "logAnalyticsWorkspaceName": "[concat(parameters('ResourcePrefix'), '-loganalyticsw', parameters('ResourceSuffix'))]"
+    },
+    "resources": [
+        {
+            "apiVersion": "2022-05-01",
+            "type": "Microsoft.Network/frontDoorWebApplicationFirewallPolicies",
+            "name": "[variables('webApplicationFirewallName')]",
+            "location": "global",
+            "tags": {
+                "env": "[parameters('Environment')]",
+                "ComponentId": "[parameters('ComponentId')]"
+            },
+            "sku": {
+                "name": "Premium_AzureFrontDoor"
+            },
+            "properties": {
+                "policySettings": {
+                    "enabledState": "Enabled",
+                    "mode": "Prevention",
+                    "customBlockResponseStatusCode": 403,
+                    "requestBodyCheck": "Enabled"
+                },
+                "customRules": {
+                    "copy": [
+                        {
+                            "name": "rules",
+                            "count": "[length(parameters('WafCustomRules').rules)]",
+                            "input": {
+                                "name": "[parameters('WafCustomRules').rules[copyIndex('rules')].name]",
+                                "priority": "[parameters('WafCustomRules').rules[copyIndex('rules')].priority]",
+                                "ruleType": "[parameters('WafCustomRules').rules[copyIndex('rules')].ruleType]",
+                                "action": "[parameters('WafCustomRules').rules[copyIndex('rules')].action]",
+                                "rateLimitDurationInMinutes": "[if(contains(parameters('WafCustomRules').rules[copyIndex('rules')], 'rateLimitDurationInMinutes'), parameters('WafCustomRules').rules[copyIndex('rules')].rateLimitDurationInMinutes, 1)]",
+                                "rateLimitThreshold": "[if(contains(parameters('WafCustomRules').rules[copyIndex('rules')], 'rateLimitThreshold'), parameters('WafCustomRules').rules[copyIndex('rules')].rateLimitThreshold, 0)]",
+                                "matchConditions": [
+                                    {
+                                        "matchVariable": "[parameters('WafCustomRules').rules[copyIndex('rules')].matchConditions[0].matchVariable]",
+                                        "operator": "[parameters('WafCustomRules').rules[copyIndex('rules')].matchConditions[0].operator]",
+                                        "negateCondition": "[parameters('WafCustomRules').rules[copyIndex('rules')].matchConditions[0].negateCondition]",
+                                        "matchValue": "[parameters('WafCustomRules').rules[copyIndex('rules')].matchConditions[0].matchValue]"
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "managedRules": {
+                    "managedRuleSets": [
+                        {
+                            "ruleSetType": "Microsoft_DefaultRuleSet",
+                            "ruleSetVersion": "2.1",
+                            "ruleSetAction": "Block",
+                            "ruleGroupOverrides": [
+                                {
+                                    "ruleGroupName": "LFI",
+                                    "rules": [
+                                        {
+                                            "ruleId": "930100",
+                                            "enabledState": "Enabled",
+                                            "action": "Log",
+                                            "exclusions": []
+                                        },
+                                        {
+                                            "ruleId": "930130",
+                                            "enabledState": "Enabled",
+                                            "action": "Log",
+                                            "exclusions": []
+                                        }
+                                    ],
+                                    "exclusions": []
+                                },
+                                {
+                                    "ruleGroupName": "RFI",
+                                    "rules": [
+                                        {
+                                            "ruleId": "931130",
+                                            "enabledState": "Enabled",
+                                            "action": "Log",
+                                            "exclusions": []
+                                        }
+                                    ],
+                                    "exclusions": []
+                                },
+                                {
+                                    "ruleGroupName": "SQLI",
+                                    "rules": [
+                                        {
+                                            "ruleId": "942200",
+                                            "enabledState": "Enabled",
+                                            "action": "Log",
+                                            "exclusions": []
+                                        },
+                                        {
+                                            "ruleId": "942370",
+                                            "enabledState": "Enabled",
+                                            "action": "Log",
+                                            "exclusions": []
+                                        }
+                                    ],
+                                    "exclusions": []
+                                }
+                            ],
+                            "exclusions": []
+                        },
+                        {
+                            "ruleSetType": "Microsoft_BotManagerRuleSet",
+                            "ruleSetVersion": "1.1",
+                            "ruleSetAction": "Block",
+                            "ruleGroupOverrides": [],
+                            "exclusions": []
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Cdn/profiles",
+            "apiVersion": "2021-06-01",
+            "name": "[variables('frontDoorName')]",
+            "location": "Global",
+            "tags": {
+                "env": "[parameters('Environment')]",
+                "ComponentId": "[parameters('ComponentId')]"
+            },
+            "sku": {
+                "name": "Premium_AzureFrontDoor"
+            },
+            "properties": {
+                "originResponseTimeoutSeconds": 30
+            }
+        },
+        {
+            "type": "Microsoft.Cdn/profiles/afdEndpoints",
+            "apiVersion": "2021-06-01",
+            "name": "[concat(variables('frontDoorName'), '/', variables('defaultEndpointName'))]",
+            "location": "Global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+            ],
+            "properties": {
+                "enabledState": "Enabled"
+            }
+        },
+        {
+            "type": "Microsoft.Cdn/profiles/securityPolicies",
+            "apiVersion": "2021-06-01",
+            "name": "[concat(variables('frontDoorName'), '/defaultWebApplicationFirewallPolicy')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]",
+                "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), variables('defaultEndpointName'))]",
+                "[resourceId('Microsoft.Network/frontDoorWebApplicationFirewallPolicies', variables('webApplicationFirewallName'))]"
+            ],
+            "properties": {
+                "parameters": {
+                    "type": "WebApplicationFirewall",
+                    "wafPolicy": {
+                        "id": "[resourceId('Microsoft.Network/frontDoorWebApplicationFirewallPolicies', variables('webApplicationFirewallName'))]"
+                    },
+                    "associations": [
+                        {
+                            "domains": [
+                                {
+                                    "id": "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), variables('defaultEndpointName'))]"
+                                }
+                            ],
+                            "patternsToMatch": [
+                                "/*"
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Cdn/profiles/originGroups",
+            "apiVersion": "2021-06-01",
+            "name": "[concat(variables('frontDoorName'), '/modalityOrigins')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+            ],
+            "properties": {
+                "loadBalancingSettings": {
+                    "sampleSize": 4,
+                    "successfulSamplesRequired": 2,
+                    "additionalLatencyInMilliseconds": 0
+                },
+                "healthProbeSettings": {
+                    "probePath": "/api/health",
+                    "probeRequestType": "HEAD",
+                    "probeProtocol": "Https",
+                    "probeIntervalInSeconds": 30
+                },
+                "sessionAffinityState": "Disabled"
+            }
+        },
+        {
+            "type": "Microsoft.Cdn/profiles/originGroups/origins",
+            "apiVersion": "2021-06-01",
+            "name": "[concat(variables('frontDoorName'), '/modalityOrigins/', variables('appservice-modality'), parameters('ModalityRegionSuffixes')[copyIndex('modalityOrigins')])]",
+            "copy": {
+                "name": "modalityOrigins",
+                "count": "[length(parameters('ModalityRegionSuffixes'))]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'modalityOrigins')]"
+            ],
+            "properties": {
+                "hostName": "[concat(variables('appservice-modality'), parameters('ModalityRegionSuffixes')[copyIndex('modalityOrigins')], '.azurewebsites.net')]",
+                "httpPort": 80,
+                "httpsPort": 443,
+                "originHostHeader": "[concat(variables('appservice-modality'), parameters('ModalityRegionSuffixes')[copyIndex('modalityOrigins')], '.azurewebsites.net')]",
+                "priority": 1,
+                "weight": 50,
+                "enabledState": "Enabled",
+                "enforceCertificateNameCheck": true
+            }
+        },
+        {
+            "type": "Microsoft.Cdn/profiles/afdEndpoints/routes",
+            "apiVersion": "2021-06-01",
+            "name": "[concat(variables('frontDoorName'), '/', variables('defaultEndpointName'), '/modalityRoute')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles/afdEndpoints', variables('frontDoorName'), variables('defaultEndpointName'))]",
+                "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'modalityOrigins')]"
+            ],
+            "properties": {
+                "customDomains": [],
+                "originGroup": {
+                    "id": "[resourceId('Microsoft.Cdn/profiles/originGroups', variables('frontDoorName'), 'modalityOrigins')]"
+                },
+                "originPath": "/",
+                "ruleSets": [],
+                "supportedProtocols": [
+                    "Https"
+                ],
+                "patternsToMatch": [
+                    "/modality/*"
+                ],
+                "forwardingProtocol": "HttpsOnly",
+                "linkToDefaultDomain": "Enabled",
+                "httpsRedirect": "Disabled",
+                "enabledState": "Enabled"
+            }
+        },
+        {
+            // This is supported, there is a bug with the schema validation
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "name": "[concat(variables('frontDoorName'), '-diagnosticSettings')]",
+            "scope": "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
+            ],
+            "properties": {
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]",
+                "logs": [
+                    {
+                        "categoryGroup": "allLogs",
+                        "enabled": true
+                    }
+                ],
+                "metrics": [
+                    {
+                        "category": "AllMetrics",
+                        "enabled": true
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "frontDoorName": {
+            "type": "string",
+            "value": "[variables('frontDoorName')]"
+        }
+    }
+}

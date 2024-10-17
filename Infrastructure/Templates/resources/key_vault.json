@@ -1,0 +1,104 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Location": {
+            "type": "string"
+        },
+        "Environment": {
+            "type": "string"
+        },
+        "ComponentId": {
+            "type": "string"
+        },
+        "ResourcePrefix": {
+            "type": "string"
+        },
+        "ResourceSuffix": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "GlobalResourceSuffix": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "AzureAdTenantId": {
+            "type": "string"
+        }
+    },
+  "variables": {
+    "keyVaultName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'kv', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
+    "logAnalyticsWorkspaceName": "[concat(parameters('ResourcePrefix'), '-loganalyticsw', parameters('GlobalResourceSuffix'))]",
+    "identityNamemodality": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('ResourceSuffix'))]"
+  },
+    "resources": [
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "apiVersion": "2019-09-01",
+            "name": "[variables('keyVaultName')]",
+            "location": "[parameters('Location')]",
+            "tags": {
+                "env": "[parameters('Environment')]",
+                "ComponentId": "[parameters('ComponentId')]"
+            },
+            "properties": {
+                "sku": {
+                    "family": "A",
+                    "name": "standard"
+                },
+                "tenantId": "[parameters('AzureAdTenantId')]",
+                "accessPolicies": [
+                    {
+                        "tenantId": "[parameters('AzureAdTenantId')]",
+                        "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('identityNamemodality')), '2018-11-30').principalId]",
+                        "permissions": {
+                            "keys": [ "get", "list", "encrypt", "decrypt" ],
+                            "secrets": [ "get", "list" ],
+                            "certificates": [ "get", "list" ]
+                        }
+                    }
+                ],
+                "enabledForDeployment": true,
+                "enabledForDiskEncryption": true,
+                "enabledForTemplateDeployment": true,
+                "enablePurgeProtection": true,
+                "enableSoftDelete": true,
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "defaultAction": "Deny"
+                }
+            }
+        },
+        {
+            // This is supported, there is a bug with the schema validation
+            "type": "Microsoft.Insights/diagnosticSettings",
+            "apiVersion": "2021-05-01-preview",
+            "name": "[concat(variables('keyVaultName'), '-diagnosticSettings')]",
+            "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            ],
+            "properties": {
+                "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]",
+                "logs": [
+                    {
+                        "categoryGroup": "allLogs",
+                        "enabled": true
+                    }
+                ],
+                "metrics": [
+                    {
+                        "category": "AllMetrics",
+                        "enabled": true
+                    }
+                ]
+            }
+        }
+    ],
+    "outputs": {
+        "keyVaultName": {
+            "type": "string",
+            "value": "[variables('keyVaultName')]"
+        }
+    }
+}

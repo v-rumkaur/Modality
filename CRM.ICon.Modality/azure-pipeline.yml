@@ -1,0 +1,79 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - CRM.ICon.Modality/*
+
+variables:
+  CDP_DEFINITION_BUILD_COUNT: $[counter('', 0)]  # needed for onebranch.pipeline.version task https://aka.ms/obpipelines/versioning
+  REPOROOT: "$(Build.SourcesDirectory)"
+  OUTPUTROOT: "$(REPOROOT)/out"
+  solutionPath: 'CRM.ICon.Modality/CRM.ICon.Modality.sln'
+  projectPath: 'CRM.ICon.Modality/CRM.ICon.Modality.csproj'
+  BuildConfiguration: Release
+  WindowsContainerImage: 'onebranch.azurecr.io/windows/ltsc2022/vse2022:latest' # for Windows jobs https://aka.ms/obpipelines/containers
+
+resources:
+  repositories: 
+    - repository: templates
+      type: git
+      name: OneBranch.Pipelines/GovernedTemplates
+      ref: refs/heads/main
+
+extends:
+  #template: v2/OneBranch.Official.CrossPlat.yml@templates
+  template: v2/OneBranch.NonOfficial.CrossPlat.yml@templates  # https://aka.ms/obpipelines/templates
+  parameters:
+    featureFlags:
+      WindowsHostVersion: 1ESWindows2022
+    globalSdl:  # https://aka.ms/obpipelines/sdl
+      tsa:
+        enabled: false  # onebranch publish all SDL results to TSA. If TSA is disabled all SDL tools will forced into 'break' build mode.
+      binskim:
+        break: true  # always break the build on binskim issues.
+      policheck:
+        break: true  # always break the build on policheck issues.
+    stages:
+    - stage: Build_Modality
+      displayName: "Build and Run Tests for Modality Service"
+      jobs:
+      - job: Build_Project
+        displayName: "Build and Publish Project"
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: DotNetCoreCLI@2
+          displayName: 'Restore NuGet Packages'
+          inputs:
+            command: restore
+            projects: ${{ variables.solutionPath }}
+            feedsToUse: config
+            nugetConfigPath: nuget.config
+
+        - task: DotNetCoreCLI@2
+          displayName: "Build .NET project"
+          inputs:
+            command: "build"
+            projects: '**/*.sln'
+            arguments: "--configuration $(BuildConfiguration) /clp:ErrorsOnly"
+
+        - task: DotNetCoreCLI@2
+          displayName: 'DotNetCore publish'
+          inputs:
+            command: 'publish'
+            publishWebProjects: false
+            projects: ${{ variables.projectPath }}
+            arguments: '--no-build --no-restore --configuration $(BuildConfiguration) --output $(Build.SourcesDirectory)\out'
+            zipAfterPublish: true
+
+        - task: onebranch.pipeline.signing@1
+          displayName: 'Sign output'
+          inputs:
+            command: 'sign'
+            signing_environment: 'azure-ado'
+            files_to_sign: '**/*.exe;**/*.dll;**/*.ps1;**/*.psm1'
+            search_root: '$(Build.SourcesDirectory)\out'

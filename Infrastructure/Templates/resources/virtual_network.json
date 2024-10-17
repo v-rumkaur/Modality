@@ -1,0 +1,166 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Location": {
+            "type": "string"
+        },
+        "Environment": {
+            "type": "string"
+        },
+        "ComponentId": {
+            "type": "string"
+        },
+        "ResourcePrefix": {
+            "type": "string"
+        },
+        "ResourceSuffix": {
+            "type": "string",
+            "defaultValue": ""
+        },
+        "RegionIPSegment": {
+            "type": "int",
+            "minValue": 0,
+            "maxValue": 255
+        }
+    },
+    "variables": {
+        "vnetName": "[concat(parameters('ResourcePrefix'), '-vnet', parameters('ResourceSuffix'))]",
+        "subnetName": "[concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix'))]",
+        "nsgName": "[concat(parameters('ResourcePrefix'), '-nsg', parameters('ResourceSuffix'))]",
+        "outboundIpName": "[concat(parameters('ResourcePrefix'), '-outboundip', parameters('ResourceSuffix'))]",
+        "natGatewayName": "[concat(parameters('ResourcePrefix'), '-natgw', parameters('ResourceSuffix'))]",
+        "vnetPrefix": "[format('10.{0}.0.0/16', parameters('RegionIPSegment'))]",
+        "subnetPrefix": "[format('10.{0}.1.0/24', parameters('RegionIPSegment'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2020-11-01",
+            "name": "[variables('outboundIpName')]",
+            "location": "[parameters('Location')]",
+            "tags": {
+                "env": "[parameters('Environment')]",
+                "ComponentId": "[parameters('ComponentId')]"
+            },
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Static"
+            }
+        },
+        {
+            "type": "Microsoft.Network/natGateways",
+            "apiVersion": "2020-11-01",
+            "name": "[variables('natGatewayName')]",
+            "location": "[parameters('Location')]",
+            "tags": {
+                "env": "[parameters('Environment')]",
+                "ComponentId": "[parameters('ComponentId')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('outboundIpName'))]"
+            ],
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIpAddresses": [
+                    {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('outboundIpName'))]"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-11-01",
+            "name": "[variables('vnetName')]",
+            "location": "[parameters('Location')]",
+            "tags": {
+                "env": "[parameters('Environment')]",
+                "ComponentId": "[parameters('ComponentId')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/natGateways', variables('natGatewayName'))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [ "[variables('vnetPrefix')]" ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnetPrefix')]",
+                            "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.KeyVault",
+                                    "locations": [ "*" ]
+                                },
+                                {
+                                    "service": "Microsoft.Storage",
+                                    "locations": [ "westus", "eastus" ]
+                                },
+                                {
+                                    "service": "Microsoft.AzureCosmosDB",
+                                    "locations": []
+                                }
+                            ],
+                            "delegations": [
+                                {
+                                    "name": "delegation",
+                                    "properties": {
+                                        "serviceName": "Microsoft.Web/serverfarms",
+                                        "actions": [
+                                            "Microsoft.Network/virtualNetworks/subnets/action"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "privateEndpointNetworkPolicies": "Enabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+                            },
+                            "natGateway": {
+                                "id": "[resourceId('Microsoft.Network/natGateways', variables('natGatewayName'))]"
+                            }
+                        }
+                    }
+                ],
+                "virtualNetworkPeerings": [],
+                "enableDdosProtection": false,
+                "enableVmProtection": false
+            }
+        }
+    ],
+    "outputs": {
+        "vnetName": {
+            "type": "string",
+            "value": "[variables('vnetName')]"
+        },
+        "subnetName": {
+            "type": "string",
+            "value": "[variables('subnetName')]"
+        },
+        "vnetPrefix": {
+            "type": "string",
+            "value": "[variables('vnetPrefix')]"
+        },
+        "subnetPrefix": {
+            "type": "string",
+            "value": "[variables('subnetPrefix')]"
+        },
+        "vnetResourceId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        },
+        "subnetResourceId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
+        }
+    }
+}

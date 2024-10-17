@@ -1,0 +1,43 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "Location": {
+            "type": "string"
+        },
+        "Environment": {
+            "type": "string"
+        },
+        "ComponentId": {
+            "type": "string"
+        },
+        "ResourcePrefix": {
+            "type": "string"
+        },
+        "ResourceSuffix": {
+            "type": "string",
+            "defaultValue": ""
+        }
+    },
+    "variables": {
+        "identityName": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('ResourceSuffix'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "name": "[variables('identityName')]",
+            "apiVersion": "2018-11-30",
+            "location": "[parameters('Location')]",
+            "tags": {
+                "env": "[parameters('Environment')]",
+                "ComponentId": "[parameters('ComponentId')]"
+            }
+        }
+    ],
+    "outputs": {
+        "identityName": {
+            "type": "string",
+            "value": "[variables('identityName')]"
+        }
+    }
+}

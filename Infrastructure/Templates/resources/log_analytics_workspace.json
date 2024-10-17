@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "Location": {
+      "type": "string"
+    },
+    "Environment": {
+      "type": "string"
+    },
+    "ComponentId": {
+      "type": "string"
+    },
+    "ResourcePrefix": {
+      "type": "string"
+    },
+    "ResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "logAnalyticsWorkspaceName": "[concat(parameters('ResourcePrefix'), '-loganalyticsw', parameters('ResourceSuffix'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2020-10-01",
+      "name": "[variables('logAnalyticsWorkspaceName')]",
+      "location": "[parameters('Location')]",
+      "tags": {
+        "env": "[parameters('Environment')]",
+        "ComponentId": "[parameters('ComponentId')]"
+      },
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30
+      }
+    }
+  ],
+  "outputs": {
+    "logAnalyticsWorkspaceName": {
+      "type": "string",
+      "value": "[variables('logAnalyticsWorkspaceName')]"
+    }
+  }
+}
