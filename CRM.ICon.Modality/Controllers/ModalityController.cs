@@ -1,3 +1,5 @@
+using CRM.ICon.Modality.Helpers;
+using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
 using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
@@ -16,22 +18,41 @@ namespace CRM.ICon.Modality.Controllers
 
         private readonly IVDMService vdmService;
         private readonly IOmnichannelService omnichannelService;
-        public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService)
+        private readonly ITelemetryService _telemetryService;
+        public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService, ITelemetryService telemetryService)
         {
             this.vdmService = vdmService;
             this.omnichannelService = omnichannelService;
+            this._telemetryService = telemetryService ?? throw new ArgumentNullException(nameof(telemetryService));
         }
 
         [HttpPost]
         [Route("getAvailableModalities")]
         public async Task<ActionResult<ModalityResponse>> GetAvailableModalities([FromBody] ModalityRequest modalityRequest)
         {
+            var logProperties = ModalityExtensions.GetRequestProperties();
             if (modalityRequest == null)
             {
+                this._telemetryService.LogTrace<ModalityController>("Request body for GetAvailableModalities is null", logProperties);
                 return BadRequest();
             }
 
             ModalityResponse modalityResponse = new ModalityResponse();
+
+            ModalityInfo modalityInfoEmail = new ModalityInfo();
+            modalityInfoEmail.Modality = 1;
+            modalityInfoEmail.WaitTime = 0;
+            modalityInfoEmail.IsAgentAvailable = true;
+            modalityInfoEmail.InHoops = true;
+
+            ModalityInfo modalityInfoPhone = new ModalityInfo();
+            modalityInfoPhone.Modality = 2;
+            modalityInfoPhone.WaitTime = 0;
+            modalityInfoPhone.IsAgentAvailable = true;
+            modalityInfoPhone.InHoops = true;
+
+            (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfoEmail);
+            modalityResponse.Modalities.Add(modalityInfoPhone);
 
             SupportTicketAttribute supportTicketAttribute = modalityRequest.SupportTicketAttributes;
 
@@ -44,18 +65,22 @@ namespace CRM.ICon.Modality.Controllers
             } 
             catch (Exception exception)
             {
+                this._telemetryService.LogException<ModalityController>(exception, logProperties, "Get language code from locale Failure");
                 // fallback locale is always en-us
                 locale = "en-us";
             }
 
             VDMResponse vdmResponse = new VDMResponse();
+            vdmResponse.skillValue = "8643644c-ed5d-ee11-8143-000d3af8897c";
+            vdmResponse.skillName = "Cust Eng: CIJ Administration";
 
             vdmResponse = await vdmService.GetVDMSkill(new VDMRequest { Text = supportTicketAttribute.Description, Boundary = "public", SapId = supportTicketAttribute.SapId, PredictionPurposes = "crmee_ml_skill_model" });
 
             if (vdmResponse == null || vdmResponse.skillValue == null)
             {
-              // If VDM response is null, then chat modality and skills are not returned. 
-              return Ok(modalityResponse);
+                this._telemetryService.LogTrace<ModalityController>("VDM response is null", logProperties);
+                // If VDM response is null, then chat modality and skills are not returned. 
+                return Ok(modalityResponse);
             }
 
             //language characteristic 
@@ -78,6 +103,24 @@ namespace CRM.ICon.Modality.Controllers
             skillObjects.Add(languageSkillObject);
             skillObjects.Add(regionSkillObject);
 
+            CustomContext customContext = new CustomContext();
+            customContext.EnrichRoutingContext = new EnrichRoutingContext { value = skillObjects, isDisplayable = true };
+            customContext.Entitlement = new ServiceLevel { value = supportTicketAttribute.EntitlementInformation.ServiceLevel, isDisplayable = true };
+            customContext.Skill = new Skill { value = vdmResponse.skillName, isDisplayable = true };
+
+            OmnichannelResponse omnichannelResponse = new OmnichannelResponse();
+
+            OmnichannelRequest omnichannelRequest = new OmnichannelRequest();
+
+            omnichannelRequest.customContext = customContext;
+            //OmnichannelResponse omnichannelResponse = await omnichannelService.GetAgentAvailability(omnichannelRequest);
+
+            if (omnichannelResponse == null)
+            {
+                this._telemetryService.LogTrace<ModalityController>("Omnichannel response is null", logProperties);
+                return Ok(modalityResponse);
+            }
+
             SkillInfo vdmSkill = new SkillInfo();
             vdmSkill.SkillValue = vdmResponse.skillValue;
             vdmSkill.SkillLabel = vdmResponse.skillName;
@@ -96,22 +139,6 @@ namespace CRM.ICon.Modality.Controllers
             (modalityResponse.Skills ??= new List<SkillInfo>()).Add(languageSkill);
             modalityResponse.Skills.Add(vdmSkill);
             modalityResponse.Skills.Add(regionSkill);
-
-            CustomContext customContext = new CustomContext();
-            customContext.EnrichRoutingContext = new EnrichRoutingContext { value = skillObjects, isDisplayable = true };
-            customContext.Entitlement = new ServiceLevel { value = supportTicketAttribute.EntitlementInformation.ServiceLevel, isDisplayable = true };
-            customContext.Skill = new Skill { value = vdmResponse.skillName, isDisplayable = true };
-
-            OmnichannelResponse omnichannelResponse = new OmnichannelResponse();
-
-            OmnichannelRequest omnichannelRequest = new OmnichannelRequest();
-            omnichannelRequest.customContext = customContext;
-            //OmnichannelResponse omnichannelResponse = await omnichannelService.GetAgentAvailability(omnichannelRequest);
-
-            if (omnichannelResponse == null)
-            {
-                return Ok(modalityResponse);
-            }
 
             WidgetDetails widgetDetails = omnichannelService.GetWidgetDetails(languageCode);
 

@@ -1,15 +1,26 @@
-﻿using CRM.ICon.Modality.Model;
+﻿using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using CRM.ICon.Modality.Helpers.HttpContext;
+using CRM.ICon.Modality.Helpers.Repositories;
+using CRM.ICon.Modality.Helpers.Telemetry;
+using CRM.ICon.Modality.Model;
 using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.S2S.Extensions.AspNetCore;
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
 
 namespace CRM.ICon.Modality
 {
     public class Startup
     {
+
+        private const string KeyVaultBaseAddress = "KeyVaultConfiguration:BaseAddress";
+        private const string ManagedIdentityClientId = "KeyVaultConfiguration:ManagedIdentityClientId";
         /// <summary>
         /// Gets the configuration object
         /// </summary>
@@ -23,6 +34,8 @@ namespace CRM.ICon.Modality
           .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
           .AddEnvironmentVariables();
 
+            var configuration = builder.Build();
+            builder.AddAzureKeyVault(new SecretClient(new Uri(configuration[KeyVaultBaseAddress]!), new ManagedIdentityCredential(configuration[ManagedIdentityClientId])), new KeyVaultSecretManager());
             this.Configuration = builder.Build();
 
         }
@@ -69,7 +82,13 @@ namespace CRM.ICon.Modality
             services.Configure<OmnichannelConfiguration>(this.Configuration.GetSection("OmnichannelConfiguration"));
             services.Configure<Dictionary<string, WidgetDetails>>(this.Configuration.GetSection("WidgetDetails"));
             services.Configure<Dictionary<string, string>>(this.Configuration.GetSection("SkillCharacteristicConfiguration"));
+            services.Configure<Configuration.TelemetryConfiguration>(Configuration.GetSection(Constants.TelemetryConfiguration));
+            services.Configure<Configuration.KeyVaultConfiguration>(Configuration.GetSection(Constants.KeyVaultConfiguration));
 
+            var applicationInsightsServiceOptions = new Microsoft.ApplicationInsights.AspNetCore.Extensions.ApplicationInsightsServiceOptions();
+            applicationInsightsServiceOptions.ConnectionString = Configuration.GetSection(Constants.TelemetryConfiguration).GetValue<string>(Constants.ApplicationInsightsConnectionString);
+            services.AddApplicationInsightsTelemetry(applicationInsightsServiceOptions);
+            
             services.AddControllers();
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen();
@@ -101,6 +120,11 @@ namespace CRM.ICon.Modality
                 TenantId = options.TenantId,
                 OrgId = options.OrgId,
             });
+
+            services.AddSingleton<ITelemetryService, TelemetryService>();
+            services.AddSingleton<ITelemetryRepository, TelemetryRepository>();
+            services.AddSingleton<ITelemetryProvider, ApplicationInsightsLogProvider>();
+            services.AddSingleton<IHttpContextHandler, HttpContextHandler>();
         }
     }
 }

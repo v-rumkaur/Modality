@@ -1,4 +1,6 @@
-﻿using CRM.ICon.Modality.Model;
+﻿using CRM.ICon.Modality.Helpers;
+using CRM.ICon.Modality.Helpers.Telemetry;
+using CRM.ICon.Modality.Model;
 using CRM.ICon.Modality.Services.VDM;
 using Microsoft.Extensions.Options;
 
@@ -10,17 +12,23 @@ namespace CRM.ICon.Modality.Services.Omnichannel
         private readonly OmnichannelConfiguration omnichannelConfiguration;
         private readonly Dictionary<string, WidgetDetails> widgetConfiguration;
         private readonly Dictionary<string, string> skillcharacteristicConfiguration;
+        private readonly ITelemetryService _telemetryService;
 
-        public OmnichannelService(HttpClient httpClient, IOptions<OmnichannelConfiguration> options, IOptions<Dictionary<string, WidgetDetails>> widgetConfiguration, IOptions<Dictionary<string, string>> skillcharacteristicConfiguration)
+        public OmnichannelService(HttpClient httpClient, IOptions<OmnichannelConfiguration> options, 
+            IOptions<Dictionary<string, WidgetDetails>> widgetConfiguration, 
+            IOptions<Dictionary<string, string>> skillcharacteristicConfiguration,
+            ITelemetryService telemetryService)
         {
             this.httpClient = httpClient;
             this.omnichannelConfiguration = options.Value;
             this.widgetConfiguration = widgetConfiguration.Value;
             this.skillcharacteristicConfiguration = skillcharacteristicConfiguration.Value;
+            this._telemetryService = telemetryService;
         }
 
         public async Task<OmnichannelResponse> GetAgentAvailability(OmnichannelRequest request)
         {
+            var logProperties = ModalityExtensions.GetRequestProperties();
             try
             {
                 var tracingId = Guid.NewGuid().ToString();
@@ -31,8 +39,9 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                 var deserializedResponse = await response.Content.ReadFromJsonAsync<OmnichannelResponse>();
                 return deserializedResponse;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
+                _telemetryService.LogException<OmnichannelService>(exception, null, "GetAgentAvailability Failure");
                 return null;
             }
         }
@@ -40,8 +49,12 @@ namespace CRM.ICon.Modality.Services.Omnichannel
         public WidgetDetails GetWidgetDetails(string language)
         {
             widgetConfiguration.TryGetValue(language, out WidgetDetails widgetDetails);
-            widgetDetails.OrgUrl = omnichannelConfiguration.OrgUrl;
-            widgetDetails.OrgId = omnichannelConfiguration.OrgId;
+            if (widgetDetails != null)
+            {
+                widgetDetails.OrgUrl = omnichannelConfiguration.OrgUrl;
+                widgetDetails.OrgId = omnichannelConfiguration.OrgId;
+            }
+ 
             return widgetDetails;
         }
 
