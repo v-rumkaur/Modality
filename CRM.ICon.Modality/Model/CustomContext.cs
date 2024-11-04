@@ -7,5 +7,7 @@
 
         public EnrichRoutingContext EnrichRoutingContext { get; set; }
 
+        public ACE ACE { get; set; }
+
     }
 }

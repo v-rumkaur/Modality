@@ -11,8 +11,10 @@ namespace CRM.ICon.Modality
         private readonly string tenantId;
         private readonly string OrgId;
         private readonly string managedIdentityClientId;
+        private readonly string certificateSubjectName;
+        private readonly string dfmTenantId;
 
-        public ServiceAuthHandler(AuthTokenClient tokenClient, string clientId, string managedIdentityClientId, string resource, string tenantId, string OrgId)
+        public ServiceAuthHandler(AuthTokenClient tokenClient, string clientId, string managedIdentityClientId, string resource, string tenantId, string OrgId, string certificateSubjectName, string dfmTenantId)
         {
             this.tokenClient = tokenClient;
             this.clientId = clientId;
@@ -20,14 +22,26 @@ namespace CRM.ICon.Modality
             this.resource = resource;
             this.tenantId = tenantId;
             this.OrgId = OrgId;
+            this.certificateSubjectName = certificateSubjectName;
+            this.dfmTenantId = dfmTenantId;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            // TokenClient does caching internally
-            var token = await tokenClient.GetToken(clientId, managedIdentityClientId, resource, tenantId);
+            string token = "";
+            if (string.IsNullOrEmpty(OrgId))
+            {
+                token = await tokenClient.GetToken(clientId, managedIdentityClientId, resource, tenantId);
+            }
+            else
+            {
+                token = await tokenClient.GetTokenWithCertAsync(clientId, certificateSubjectName, resource, tenantId);
+                request.Headers.Add("OrganizationId", OrgId);
+                request.Headers.Add("TenantId", dfmTenantId);
+            }
+       
             request.Headers.Add("Authorization", $"Bearer {token}");
-            request.Headers.Add("OrganizationId", OrgId);
+            
             return await base.SendAsync(request, cancellationToken);
         }
     }
@@ -39,6 +53,8 @@ namespace CRM.ICon.Modality
         public string? TenantId;
         public string? OrgId;
         public string? Resource;
+        public string? clientCertSubjectName;
+        public string? DFMTenantId;
     }
 
     public static class ServiceAuthHandlerExtension
@@ -56,7 +72,9 @@ namespace CRM.ICon.Modality
                     p.ManagedIdentityClientId ?? authConfig.ManagedIdentityClientId,
                     p.Resource ?? "",
                     p.TenantId ?? authConfig.TenantId,
-                    p.OrgId ?? ""
+                    p.OrgId ?? "",
+                    p.clientCertSubjectName ?? authConfig.ClientCertSubjectName,
+                    p.DFMTenantId ?? ""
                 );
             });
         }

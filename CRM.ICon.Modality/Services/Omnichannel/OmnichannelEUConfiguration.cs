@@ -1,6 +1,6 @@
 ﻿namespace CRM.ICon.Modality.Services.Omnichannel
 {
-    public class OmnichannelConfiguration
+    public class OmnichannelEUConfiguration
     {
         /// <summary>
         /// Gets or sets the VDMServiceEndpoint

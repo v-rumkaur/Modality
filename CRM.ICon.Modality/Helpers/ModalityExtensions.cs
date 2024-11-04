@@ -36,6 +36,21 @@ namespace CRM.ICon.Modality.Helpers
         }
 
         /// <summary>
+        /// Adds object to dictionary as string
+        /// </summary>
+        /// <param name="properties">Dictionary to add</param>
+        /// <param name="key">Key</param>
+        /// <param name="value">Value</param>
+        /// <returns>Dictionary with added value</returns>
+        public static Dictionary<string, string> AddObjectAsString<T>(this Dictionary<string, string> properties, string key, T value)
+        {
+            properties ??= new Dictionary<string, string>();
+            string objectString = value == null ? string.Empty : typeof(T) == typeof(string) ? value.ToString() : JsonConvert.SerializeObject(value);
+            properties[key] = objectString;
+            return properties;
+        }
+
+        /// <summary>
         /// Gets the singleton telemetry provider instance
         /// </summary>
         /// <param name="logServiceToUse">Log service to use</param>

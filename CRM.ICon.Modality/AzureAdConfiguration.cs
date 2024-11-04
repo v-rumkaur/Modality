@@ -17,6 +17,11 @@
         /// </summary>
         public string ManagedIdentityClientId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the Client cert name
+        /// </summary>
+        public string? ClientCertSubjectName { get; set; } = string.Empty;
+
         public string?  Instance { get; set; }
         public string OAuthVersion { get; set; }
     }

@@ -1,8 +1,10 @@
 ﻿namespace CRM.ICon.Modality.Model
 {
-    public class EnrichRoutingContext
+    public class ACE
     {
-        public Skills value { get; set; }
+        public string value { get; set; }
         public bool isDisplayable { get; set; }
+
     }
 }
+

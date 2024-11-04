@@ -2,6 +2,6 @@
 {
     public interface IVDMService
     {
-        Task<VDMResponse> GetVDMSkill(VDMRequest request);
+        Task<VDMResponse> GetVDMSkill(VDMRequest request, string requestId);
     }
 }

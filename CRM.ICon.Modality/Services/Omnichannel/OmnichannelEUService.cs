@@ -11,17 +11,17 @@ using System.Text.Json;
 
 namespace CRM.ICon.Modality.Services.Omnichannel
 {
-    public class OmnichannelService : IOmnichannelService
+    public class OmnichannelEUService : IOmnichannelEUService
     {
         private readonly HttpClient httpClient;
-        private readonly OmnichannelConfiguration omnichannelConfiguration;
+        private readonly OmnichannelEUConfiguration omnichannelConfiguration;
         private readonly Dictionary<string, WidgetDetails> widgetConfiguration;
         private readonly Dictionary<string, string> skillcharacteristicConfiguration;
         private readonly ITelemetryService _telemetryService;
         private readonly Dictionary<string, WorkstreamDetails> workstreamConfiguration;
 
-        public OmnichannelService(HttpClient httpClient, IOptions<OmnichannelConfiguration> options, 
-            IOptions<Dictionary<string, WidgetDetails>> widgetConfiguration, 
+        public OmnichannelEUService(HttpClient httpClient, IOptions<OmnichannelEUConfiguration> options,
+            IOptions<Dictionary<string, WidgetDetails>> widgetConfiguration,
             IOptions<Dictionary<string, string>> skillcharacteristicConfiguration,
             ITelemetryService telemetryService, IOptions<Dictionary<string, WorkstreamDetails>> workstreamConfiguration)
         {
@@ -42,8 +42,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                 var tracingId = Guid.NewGuid().ToString();
                 string workstreamKey = (source + "-" + userType).ToLowerInvariant();
                 workstreamConfiguration.TryGetValue(workstreamKey, out WorkstreamDetails workstreamDetails);
-                
-                var agentAvailabilityUrl = omnichannelConfiguration.ServiceEndpoint + "/c2q/v1.0/getagentavailabilitypublic/" + workstreamDetails?.WorkstreamId + "/" + tracingId;
+                var agentAvailabilityUrl = this.omnichannelConfiguration.ServiceEndpoint + "/c2q/v1.0/getagentavailabilitypublic/" + workstreamDetails?.WorkstreamId + "/" + tracingId;
 
                 var options = new JsonSerializerOptions
                 {
@@ -51,7 +50,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                 };
                 var response = await httpClient.PostAsJsonAsync(agentAvailabilityUrl, request, options);
                 response.EnsureSuccessStatusCode();
-                
+
                 var deserializedResponse = await response.Content.ReadFromJsonAsync<OmnichannelResponse>();
                 return deserializedResponse;
             }
@@ -69,19 +68,19 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                 userType = "commercial"; //default value is commercial
             }
             string widgetkey = (source + "-" + language + "-" + userType).ToLowerInvariant();
-            if (widgetConfiguration.TryGetValue(widgetkey , out WidgetDetails widgetDetails))
+            if (widgetConfiguration.TryGetValue(widgetkey, out WidgetDetails widgetDetails))
             {
                 
-                widgetDetails.OrgUrl = omnichannelConfiguration != null ? omnichannelConfiguration.OrgUrl : null;
-                widgetDetails.OrgId = omnichannelConfiguration != null ? omnichannelConfiguration.OrgId : null;
+                widgetDetails.OrgUrl = this.omnichannelConfiguration != null ? omnichannelConfiguration.OrgUrl : null;
+                widgetDetails.OrgId = this.omnichannelConfiguration != null ? omnichannelConfiguration.OrgId : null;
             }
- 
+
             return widgetDetails;
         }
 
         public string GetSkillCharacteristicId(string skill)
         {
-            skillcharacteristicConfiguration.TryGetValue(skill,out string characteristicid);
+            skillcharacteristicConfiguration.TryGetValue(skill, out string characteristicid);
             return characteristicid;
         }
     }

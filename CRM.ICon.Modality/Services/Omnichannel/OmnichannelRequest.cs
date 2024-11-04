@@ -4,6 +4,6 @@ namespace CRM.ICon.Modality.Services.Omnichannel
 {
     public class OmnichannelRequest
     {
-        public CustomContext customContext { get; set; }
+        public CustomContext CustomContext { get; set; }
     }
 }

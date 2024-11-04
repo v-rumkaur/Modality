@@ -4,10 +4,10 @@ namespace CRM.ICon.Modality.Services.Omnichannel
 {
     public interface IOmnichannelService
     {
-        Task<OmnichannelResponse> GetAgentAvailability(OmnichannelRequest request);
+        Task<OmnichannelResponse> GetAgentAvailability(OmnichannelRequest request, string source, string userType, string requestId);
 
-        WidgetDetails GetWidgetDetails(string language);
+        WidgetDetails GetWidgetDetails(string language, string source, string userType);
 
-        string GetSkillCharacteristicId(string skill);
+        public string GetSkillCharacteristicId(string skill);
     }
 }

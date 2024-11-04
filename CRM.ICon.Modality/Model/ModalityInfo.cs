@@ -3,7 +3,7 @@
     public class ModalityInfo
     {
         public int Modality { get; set; }
-        public int WaitTime { get; set; }
+        public string WaitTime { get; set; }
         public bool IsAgentAvailable { get; set; }
 
         public bool InHoops { get; set; }
