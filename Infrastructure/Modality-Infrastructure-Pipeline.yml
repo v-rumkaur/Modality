@@ -31,6 +31,7 @@ resources:
     ref: refs/heads/main
 
 extends:
+  # TODO Update OneBranch template to official version -- using non-official for testing of local branches
   #template: v2/OneBranch.Official.CrossPlat.yml@templates  # https://aka.ms/obpipelines/templates
   template: v2/OneBranch.NonOfficial.CrossPlat.yml@templates  # https://aka.ms/obpipelines/templates
   parameters:
@@ -45,188 +46,8 @@ extends:
         break: true  # always break the build on policheck issues.
     stages:
     # Deploy infrastructure to Dev environment
-    # - stage: NonProd_Deploy_DEV_Infra
-    #   displayName: "Deploy DEV Infrastructure"
-    #   jobs:
-    #   - job: Deploy_Infra_Common
-    #     displayName: "Deploy Common Infrastructure"
-    #     pool:
-    #       type: windows
-    #     variables:
-    #       ob_outputDirectory: '$(OUTPUTROOT)'
-    #     steps:
-    #     - task: PowerShell@2
-    #       displayName: 'Install Az.Accounts Module'
-    #       inputs:
-    #         targetType: 'inline'
-    #         script: |
-    #           Get-PackageProvider -Name NuGet -ForceBootstrap
-    #           Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-    #           Uninstall-AzureRm -Verbose
-    #     - task: AzurePowerShell@4
-    #       displayName: "Run Infrastructure Deployment Script"
-    #       inputs:
-    #         azureSubscription: "$(ServiceConnection_Dev)"
-    #         ScriptType: InlineScript
-    #         Inline: |
-    #           cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-    #           ./deploy_dev.ps1
-    #         azurePowerShellVersion: LatestVersion
-    #         workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
-
-    #   - job: Deploy_Infra_WestUS
-    #     displayName: "Deploy West US"
-    #     pool:
-    #       type: windows
-    #     variables:
-    #       ob_outputDirectory: '$(OUTPUTROOT)'
-    #     dependsOn: Deploy_Infra_Common
-    #     steps:
-    #     - task: PowerShell@2
-    #       displayName: 'Install Az.Accounts Module'
-    #       inputs:
-    #         targetType: 'inline'
-    #         script: |
-    #           Get-PackageProvider -Name NuGet -ForceBootstrap
-    #           Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-    #           Uninstall-AzureRm -Verbose
-    #     - task: AzurePowerShell@4
-    #       displayName: "Run Infrastructure Deployment Script"
-    #       inputs:
-    #         azureSubscription: "$(ServiceConnection_Dev)"
-    #         ScriptType: InlineScript
-    #         Inline: |
-    #           cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-    #           ./deploy_dev_region.ps1 `
-    #           -Location                         "westus" `
-    #           -ResourceSuffix                   "-wus" `
-    #           -RegionIPSegment                  "1"
-    #         azurePowerShellVersion: LatestVersion
-    #         workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
-
-    #   - job: Deploy_Infra_EastUS
-    #     displayName: "Deploy East US"
-    #     pool:
-    #       type: windows
-    #     variables:
-    #       ob_outputDirectory: '$(OUTPUTROOT)'
-    #     dependsOn: Deploy_Infra_Common
-    #     steps:
-    #     - task: PowerShell@2
-    #       displayName: 'Install Az.Accounts Module'
-    #       inputs:
-    #         targetType: 'inline'
-    #         script: |
-    #           Get-PackageProvider -Name NuGet -ForceBootstrap
-    #           Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-    #           Uninstall-AzureRm -Verbose
-    #     - task: AzurePowerShell@4
-    #       displayName: "Run Infrastructure Deployment Script"
-    #       inputs:
-    #         azureSubscription: "$(ServiceConnection_Dev)"
-    #         ScriptType: InlineScript
-    #         Inline: |
-    #           cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-    #           ./deploy_dev_region.ps1 `
-    #           -Location                         "eastus" `
-    #           -ResourceSuffix                   "-eus" `
-    #           -RegionIPSegment                  "2"
-    #         azurePowerShellVersion: LatestVersion
-    #         workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
-
-    #   - job: Deploy_Infra_WestEurope
-    #     displayName: "Deploy West Europe"
-    #     pool:
-    #       type: windows
-    #     variables:
-    #       ob_outputDirectory: '$(OUTPUTROOT)'
-    #     dependsOn: Deploy_Infra_Common
-    #     steps:
-    #     - task: PowerShell@2
-    #       displayName: 'Install Az.Accounts Module'
-    #       inputs:
-    #         targetType: 'inline'
-    #         script: |
-    #           Get-PackageProvider -Name NuGet -ForceBootstrap
-    #           Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-    #           Uninstall-AzureRm -Verbose
-    #     - task: AzurePowerShell@4
-    #       displayName: "Run Infrastructure Deployment Script"
-    #       inputs:
-    #         azureSubscription: "$(ServiceConnection_Dev)"
-    #         ScriptType: InlineScript
-    #         Inline: |
-    #           cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-    #           ./deploy_dev_region.ps1 `
-    #           -Location                         "westeurope" `
-    #           -ResourceSuffix                   "-weu" `
-    #           -RegionIPSegment                  "3"
-    #         azurePowerShellVersion: LatestVersion
-    #         workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
-
-    #   - job: Deploy_Infra_NorthEurope
-    #     displayName: "Deploy North Europe"
-    #     pool:
-    #       type: windows
-    #     variables:
-    #       ob_outputDirectory: '$(OUTPUTROOT)'
-    #     dependsOn: Deploy_Infra_Common
-    #     steps:
-    #     - task: PowerShell@2
-    #       displayName: 'Install Az.Accounts Module'
-    #       inputs:
-    #         targetType: 'inline'
-    #         script: |
-    #           Get-PackageProvider -Name NuGet -ForceBootstrap
-    #           Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-    #           Uninstall-AzureRm -Verbose
-    #     - task: AzurePowerShell@4
-    #       displayName: "Run Infrastructure Deployment Script"
-    #       inputs:
-    #         azureSubscription: "$(ServiceConnection_Dev)"
-    #         ScriptType: InlineScript
-    #         Inline: |
-    #           cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-    #           ./deploy_dev_region.ps1 `
-    #           -Location                         "northeurope" `
-    #           -ResourceSuffix                   "-neu" `
-    #           -RegionIPSegment                  "4"
-    #         azurePowerShellVersion: LatestVersion
-    #         workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
-
-    #   - job: Deploy_Infra_SoutheastAsia
-    #     displayName: "Deploy Southeast Asia"
-    #     pool:
-    #       type: windows
-    #     variables:
-    #       ob_outputDirectory: '$(OUTPUTROOT)'
-    #     dependsOn: Deploy_Infra_Common
-    #     steps:
-    #     - task: PowerShell@2
-    #       displayName: 'Install Az.Accounts Module'
-    #       inputs:
-    #         targetType: 'inline'
-    #         script: |
-    #           Get-PackageProvider -Name NuGet -ForceBootstrap
-    #           Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-    #           Uninstall-AzureRm -Verbose
-    #     - task: AzurePowerShell@4
-    #       displayName: "Run Infrastructure Deployment Script"
-    #       inputs:
-    #         azureSubscription: "$(ServiceConnection_Dev)"
-    #         ScriptType: InlineScript
-    #         Inline: |
-    #           cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-    #           ./deploy_dev_region.ps1 `
-    #           -Location                         "southeastasia" `
-    #           -ResourceSuffix                   "-sea" `
-    #           -RegionIPSegment                  "5"
-    #         azurePowerShellVersion: LatestVersion
-    #         workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
-
-    # Deploy infrastructure to PPE environment
-    - stage: NonProd_Deploy_PPE_Infra
-      displayName: "Deploy PPE Infrastructure"
+    - stage: NonProd_Deploy_DEV_Infra
+      displayName: "Deploy DEV Infrastructure"
       jobs:
       - job: Deploy_Infra_Common
         displayName: "Deploy Common Infrastructure"
@@ -246,11 +67,11 @@ extends:
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
-            azureSubscription: "$(ServiceConnection_Dev)"
+            azureSubscription: "$(ServiceConnection_DEV)"
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_ppe.ps1
+              ./deploy_dev.ps1
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -273,13 +94,13 @@ extends:
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
-            azureSubscription: "$(ServiceConnection_Dev)"
+            azureSubscription: "$(ServiceConnection_DEV)"
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_ppe_region.ps1 `
+              ./deploy_dev_region.ps1 `
               -Location                         "westus" `
-              -ResourceSuffix                   "-ppe-wus" `
+              -ResourceSuffix                   "-dev-wus" `
               -RegionIPSegment                  "1"
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
@@ -303,13 +124,13 @@ extends:
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
-            azureSubscription: "$(ServiceConnection_Dev)"
+            azureSubscription: "$(ServiceConnection_DEV)"
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_ppe_region.ps1 `
+              ./deploy_dev_region.ps1 `
               -Location                         "eastus" `
-              -ResourceSuffix                   "-ppe-eus" `
+              -ResourceSuffix                   "-dev-eus" `
               -RegionIPSegment                  "2"
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
@@ -333,13 +154,13 @@ extends:
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
-            azureSubscription: "$(ServiceConnection_Dev)"
+            azureSubscription: "$(ServiceConnection_DEV)"
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_ppe_region.ps1 `
+              ./deploy_dev_region.ps1 `
               -Location                         "westeurope" `
-              -ResourceSuffix                   "-ppe-weu" `
+              -ResourceSuffix                   "-dev-weu" `
               -RegionIPSegment                  "3"
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
@@ -363,13 +184,13 @@ extends:
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
-            azureSubscription: "$(ServiceConnection_Dev)"
+            azureSubscription: "$(ServiceConnection_DEV)"
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_ppe_region.ps1 `
+              ./deploy_dev_region.ps1 `
               -Location                         "northeurope" `
-              -ResourceSuffix                   "-ppe-neu" `
+              -ResourceSuffix                   "-dev-neu" `
               -RegionIPSegment                  "4"
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
@@ -393,13 +214,772 @@ extends:
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
-            azureSubscription: "$(ServiceConnection_Dev)"
+            azureSubscription: "$(ServiceConnection_DEV)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_dev_region.ps1 `
+              -Location                         "southeastasia" `
+              -ResourceSuffix                   "-dev-sea" `
+              -RegionIPSegment                  "5"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+    # Deploy infrastructure to INT environment
+    - stage: NonProd_Deploy_INT_Infra
+      displayName: "Deploy INT Infrastructure"
+      dependsOn: NonProd_Deploy_DEV_Infra
+      jobs:
+      - job: Manual_Approval_Common
+        displayName: "Approve Deployment of Common INT Infrastructure"
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_Common
+        displayName: "Deploy Common Infrastructure"
+        dependsOn: Manual_Approval_Common
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_int.ps1
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestUS
+        displayName: "Approve Deployment to West US INT"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestUS
+        displayName: "Deploy West US"
+        dependsOn: Manual_Approval_WestUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_int_region.ps1 `
+              -Location                         "westus" `
+              -ResourceSuffix                   "-int-wus" `
+              -RegionIPSegment                  "1"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_EastUS
+        displayName: "Approve Deployment to East US INT"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_EastUS
+        displayName: "Deploy East US"
+        dependsOn: Manual_Approval_EastUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_int_region.ps1 `
+              -Location                         "eastus" `
+              -ResourceSuffix                   "-int-eus" `
+              -RegionIPSegment                  "2"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestEurope
+        displayName: "Approve Deployment to West Europe INT"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestEurope
+        displayName: "Deploy West Europe"
+        dependsOn: Manual_Approval_WestEurope
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_int_region.ps1 `
+              -Location                         "westeurope" `
+              -ResourceSuffix                   "-int-weu" `
+              -RegionIPSegment                  "3"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_NorthEurope
+        displayName: "Approve Deployment to North Europe INT"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_NorthEurope
+        displayName: "Deploy North Europe"
+        dependsOn: Manual_Approval_NorthEurope
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_int_region.ps1 `
+              -Location                         "northeurope" `
+              -ResourceSuffix                   "-int-neu" `
+              -RegionIPSegment                  "4"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_SoutheastAsia
+        displayName: "Approve Deployment to Southeast Asia INT"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_SoutheastAsia
+        displayName: "Deploy Southeast Asia"
+        dependsOn: Manual_Approval_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_int_region.ps1 `
+              -Location                         "southeastasia" `
+              -ResourceSuffix                   "-int-sea" `
+              -RegionIPSegment                  "5"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+    # Deploy infrastructure to PPE environment
+    - stage: NonProd_Deploy_PPE_Infra
+      displayName: "Deploy PPE Infrastructure"
+      dependsOn: NonProd_Deploy_INT_Infra
+      jobs:
+      - job: Manual_Approval_Common
+        displayName: "Approve Deployment of Common PPE Infrastructure"
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_Common
+        displayName: "Deploy Common Infrastructure"
+        dependsOn: Manual_Approval_Common
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe.ps1
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestUS
+        displayName: "Approve Deployment to West US PPE"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestUS
+        displayName: "Deploy West US"
+        dependsOn: Manual_Approval_WestUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe_region.ps1 `
+              -Location                         "westus" `
+              -ResourceSuffix                   "-ppe-wus" `
+              -RegionIPSegment                  "1"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_EastUS
+        displayName: "Approve Deployment to East US PPE"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_EastUS
+        displayName: "Deploy East US"
+        dependsOn: Manual_Approval_EastUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe_region.ps1 `
+              -Location                         "eastus" `
+              -ResourceSuffix                   "-ppe-eus" `
+              -RegionIPSegment                  "2"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestEurope
+        displayName: "Approve Deployment to West Europe PPE"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestEurope
+        displayName: "Deploy West Europe"
+        dependsOn: Manual_Approval_WestEurope
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe_region.ps1 `
+              -Location                         "westeurope" `
+              -ResourceSuffix                   "-ppe-weu" `
+              -RegionIPSegment                  "3"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_NorthEurope
+        displayName: "Approve Deployment to North Europe PPE"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_NorthEurope
+        displayName: "Deploy North Europe"
+        dependsOn: Manual_Approval_NorthEurope
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe_region.ps1 `
+              -Location                         "northeurope" `
+              -ResourceSuffix                   "-ppe-neu" `
+              -RegionIPSegment                  "4"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_SoutheastAsia
+        displayName: "Approve Deployment to Southeast Asia PPE"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_SoutheastAsia
+        displayName: "Deploy Southeast Asia"
+        dependsOn: Manual_Approval_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
               ./deploy_ppe_region.ps1 `
               -Location                         "southeastasia" `
               -ResourceSuffix                   "-ppe-sea" `
+              -RegionIPSegment                  "5"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+    # Deploy infrastructure to PROD environment
+    - stage: NonProd_Deploy_PROD_Infra
+      displayName: "Deploy PROD Infrastructure"
+      dependsOn: NonProd_Deploy_PPE_Infra
+      jobs:
+      - job: Manual_Approval_Common
+        displayName: "Approve Deployment of Common Prod Infrastructure"
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_Common
+        displayName: "Deploy Common Infrastructure"
+        dependsOn: Manual_Approval_Common
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod.ps1
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestUS
+        displayName: "Approve Deployment to West US Prod"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestUS
+        displayName: "Deploy West US"
+        dependsOn: Manual_Approval_WestUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod_region.ps1 `
+              -Location                         "westus" `
+              -ResourceSuffix                   "-prod-wus" `
+              -RegionIPSegment                  "1"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_EastUS
+        displayName: "Approve Deployment to East US Prod"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_EastUS
+        displayName: "Deploy East US"
+        dependsOn: Manual_Approval_EastUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod_region.ps1 `
+              -Location                         "eastus" `
+              -ResourceSuffix                   "-prod-eus" `
+              -RegionIPSegment                  "2"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestEurope
+        displayName: "Approve Deployment to West Europe Prod"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestEurope
+        displayName: "Deploy West Europe"
+        dependsOn: Manual_Approval_WestEurope
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod_region.ps1 `
+              -Location                         "westeurope" `
+              -ResourceSuffix                   "-prod-weu" `
+              -RegionIPSegment                  "3"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_NorthEurope
+        displayName: "Approve Deployment to North Europe Prod"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_NorthEurope
+        displayName: "Deploy North Europe"
+        dependsOn: Manual_Approval_NorthEurope
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod_region.ps1 `
+              -Location                         "northeurope" `
+              -ResourceSuffix                   "-prod-neu" `
+              -RegionIPSegment                  "4"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_SoutheastAsia
+        displayName: "Approve Deployment to Southeast Asia Prod"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_SoutheastAsia
+        displayName: "Deploy Southeast Asia"
+        dependsOn: Manual_Approval_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod_region.ps1 `
+              -Location                         "southeastasia" `
+              -ResourceSuffix                   "-prod-sea" `
               -RegionIPSegment                  "5"
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"

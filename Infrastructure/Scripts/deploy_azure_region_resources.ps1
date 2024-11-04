@@ -9,7 +9,7 @@ param(
         [String]         $ResourceSuffix,                 # Suffix of all resources used to indicate their Azure region.
         [String]         $GlobalResourceGroupName,        # Name of the resource group where global resources are deployed.
         [String]         $GlobalResourceSuffix,           # Suffix of resources that are shared across all regions.
-        [String]         $GlobalIdentitySuffix,           # Suffix global MSI. Needed due to legacy naming convention mismatch.
+        [String]         $GlobalIdentitySuffix,           # Suffix for global MSI. Needed due to legacy naming convention mismatch.
         [int]            $RegionIPSegment                 # Space to put IPs for resources in this region (ex. 10.{0}.0.0, where {0} is this segment).  Each region needs to be unique.
 )
 
@@ -81,6 +81,7 @@ New-AzResourceGroupDeployment `
     -ResourceSuffix $ResourceSuffix `
     -GlobalResourceGroupName $GlobalResourceGroupName `
     -GlobalResourceSuffix $GlobalResourceSuffix `
-    -GlobalIdentitySuffix $GlobalIdentitySuffix
+    -GlobalIdentitySuffix $GlobalIdentitySuffix `
+    -Instance $Instance
 
 Write-Host "Azure Infrastructure deployment completed!"

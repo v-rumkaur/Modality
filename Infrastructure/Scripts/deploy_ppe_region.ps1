@@ -7,11 +7,11 @@ param (
 $SubscriptionName                  = "SxGICon_OneChat_RD"
 $ResourceGroupName                 = "modalityservice-rg${ResourceSuffix}"
 $Environment                       = "Pre-Production"
-$Instance                          = "Development"
+$Instance                          = "ppe"
 $ComponentId                       = "e982eb41-6f74-4863-a475-2f1ecf15a166"
 $ResourcePrefix                    = "modalityservice"
 $GlobalResourceGroupName           = "modalityservice-rg-managedidentity-ppe-global"
-$GlobalResourceSuffix              = "-ppe" # Global resources have no location part of suffix.
+$GlobalResourceSuffix              = "-ppe" # Global resources have no location in suffix.
 $GlobalIdentitySuffix              = "-ppe-wus" # Needed to reference global MSI due to legacy naming convention mismatch
 
 .\deploy_azure_region_resources.ps1 `

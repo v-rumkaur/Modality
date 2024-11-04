@@ -29,6 +29,10 @@
         "GlobalIdentitySuffix": {
           "type": "string",
           "defaultValue": ""
+        },
+        "Instance": {
+          "type": "string",
+          "defaultValue": "dev"
         }
     },
     "variables": {
@@ -103,7 +107,7 @@
                     },
                     {
                       "name": "ASPNETCORE_ENVIRONMENT",
-                      "value": "Development"
+                      "value": "[parameters('Instance')]"
                     },
                     {
                       "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
@@ -249,7 +253,7 @@
                         "description": "Deny all access"
                     }
                 ],
-                "ipSecurityRestrictionsDefaultAction": "Deny",
+                "ipSecurityRestrictionsDefaultAction": "Allow",
                 "scmIpSecurityRestrictions": [
                     {
                         "ipAddress": "Any",

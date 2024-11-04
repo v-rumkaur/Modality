@@ -8,6 +8,7 @@ param(
         [String]           $ResourcePrefix,                     # Prefix of all resources used to indicate their environment.
         [String]           $ResourceSuffix,                     # Suffix of all resources used to indicate their Azure region.
         [String]           $GlobalResourceSuffix,               # Suffix of resources that are shared across all regions.
+        [String]           $GlobalIdentitySuffix,               # Suffix for global MSI. Needed due to legacy naming convention mismatch.
         [String]           $AzureAdTenantId                     # Tenant of the service identity used by services. This is the id of the home tenant.
 )
 
@@ -33,7 +34,7 @@ $ManagedIdentityModality = New-AzResourceGroupDeployment `
         -Environment $Environment `
         -ComponentId $ComponentId `
         -ResourcePrefix $ResourcePrefix `
-        -ResourceSuffix $GlobalResourceSuffix
+        -ResourceSuffix $GlobalIdentitySuffix
 $ManagedIdentityModality
 
 Write-Host "Setting up shared Log Analytics Workspace"
@@ -69,19 +70,24 @@ New-AzResourceGroupDeployment `
     -ResourcePrefix $ResourcePrefix `
     -ResourceSuffix $GlobalResourceSuffix `
     -GlobalResourceSuffix $GlobalResourceSuffix `
+    -GlobalIdentitySuffix $GlobalIdentitySuffix `
     -AzureAdTenantId $AzureAdTenantId
 
 $WafCustomRulesFilePath = ""
 switch ($Instance) {
-    "Development" {
+    "dev" {
         $WafCustomRulesFilePath = "../Templates/resources/waf_rules_dev.json";
         break
     }
-    "Staging" {
+    "int" {
+        $WafCustomRulesFilePath = "../Templates/resources/waf_rules_int.json";
+        break
+    }
+    "ppe" {
         $WafCustomRulesFilePath = "../Templates/resources/waf_rules_ppe.json";
         break
     }
-    "Production" {
+    "prod" {
         $WafCustomRulesFilePath = "../Templates/resources/waf_rules_prod.json";
         break
     }

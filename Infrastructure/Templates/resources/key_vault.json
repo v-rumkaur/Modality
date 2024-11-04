@@ -22,6 +22,10 @@
             "type": "string",
             "defaultValue": ""
         },
+        "GlobalIdentitySuffix": {
+            "type": "string",
+            "defaultValue": ""
+        },
         "AzureAdTenantId": {
             "type": "string"
         }
@@ -29,7 +33,7 @@
   "variables": {
     "keyVaultName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'kv', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
     "logAnalyticsWorkspaceName": "[concat(parameters('ResourcePrefix'), '-loganalyticsw', parameters('GlobalResourceSuffix'))]",
-    "identityNamemodality": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('ResourceSuffix'))]"
+    "identityNamemodality": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('GlobalIdentitySuffix'))]"
   },
     "resources": [
         {
