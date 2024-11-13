@@ -2,6 +2,8 @@
 {
     public class SkillObject
     {
-        public string? characteristicId { get; set; }
+        public string? characteristicid { get; set; }
+
+        public string? ratingvalueid { get; set; }
     }
 }

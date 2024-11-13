@@ -1,4 +1,6 @@
-﻿namespace CRM.ICon.Modality
+﻿using System.Configuration;
+
+namespace CRM.ICon.Modality
 {
     public static class Constants
     {
@@ -9,5 +11,8 @@
  
         //Headers
         public const string Target = "x-msaas-target";
+
+        //RequestId
+        public const string RequestId = "RequestId";
     }
 }

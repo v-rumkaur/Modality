@@ -1,3 +1,4 @@
+using Azure.Core;
 using CRM.ICon.Modality.Helpers;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
@@ -5,6 +6,8 @@ using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using OpenTelemetry.Resources;
 using System.Data.Common;
 using System.Globalization;
 
@@ -43,6 +46,12 @@ namespace CRM.ICon.Modality.Controllers
             var locale = modalityRequest.Locale.ToLowerInvariant();
             var source = modalityRequest.Source.ToLowerInvariant();
             var userType = modalityRequest.UserType;
+            var requestId = modalityRequest.RequestId;
+
+            logProperties.AddObjectAsString("Source", source);
+            logProperties.AddObjectAsString("RequestId", modalityRequest.RequestId);
+
+            this._telemetryService.LogTrace<ModalityController>("GetAvailableModalities", logProperties);
 
             ModalityResponse modalityResponse = new ModalityResponse();
 
@@ -93,12 +102,11 @@ namespace CRM.ICon.Modality.Controllers
                 locale = "en-us";
             }
 
-            var requestId = modalityRequest.RequestId;
-
             var vdmResponse = await vdmService.GetVDMSkill(new VDMRequest { Text = supportTicketAttribute.Description, Boundary = "public", SapId = supportTicketAttribute.SapId, PredictionPurposes = "crmee_ml_skill_model" }, requestId);
 
             if (vdmResponse == null || vdmResponse.skillValue == null)
             {
+                //modalityResponse = GetModalityResponse(modalityResponse, languageCode, userType, supportTicketAttribute, locale, source);
                 this._telemetryService.LogTrace<ModalityController>("VDM response is null", logProperties);
                 // If VDM response is null, then chat modality and skills are not returned. 
                 return Ok(modalityResponse);
@@ -115,18 +123,18 @@ namespace CRM.ICon.Modality.Controllers
             //language characteristic 
             string languageCharacteristicId = omnichannelService.GetSkillCharacteristicId(languageCode);
             SkillObject languageSkillObject = new SkillObject();
-            languageSkillObject.characteristicId = languageCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("en"); ;
-
+            languageSkillObject.characteristicid = languageCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("en"); ;
+            //languageSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
             //region characteristic 
             string region = LocaleRegionalMapping.LocaleRegionalData[locale];
             string regionCharacteristicId = omnichannelService.GetSkillCharacteristicId(region ?? "Americas");
             SkillObject regionSkillObject = new SkillObject();
-            regionSkillObject.characteristicId = regionCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("Americas");
-
+            regionSkillObject.characteristicid = regionCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("Americas");
+            //regionSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
             //vdm characteristic
             SkillObject vdmSkillObject = new SkillObject();
-            vdmSkillObject.characteristicId = vdmResponse.skillValue;
-
+            vdmSkillObject.characteristicid = vdmResponse.skillValue;
+            //vdmSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
 
             List<SkillObject> skillObjects = new List<SkillObject>();
             skillObjects.Add(vdmSkillObject);
@@ -138,8 +146,8 @@ namespace CRM.ICon.Modality.Controllers
             skills.skills = skillObjects;
 
             CustomContext customContext = new CustomContext();
-            customContext.EnrichRoutingContext = new EnrichRoutingContext { value = skills, isDisplayable = true };
-            customContext.Entitlement = new ServiceLevel { value = supportTicketAttribute.EntitlementInformation?.ServiceLevel, isDisplayable = true };
+            customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills) , isDisplayable = true };
+            customContext.ServiceLevel = new ServiceLevel { value = supportTicketAttribute.EntitlementInformation?.ServiceLevel, isDisplayable = true };
             customContext.Skill = new Skill { value = vdmResponse.skillName, isDisplayable = true };
             customContext.ACE = new ACE { value = isACE.ToString(), isDisplayable = true };
             OmnichannelRequest omnichannelRequest = new OmnichannelRequest();
@@ -150,6 +158,7 @@ namespace CRM.ICon.Modality.Controllers
 
             if (omnichannelResponse == null)
             {
+                //modalityResponse = GetModalityResponse(modalityResponse, languageCode, userType, supportTicketAttribute, locale, source);
                 this._telemetryService.LogTrace<ModalityController>("Omnichannel response is null", logProperties);
                 return Ok(modalityResponse);
             }
@@ -160,12 +169,12 @@ namespace CRM.ICon.Modality.Controllers
             vdmSkill.SkillType = "Skill";
 
             SkillInfo languageSkill = new SkillInfo();
-            languageSkill.SkillValue = languageSkillObject.characteristicId;
+            languageSkill.SkillValue = languageSkillObject.characteristicid;
             languageSkill.SkillLabel = languageCode;
             languageSkill.SkillType = "Language";
 
             SkillInfo regionSkill = new SkillInfo();
-            regionSkill.SkillValue = regionSkillObject.characteristicId;
+            regionSkill.SkillValue = regionSkillObject.characteristicid;
             regionSkill.SkillLabel = region ?? "Americas";
             regionSkill.SkillType = "Region";
 
@@ -186,6 +195,8 @@ namespace CRM.ICon.Modality.Controllers
             modalityInfo.WidgetDetails = widgetDetails;
 
             skills.queueid = omnichannelResponse.QueueId;
+            //Adding queue id to enrich routing context
+            //customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills), isDisplayable = true };
             modalityInfo.CustomContext = customContext;
 
             (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfo);
@@ -242,6 +253,89 @@ namespace CRM.ICon.Modality.Controllers
                 widgetDetails.Theme = widgetRequest.Theme;
             }
             return widgetDetails;
+        }
+
+        private ModalityResponse GetModalityResponse(ModalityResponse modalityResponse, string languageCode, string userType, SupportTicketAttribute supportTicketAttribute, string locale, string source)
+        {
+            if (string.IsNullOrEmpty(userType))
+            {
+                userType = "commercial"; //default value is commercial
+            }
+            userType = userType.ToLowerInvariant();
+
+            var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
+
+            //language characteristic 
+            string languageCharacteristicId = omnichannelService.GetSkillCharacteristicId(languageCode);
+            SkillObject languageSkillObject = new SkillObject();
+            languageSkillObject.characteristicid = languageCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("en"); ;
+            //languageSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
+            //region characteristic 
+            string region = LocaleRegionalMapping.LocaleRegionalData[locale];
+            string regionCharacteristicId = omnichannelService.GetSkillCharacteristicId(region ?? "Americas");
+            SkillObject regionSkillObject = new SkillObject();
+            regionSkillObject.characteristicid = regionCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("Americas");
+            //regionSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
+            //vdm characteristic
+            SkillObject vdmSkillObject = new SkillObject();
+            vdmSkillObject.characteristicid = "8643644c-ed5d-ee11-8143-000d3af8897c";
+            //vdmSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
+
+            List<SkillObject> skillObjects = new List<SkillObject>();
+            skillObjects.Add(vdmSkillObject);
+            skillObjects.Add(languageSkillObject);
+            skillObjects.Add(regionSkillObject);
+
+            Skills skills = new Skills();
+
+            skills.skills = skillObjects;
+
+            CustomContext customContext = new CustomContext();
+            customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills), isDisplayable = true };
+            customContext.ServiceLevel = new ServiceLevel { value = supportTicketAttribute.EntitlementInformation?.ServiceLevel, isDisplayable = true };
+            customContext.Skill = new Skill { value = "Cust Eng: CIJ Administration", isDisplayable = true };
+            customContext.ACE = new ACE { value = "False", isDisplayable = true };
+            OmnichannelRequest omnichannelRequest = new OmnichannelRequest();
+
+            omnichannelRequest.CustomContext = customContext;
+
+            SkillInfo vdmSkill = new SkillInfo();
+            vdmSkill.SkillValue = "8643644c-ed5d-ee11-8143-000d3af8897c";
+            vdmSkill.SkillLabel = "Cust Eng: CIJ Administration";
+            vdmSkill.SkillType = "Skill";
+
+            SkillInfo languageSkill = new SkillInfo();
+            languageSkill.SkillValue = languageSkillObject.characteristicid;
+            languageSkill.SkillLabel = languageCode;
+            languageSkill.SkillType = "Language";
+
+            SkillInfo regionSkill = new SkillInfo();
+            regionSkill.SkillValue = regionSkillObject.characteristicid;
+            regionSkill.SkillLabel = region ?? "Americas";
+            regionSkill.SkillType = "Region";
+
+            (modalityResponse.Skills ??= new List<SkillInfo>()).Add(languageSkill);
+            modalityResponse.Skills.Add(vdmSkill);
+            modalityResponse.Skills.Add(regionSkill);
+
+            WidgetDetails widgetDetails = omnichannelService.GetWidgetDetails(languageCode, source, userType);
+
+            widgetDetails.Theme = "Light";
+
+            ModalityInfo modalityInfo = new ModalityInfo();
+            modalityInfo.Modality = 4;
+            modalityInfo.WaitTime = "0";
+            modalityInfo.IsAgentAvailable = true;
+            modalityInfo.InHoops = true;
+
+            modalityInfo.WidgetDetails = widgetDetails;
+
+            //Adding queue id to enrich routing context
+            //customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills), isDisplayable = true };
+            modalityInfo.CustomContext = customContext;
+
+            (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfo);
+            return modalityResponse;
         }
     }
 }

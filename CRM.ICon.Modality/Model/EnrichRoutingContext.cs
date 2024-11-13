@@ -2,7 +2,7 @@
 {
     public class EnrichRoutingContext
     {
-        public Skills value { get; set; }
+        public string value { get; set; }
         public bool isDisplayable { get; set; }
     }
 }

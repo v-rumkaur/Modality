@@ -77,7 +77,7 @@ namespace CRM.ICon.Modality
                             .WithCertificate(cert)
                             .Build();
 
-                var result = await app.AcquireTokenForClient(new[] { scope + "/.default" }).WithSendX5C(true).ExecuteAsync();
+                var result = await app.AcquireTokenForClient(new[] { scope + "/.default" }).WithSendX5C(true).ExecuteAsync();               
                 return result.AccessToken.ToString();
             }
             catch (Exception ex)
