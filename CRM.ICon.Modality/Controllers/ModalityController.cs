@@ -81,6 +81,12 @@ namespace CRM.ICon.Modality.Controllers
 
             SupportTicketAttribute supportTicketAttribute = modalityRequest.SupportTicketAttributes;
 
+            string country = modalityRequest.Country;
+            if (string.IsNullOrEmpty(country) || !CountryToRegionMapping.CountryToRegionData.ContainsKey(country))
+            {
+                country = "US";
+            }
+
             string languageCode = "en";
             try 
             { 
@@ -106,7 +112,7 @@ namespace CRM.ICon.Modality.Controllers
 
             if (vdmResponse == null || vdmResponse.skillValue == null)
             {
-                //modalityResponse = GetModalityResponse(modalityResponse, languageCode, userType, supportTicketAttribute, locale, source);
+                //modalityResponse = GetModalityResponse(modalityResponse, languageCode, userType, supportTicketAttribute, country, source);
                 this._telemetryService.LogTrace<ModalityController>("VDM response is null", logProperties);
                 // If VDM response is null, then chat modality and skills are not returned. 
                 return Ok(modalityResponse);
@@ -126,7 +132,7 @@ namespace CRM.ICon.Modality.Controllers
             languageSkillObject.characteristicid = languageCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("en"); ;
             //languageSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
             //region characteristic 
-            string region = LocaleRegionalMapping.LocaleRegionalData[locale];
+            string region = CountryToRegionMapping.CountryToRegionData[country];
             string regionCharacteristicId = omnichannelService.GetSkillCharacteristicId(region ?? "Americas");
             SkillObject regionSkillObject = new SkillObject();
             regionSkillObject.characteristicid = regionCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("Americas");
@@ -158,7 +164,7 @@ namespace CRM.ICon.Modality.Controllers
 
             if (omnichannelResponse == null)
             {
-                //modalityResponse = GetModalityResponse(modalityResponse, languageCode, userType, supportTicketAttribute, locale, source);
+                //modalityResponse = GetModalityResponse(modalityResponse, languageCode, userType, supportTicketAttribute, country, source);
                 this._telemetryService.LogTrace<ModalityController>("Omnichannel response is null", logProperties);
                 return Ok(modalityResponse);
             }
@@ -255,7 +261,7 @@ namespace CRM.ICon.Modality.Controllers
             return widgetDetails;
         }
 
-        private ModalityResponse GetModalityResponse(ModalityResponse modalityResponse, string languageCode, string userType, SupportTicketAttribute supportTicketAttribute, string locale, string source)
+        private ModalityResponse GetModalityResponse(ModalityResponse modalityResponse, string languageCode, string userType, SupportTicketAttribute supportTicketAttribute, string country, string source)
         {
             if (string.IsNullOrEmpty(userType))
             {
@@ -271,7 +277,7 @@ namespace CRM.ICon.Modality.Controllers
             languageSkillObject.characteristicid = languageCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("en"); ;
             //languageSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
             //region characteristic 
-            string region = LocaleRegionalMapping.LocaleRegionalData[locale];
+            string region = CountryToRegionMapping.CountryToRegionData[country];
             string regionCharacteristicId = omnichannelService.GetSkillCharacteristicId(region ?? "Americas");
             SkillObject regionSkillObject = new SkillObject();
             regionSkillObject.characteristicid = regionCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("Americas");
