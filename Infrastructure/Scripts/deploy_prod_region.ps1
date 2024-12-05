@@ -13,6 +13,7 @@ $ResourcePrefix                    = "modalityservice"
 $GlobalResourceGroupName           = "modalityservice-rg-prod-global"
 $GlobalResourceSuffix              = "-prod" # Global resources have no location in suffix.
 $GlobalIdentitySuffix              = "-prod-wus" # Needed to reference global MSI due to legacy naming convention mismatch
+$UsePremiumSku                     = $true
 
 .\deploy_azure_region_resources.ps1 `
     -SubscriptionName $SubscriptionName `
@@ -26,4 +27,5 @@ $GlobalIdentitySuffix              = "-prod-wus" # Needed to reference global MS
     -GlobalResourceGroupName $GlobalResourceGroupName `
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
-    -RegionIPSegment $RegionIPSegment
+    -RegionIPSegment $RegionIPSegment `
+    -UsePremiumSku $UsePremiumSku

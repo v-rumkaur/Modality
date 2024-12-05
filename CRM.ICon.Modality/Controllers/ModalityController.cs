@@ -284,7 +284,7 @@ namespace CRM.ICon.Modality.Controllers
             //regionSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
             //vdm characteristic
             SkillObject vdmSkillObject = new SkillObject();
-            vdmSkillObject.characteristicid = "8643644c-ed5d-ee11-8143-000d3af8897c";
+            vdmSkillObject.characteristicid = "5f0f0540-ed5d-ee11-8143-000d3af8897c";
             //vdmSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
 
             List<SkillObject> skillObjects = new List<SkillObject>();
@@ -299,15 +299,15 @@ namespace CRM.ICon.Modality.Controllers
             CustomContext customContext = new CustomContext();
             customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills), isDisplayable = true };
             customContext.ServiceLevel = new ServiceLevel { value = supportTicketAttribute.EntitlementInformation?.ServiceLevel, isDisplayable = true };
-            customContext.Skill = new Skill { value = "Cust Eng: CIJ Administration", isDisplayable = true };
+            customContext.Skill = new Skill { value = "Cust Eng: CIJ Provisioning", isDisplayable = true };
             customContext.ACE = new ACE { value = "False", isDisplayable = true };
             OmnichannelRequest omnichannelRequest = new OmnichannelRequest();
 
             omnichannelRequest.CustomContext = customContext;
 
             SkillInfo vdmSkill = new SkillInfo();
-            vdmSkill.SkillValue = "8643644c-ed5d-ee11-8143-000d3af8897c";
-            vdmSkill.SkillLabel = "Cust Eng: CIJ Administration";
+            vdmSkill.SkillValue = "5f0f0540-ed5d-ee11-8143-000d3af8897c";
+            vdmSkill.SkillLabel = "Cust Eng: CIJ Provisioning";
             vdmSkill.SkillType = "Skill";
 
             SkillInfo languageSkill = new SkillInfo();

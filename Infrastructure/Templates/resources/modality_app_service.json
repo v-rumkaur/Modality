@@ -175,100 +175,101 @@
             "dependsOn": [
                 "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
             ],
-            "properties": {
-                "numberOfWorkers": 1,
-                "defaultDocuments": [
-                    "Default.htm",
-                    "Default.html",
-                    "Default.asp",
-                    "index.htm",
-                    "index.html",
-                    "iisstart.htm",
-                    "default.aspx",
-                    "index.php"
-                ],
-                "netFrameworkVersion": "v8.0",
-                "phpVersion": "5.6",
-                "requestTracingEnabled": false,
-                "remoteDebuggingEnabled": false,
-                "httpLoggingEnabled": false,
-                "logsDirectorySizeLimit": 35,
-                "detailedErrorLoggingEnabled": false,
-                "publishingUsername": "[concat('$', variables('appServiceName'))]",
-                "scmType": "None",
-                "use32BitWorkerProcess": false,
-                "webSocketsEnabled": false,
-                "alwaysOn": false,
-                "managedPipelineMode": "Integrated",
-                "virtualApplications": [
-                    {
-                        "virtualPath": "/",
-                        "physicalPath": "site\\wwwroot",
-                        "preloadEnabled": true
-                    }
-                ],
-                "loadBalancing": "LeastRequests",
-                "experiments": {
-                    "rampUpRules": []
-                },
-                "autoHealEnabled": false,
-                "cors": {
-                    "allowedOrigins": [
-                        "https://functions.azure.com",
-                        "https://functions-staging.azure.com",
-                        "https://functions-next.azure.com",
-                        "https://localhost:5001",
-                        "https://localhost:6001"
-                    ],
-                    "supportCredentials": false
-                },
-                "localMySqlEnabled": false,
-                "ipSecurityRestrictions": [
-                    {
-                        "ipAddress": "ApplicationInsightsAvailability",
-                        "action": "Allow",
-                        "tag": "ServiceTag",
-                        "priority": 1000,
-                        "name": "Allow Availability Tests"
-                    },
-                    {
-                        "ipAddress": "AzureFrontDoor.Backend",
-                        "action": "Allow",
-                        "tag": "ServiceTag",
-                        "priority": 1001,
-                        "name": "Allow Azure Front Door"
-                    },
-                    {
-                        "vnetSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]",
-                        "action": "Allow",
-                        "tag": "Default",
-                        "priority": 1002,
-                        "name": "Allow Local VNet"
-                    },
-                    {
-                        "ipAddress": "Any",
-                        "action": "Deny",
-                        "priority": 2147483647,
-                        "name": "Deny all",
-                        "description": "Deny all access"
-                    }
-                ],
-                "ipSecurityRestrictionsDefaultAction": "Allow",
-                "scmIpSecurityRestrictions": [
-                    {
-                        "ipAddress": "Any",
-                        "action": "Allow",
-                        "priority": 1,
-                        "name": "Allow all",
-                        "description": "Allow all access"
-                    }
-                ],
-                "scmIpSecurityRestrictionsUseMain": false,
-                "scmIpSecurityRestrictionsDefaultAction": "Allow",
-                "http20Enabled": true,
-                "minTlsVersion": "1.2",
-                "ftpsState": "FtpsOnly"
-            }
+          "properties": {
+            "numberOfWorkers": 1,
+            "defaultDocuments": [
+              "Default.htm",
+              "Default.html",
+              "Default.asp",
+              "index.htm",
+              "index.html",
+              "iisstart.htm",
+              "default.aspx",
+              "index.php"
+            ],
+            "netFrameworkVersion": "v8.0",
+            "phpVersion": "5.6",
+            "requestTracingEnabled": false,
+            "remoteDebuggingEnabled": false,
+            "httpLoggingEnabled": false,
+            "logsDirectorySizeLimit": 35,
+            "detailedErrorLoggingEnabled": false,
+            "publishingUsername": "[concat('$', variables('appServiceName'))]",
+            "scmType": "None",
+            "use32BitWorkerProcess": false,
+            "webSocketsEnabled": false,
+            "alwaysOn": false,
+            "managedPipelineMode": "Integrated",
+            "virtualApplications": [
+              {
+                "virtualPath": "/",
+                "physicalPath": "site\\wwwroot",
+                "preloadEnabled": true
+              }
+            ],
+            "loadBalancing": "LeastRequests",
+            "experiments": {
+              "rampUpRules": []
+            },
+            "autoHealEnabled": false,
+            "cors": {
+              "allowedOrigins": [
+                "https://functions.azure.com",
+                "https://functions-staging.azure.com",
+                "https://functions-next.azure.com",
+                "https://localhost:5001",
+                "https://localhost:6001"
+              ],
+              "supportCredentials": false
+            },
+            "localMySqlEnabled": false,
+            "ipSecurityRestrictions": [
+              {
+                "ipAddress": "ApplicationInsightsAvailability",
+                "action": "Allow",
+                "tag": "ServiceTag",
+                "priority": 1000,
+                "name": "Allow Availability Tests"
+              },
+              {
+                "ipAddress": "AzureFrontDoor.Backend",
+                "action": "Allow",
+                "tag": "ServiceTag",
+                "priority": 1001,
+                "name": "Allow Azure Front Door"
+              },
+              {
+                "vnetSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]",
+                "action": "Allow",
+                "tag": "Default",
+                "priority": 1002,
+                "name": "Allow Local VNet"
+              },
+              {
+                "ipAddress": "Any",
+                "action": "Deny",
+                "priority": 2147483647,
+                "name": "Deny all",
+                "description": "Deny all access"
+              }
+            ],
+            "ipSecurityRestrictionsDefaultAction": "Allow",
+            "scmIpSecurityRestrictions": [
+              {
+                "ipAddress": "Any",
+                "action": "Allow",
+                "priority": 1,
+                "name": "Allow all",
+                "description": "Allow all access"
+              }
+            ],
+            "scmIpSecurityRestrictionsUseMain": false,
+            "scmIpSecurityRestrictionsDefaultAction": "Allow",
+            "http20Enabled": true,
+            "minTlsVersion": "1.2",
+            "ftpsState": "FtpsOnly",
+            "healthCheckPath": "/health"
+          }
         },
         {
             "type": "Microsoft.Web/sites/hostNameBindings",

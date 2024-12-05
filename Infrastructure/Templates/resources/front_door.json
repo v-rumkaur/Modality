@@ -215,7 +215,7 @@
                     "additionalLatencyInMilliseconds": 0
                 },
                 "healthProbeSettings": {
-                    "probePath": "/api/health",
+                    "probePath": "/health",
                     "probeRequestType": "HEAD",
                     "probeProtocol": "Https",
                     "probeIntervalInSeconds": 30

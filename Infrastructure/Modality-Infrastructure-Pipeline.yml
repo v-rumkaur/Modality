@@ -33,7 +33,7 @@ resources:
 extends:
   # TODO Update OneBranch template to official version -- using non-official for testing of local branches
   #template: v2/OneBranch.Official.CrossPlat.yml@templates  # https://aka.ms/obpipelines/templates
-  template: v2/OneBranch.NonOfficial.CrossPlat.yml@templates  # https://aka.ms/obpipelines/templates
+  template: v2/OneBranch.Official.CrossPlat.yml@templates  # https://aka.ms/obpipelines/templates
   parameters:
     featureFlags:
       WindowsHostVersion: '1ESWindows2022'
@@ -49,12 +49,23 @@ extends:
     - stage: NonProd_Deploy_DEV_Infra
       displayName: "Deploy DEV Infrastructure"
       jobs:
+      - job: Manual_Approval_Common
+        displayName: "Approve Deployment of Common DEV Infrastructure"
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: chanton@microsoft.com #TODO: UPDATE TO sxgchatall@microsoft.com
+            onTimeout: reject
       - job: Deploy_Infra_Common
         displayName: "Deploy Common Infrastructure"
         pool:
           type: windows
         variables:
           ob_outputDirectory: '$(OUTPUTROOT)'
+        dependsOn: Manual_Approval_Common
         steps:
         - task: PowerShell@2
           displayName: 'Install Az.Accounts Module'
@@ -228,7 +239,7 @@ extends:
     # Deploy infrastructure to INT environment
     - stage: NonProd_Deploy_INT_Infra
       displayName: "Deploy INT Infrastructure"
-      dependsOn: NonProd_Deploy_DEV_Infra
+      #dependsOn: NonProd_Deploy_DEV_Infra
       jobs:
       - job: Manual_Approval_Common
         displayName: "Approve Deployment of Common INT Infrastructure"
@@ -481,7 +492,7 @@ extends:
     # Deploy infrastructure to PPE environment
     - stage: NonProd_Deploy_PPE_Infra
       displayName: "Deploy PPE Infrastructure"
-      dependsOn: NonProd_Deploy_INT_Infra
+      #dependsOn: NonProd_Deploy_INT_Infra
       jobs:
       - job: Manual_Approval_Common
         displayName: "Approve Deployment of Common PPE Infrastructure"
@@ -734,7 +745,7 @@ extends:
     # Deploy infrastructure to PROD environment
     - stage: NonProd_Deploy_PROD_Infra
       displayName: "Deploy PROD Infrastructure"
-      dependsOn: NonProd_Deploy_PPE_Infra
+      #dependsOn: NonProd_Deploy_PPE_Infra
       jobs:
       - job: Manual_Approval_Common
         displayName: "Approve Deployment of Common Prod Infrastructure"

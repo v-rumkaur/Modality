@@ -2,48 +2,60 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "Location": {
-            "type": "string"
-        },
-        "Environment": {
-            "type": "string"
-        },
-        "ComponentId": {
-            "type": "string"
-        },
-        "ResourcePrefix": {
-            "type": "string"
-        },
-        "ResourceSuffix": {
-            "type": "string",
-            "defaultValue": ""
-        }
+      "Location": {
+        "type": "string"
+      },
+      "Environment": {
+        "type": "string"
+      },
+      "ComponentId": {
+        "type": "string"
+      },
+      "ResourcePrefix": {
+        "type": "string"
+      },
+      "ResourceSuffix": {
+        "type": "string",
+        "defaultValue": ""
+      },
+      "UsePremiumSku": {
+        "type": "bool",
+        "defaultValue": false
+      }
     },
     "variables": {
-        "appServicePlanName": "[concat(parameters('ResourcePrefix'), '-serviceplan', parameters('ResourceSuffix'))]"
+      "appServicePlanName": "[concat(parameters('ResourcePrefix'), '-serviceplan', parameters('ResourceSuffix'))]",
+      "nonPremiumSku": {
+        "name": "B1",
+        "tier": "Basic",
+        "size": "B1",
+        "family": "B",
+        "capacity": 1
+      },
+      "premiumSku": {
+        "name": "P0v3",
+        "tier": "PremiumV3",
+        "size": "P0v3",
+        "family": "Pv3",
+        "capacity": 1
+      }
     },
     "resources": [
-        {
-            "type": "Microsoft.Web/serverfarms",
-            "name": "[variables('appServicePlanName')]",
-            "apiVersion": "2018-02-01",
-            "location": "[parameters('Location')]",
-            "tags": {
-                "env": "[parameters('Environment')]",
-                "ComponentId": "[parameters('ComponentId')]"
-            },
-            "sku": {
-              "name": "S1",
-              "tier": "Standard",
-              "size": "S1",
-              "family": "S",
-              "capacity": 1
-          },
-            "kind": "app",
-            "properties": {
-                "perSiteScaling": true
-            }
+      {
+        "type": "Microsoft.Web/serverfarms",
+        "name": "[variables('appServicePlanName')]",
+        "apiVersion": "2018-02-01",
+        "location": "[parameters('Location')]",
+        "tags": {
+          "env": "[parameters('Environment')]",
+          "ComponentId": "[parameters('ComponentId')]"
+        },
+        "sku": "[if(parameters('UsePremiumSku'), variables('premiumSku'), variables('nonPremiumSku'))]",
+        "kind": "app",
+        "properties": {
+          "perSiteScaling": false
         }
+      }
     ],
     "outputs": {
         "appServicePlanName": {

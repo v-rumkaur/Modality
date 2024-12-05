@@ -10,7 +10,8 @@ param(
         [String]         $GlobalResourceGroupName,        # Name of the resource group where global resources are deployed.
         [String]         $GlobalResourceSuffix,           # Suffix of resources that are shared across all regions.
         [String]         $GlobalIdentitySuffix,           # Suffix for global MSI. Needed due to legacy naming convention mismatch.
-        [int]            $RegionIPSegment                 # Space to put IPs for resources in this region (ex. 10.{0}.0.0, where {0} is this segment).  Each region needs to be unique.
+        [int]            $RegionIPSegment,                # Space to put IPs for resources in this region (ex. 10.{0}.0.0, where {0} is this segment).  Each region needs to be unique.
+        [bool]           $UsePremiumSku                   # Flag to determine if the app service plan should use premium SKU.
 )
 
 $TemplateName = $ResourcePrefix + $ResourceSuffix + "-deployment"
@@ -18,6 +19,7 @@ $TemplateName = $ResourcePrefix + $ResourceSuffix + "-deployment"
 Write-Host "Setting up prerequisites!"
 Install-Module AzureAD -Force
 Install-Module Az.Resources -Force
+Install-Module Az.KeyVault -Force
 Set-AzContext -SubscriptionName $SubscriptionName
 
 Write-Host "Azure Infrastructure deployment started!"
@@ -46,6 +48,15 @@ $VirtualNetwork = New-AzResourceGroupDeployment `
     -RegionIPSegment $RegionIPSegment
 $VirtualNetwork
 
+Write-Host "Granting access to Key Vault from Virtual Network"
+# Keyvault names should not have dashes and total character length should be less than 24 characters
+$VaultName = "$ResourcePrefix-kv$GlobalResourceSuffix".Replace('-','');
+$VaultName = $VaultName.Substring(0, [System.Math]::Min(24, $VaultName.Length));
+Add-AzKeyVaultNetworkRule `
+        -VaultName $VaultName `
+        -ResourceGroupName $GlobalResourceGroupName `
+        -VirtualNetworkResourceId $VirtualNetwork.Outputs["subnetResourceId"].Value
+
 Write-Host "Setting up App Service Plan"
 New-AzResourceGroupDeployment `
     -Name $TemplateName `
@@ -55,7 +66,8 @@ New-AzResourceGroupDeployment `
     -Environment $Environment `
     -ComponentId $ComponentId `
     -ResourcePrefix $ResourcePrefix `
-    -ResourceSuffix $ResourceSuffix
+    -ResourceSuffix $ResourceSuffix `
+    -UsePremiumSku $UsePremiumSku
 
 Write-Host "Setting up Storage Account"
 $StorageAccount = New-AzResourceGroupDeployment `

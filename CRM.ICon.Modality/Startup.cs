@@ -75,6 +75,14 @@ namespace CRM.ICon.Modality
               .UseHttpsRedirection()
               ;
 
+            app.UseEndpoints(endpoints => {
+                endpoints.MapControllers();
+
+                // Add endpoint for checking the health of this application.
+                // Returns 200 (OK) if the app is healthy, 503 (Service Unavailable) otherwise.
+                endpoints.MapHealthChecks("/health");
+            });
+
         }
 
         /// <summary>
@@ -93,9 +101,11 @@ namespace CRM.ICon.Modality
             services.Configure<Configuration.KeyVaultConfiguration>(Configuration.GetSection(Constants.KeyVaultConfiguration));
             services.Configure<Dictionary<string, WorkstreamDetails>>(this.Configuration.GetSection("WorkstreamConfiguration"));
 
+            // Initialize Telemetry
             var applicationInsightsServiceOptions = new Microsoft.ApplicationInsights.AspNetCore.Extensions.ApplicationInsightsServiceOptions();
             applicationInsightsServiceOptions.ConnectionString = Configuration.GetSection(Constants.TelemetryConfiguration).GetValue<string>(Constants.ApplicationInsightsConnectionString);
             services.AddApplicationInsightsTelemetry(applicationInsightsServiceOptions);
+            services.AddHealthChecks();
 
             services.AddControllers().AddJsonOptions(options =>
             {
@@ -105,8 +115,7 @@ namespace CRM.ICon.Modality
             services.AddSwaggerGen();
             services.AddMemoryCache();
 
-            var aadConfiguration = services.BuildServiceProvider()!.GetService<IOptions<AzureAdConfiguration>>()!.Value;
-#pragma warning restore ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
+            var aadConfiguration = this.Configuration.GetSection("AzureAdConfiguration").Get<AzureAdConfiguration>();
             var authority = $"{aadConfiguration.Instance}{aadConfiguration.TenantId}";
 
             if (aadConfiguration.OAuthVersion != null)
