@@ -23,14 +23,13 @@ resources:
       ref: refs/heads/main
 
 extends:
-  #template: v2/OneBranch.Official.CrossPlat.yml@templates
-  template: v2/OneBranch.NonOfficial.CrossPlat.yml@templates  # https://aka.ms/obpipelines/templates
+  template: v2/OneBranch.Official.CrossPlat.yml@templates # https://aka.ms/obpipelines/templates
   parameters:
     featureFlags:
       WindowsHostVersion: 1ESWindows2022
     globalSdl:  # https://aka.ms/obpipelines/sdl
       tsa:
-        enabled: false  # onebranch publish all SDL results to TSA. If TSA is disabled all SDL tools will forced into 'break' build mode.
+        enabled: true  # onebranch publish all SDL results to TSA. If TSA is disabled all SDL tools will forced into 'break' build mode.
       binskim:
         break: true  # always break the build on binskim issues.
       policheck:
