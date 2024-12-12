@@ -25,6 +25,12 @@ Write-Host "Azure Infrastructure deployment started!"
 # Deploy resources that are shared across regions
 Write-Host "Deploying Global Resources"
 
+Write-Host "Setting up shared alert Action Group"
+New-AzResourceGroupDeployment `
+    -Name $TemplateName `
+    -ResourceGroupName $ResourceGroupName `
+    -TemplateFile "../Templates/resources/action_groups.json"
+
 Write-Host "Setting up Modality App Identity"
 $ManagedIdentityModality = New-AzResourceGroupDeployment `
         -Name $TemplateName `
@@ -71,7 +77,8 @@ New-AzResourceGroupDeployment `
     -ResourceSuffix $GlobalResourceSuffix `
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
-    -AzureAdTenantId $AzureAdTenantId
+    -AzureAdTenantId $AzureAdTenantId `
+    -Instance $Instance
 
 $WafCustomRulesFilePath = ""
 switch ($Instance) {
@@ -102,6 +109,7 @@ New-AzResourceGroupDeployment `
     -ComponentId $ComponentId `
     -ResourcePrefix $ResourcePrefix `
     -ResourceSuffix $GlobalResourceSuffix `
-    -ModalityRegionSuffixes $ModalityRegionSuffixes
+    -ModalityRegionSuffixes $ModalityRegionSuffixes `
+    -Instance $Instance
 
 Write-Host "Azure Infrastructure deployment completed!"

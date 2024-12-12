@@ -1,0 +1,76 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "Location": {
+      "type": "string"
+    },
+    "ResourcePrefix": {
+      "type": "string"
+    },
+    "Environment": {
+      "type": "string"
+    },
+    "SubscriptionId": {
+      "type": "string"
+    },
+    "ActionGroupName": {
+      "type": "string"
+    },
+	"GlobalResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "applicationInsightsName": "[concat(parameters('ResourcePrefix'), '-appinsight', parameters('GlobalResourceSuffix'))]",
+    "applicationInsightsSmartDetections": [
+      "slowpageloadtime",
+      "slowserverresponsetime",
+      "longdependencyduration",
+      "degradationinserverresponsetime",
+      "degradationindependencyduration",
+      "extension_traceseveritydetector",
+      "extension_exceptionchangeextension",
+      "extension_memoryleakextension",
+      "extension_securityextensionspackage",
+      "extension_billingdatavolumedailyspikeextension"
+    ],
+    "ActionGroupId": "[concat('/subscriptions/',parameters('SubscriptionId'),'/resourceGroups/',parameters('Environment'),'/providers/Microsoft.Insights/actionGroups/',parameters('ActionGroupName'))]"
+  },
+  "resources": [
+    {
+      "name": "[variables('applicationInsightsName')]",
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2014-04-01",
+      "location": "[parameters('Location')]",
+      "kind": "other",
+      "properties": {
+        "applicationId": "[variables('applicationInsightsName')]"
+      }
+    },
+    {
+      "comments": "Reconfigure Application Insights' default alerts to go to the right place",
+      "name": "[concat(variables('applicationInsightsName'), '/', variables('applicationInsightsSmartDetections')[copyIndex()])]",
+      "type": "Microsoft.Insights/components/proactiveDetectionConfigs",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2018-05-01-preview",
+      "copy": {
+        "name": "applicationInsightsSmartDetections",
+        "count": "[length(variables('applicationInsightsSmartDetections'))]"
+      },
+      "properties": {
+        "name": "[variables('applicationInsightsSmartDetections')[copyIndex()]]",
+        "sendEmailsToSubscriptionOwners": false,
+        "enabled": true,
+        "customEmails": [],
+        "actionGroups": {
+          "groupIds": "[variables('ActionGroupId')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+      ]
+    }
+  ]
+}

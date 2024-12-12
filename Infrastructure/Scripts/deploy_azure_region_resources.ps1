@@ -11,7 +11,8 @@ param(
         [String]         $GlobalResourceSuffix,           # Suffix of resources that are shared across all regions.
         [String]         $GlobalIdentitySuffix,           # Suffix for global MSI. Needed due to legacy naming convention mismatch.
         [int]            $RegionIPSegment,                # Space to put IPs for resources in this region (ex. 10.{0}.0.0, where {0} is this segment).  Each region needs to be unique.
-        [bool]           $UsePremiumSku                   # Flag to determine if the app service plan should use premium SKU.
+        [bool]           $UsePremiumSku,                   # Flag to determine if the app service plan should use premium SKU.
+		[String]         $GlobalResourceLocation          # Azure region of resources that are shared across all regions.
 )
 
 $TemplateName = $ResourcePrefix + $ResourceSuffix + "-deployment"
@@ -45,7 +46,9 @@ $VirtualNetwork = New-AzResourceGroupDeployment `
     -ComponentId $ComponentId `
     -ResourcePrefix $ResourcePrefix `
     -ResourceSuffix $ResourceSuffix `
-    -RegionIPSegment $RegionIPSegment
+    -RegionIPSegment $RegionIPSegment `
+	-GlobalResourceGroupName $GlobalResourceGroupName `
+	-Instance $Instance
 $VirtualNetwork
 
 Write-Host "Granting access to Key Vault from Virtual Network"
@@ -67,7 +70,9 @@ New-AzResourceGroupDeployment `
     -ComponentId $ComponentId `
     -ResourcePrefix $ResourcePrefix `
     -ResourceSuffix $ResourceSuffix `
-    -UsePremiumSku $UsePremiumSku
+    -UsePremiumSku $UsePremiumSku `
+	-GlobalResourceGroupName $GlobalResourceGroupName `
+	-Instance $Instance
 
 Write-Host "Setting up Storage Account"
 $StorageAccount = New-AzResourceGroupDeployment `
@@ -94,6 +99,7 @@ New-AzResourceGroupDeployment `
     -GlobalResourceGroupName $GlobalResourceGroupName `
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
-    -Instance $Instance
+    -Instance $Instance `
+	-GlobalResourceLocation $GlobalResourceLocation
 
 Write-Host "Azure Infrastructure deployment completed!"

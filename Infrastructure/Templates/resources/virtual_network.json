@@ -22,6 +22,14 @@
             "type": "int",
             "minValue": 0,
             "maxValue": 255
+        },
+        "GlobalResourceGroupName": {
+          "type": "string",
+          "defaultValue": ""
+        },
+		    "Instance": {
+          "type": "string",
+          "defaultValue": "dev"
         }
     },
     "variables": {
@@ -31,7 +39,8 @@
         "outboundIpName": "[concat(parameters('ResourcePrefix'), '-outboundip', parameters('ResourceSuffix'))]",
         "natGatewayName": "[concat(parameters('ResourcePrefix'), '-natgw', parameters('ResourceSuffix'))]",
         "vnetPrefix": "[format('10.{0}.0.0/16', parameters('RegionIPSegment'))]",
-        "subnetPrefix": "[format('10.{0}.1.0/24', parameters('RegionIPSegment'))]"
+        "subnetPrefix": "[format('10.{0}.1.0/24', parameters('RegionIPSegment'))]",
+        "actionGroupId": "[resourceId(parameters('GlobalResourceGroupName'),'Microsoft.Insights/actionGroups', 'SxG ICon Chat Team')]"
     },
     "resources": [
         {
@@ -134,6 +143,44 @@
                 "virtualNetworkPeerings": [],
                 "enableDdosProtection": false,
                 "enableVmProtection": false
+            }
+        },
+		    {
+            "type": "Microsoft.Insights/metricAlerts",
+            "apiVersion": "2018-03-01",
+            "name": "[format('[Security] Potential DDoS Attack Detected ({0})', variables('vnetName'))]",
+            "location": "global",
+            "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            ],
+            "properties": {
+                "description": "Detected potential DDoS attack.",
+                "severity": 4,
+                "enabled": true,
+                "scopes": [
+                    "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+                ],
+                "evaluationFrequency": "PT15M",
+                "windowSize": "PT15M",
+                "criteria": {
+                    "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+                    "allOf": [
+                      {
+                        "criterionType": "StaticThresholdCriterion",
+                        "name": "DDoS Attack",
+                        "timeAggregation": "Maximum",
+                        "metricName": "IfUnderDDoSAttack",
+                        "operator": "GreaterThan",
+                        "threshold": 0
+                      }
+                    ]
+                },
+                "actions": [
+                    {
+                        "actionGroupId": "[variables('actionGroupId')]"
+                    }
+                ]
             }
         }
     ],

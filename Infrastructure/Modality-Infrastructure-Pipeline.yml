@@ -233,6 +233,38 @@ extends:
               -RegionIPSegment                  "5"
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+            
+      - job: Deploy_Alerts
+        displayName: "Deploy Alerts"
+        dependsOn: 
+          - Deploy_Infra_WestUS
+          - Deploy_Infra_EastUS
+          - Deploy_Infra_WestEurope
+          - Deploy_Infra_NorthEurope
+          - Deploy_Infra_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Alerts Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_DEV)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_alerts_dev.ps1
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
     # Deploy infrastructure to INT environment
     - stage: NonProd_Deploy_INT_Infra
@@ -484,6 +516,38 @@ extends:
               -Location                         "southeastasia" `
               -ResourceSuffix                   "-int-sea" `
               -RegionIPSegment                  "5"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+            
+      - job: Deploy_Alerts
+        displayName: "Deploy Alerts"
+        dependsOn: 
+          - Deploy_Infra_WestUS
+          - Deploy_Infra_EastUS
+          - Deploy_Infra_WestEurope
+          - Deploy_Infra_NorthEurope
+          - Deploy_Infra_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Alerts Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_alerts_int.ps1
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -739,6 +803,38 @@ extends:
               -RegionIPSegment                  "5"
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+        
+      - job: Deploy_Alerts
+        displayName: "Deploy Alerts"
+        dependsOn: 
+          - Deploy_Infra_WestUS
+          - Deploy_Infra_EastUS
+          - Deploy_Infra_WestEurope
+          - Deploy_Infra_NorthEurope
+          - Deploy_Infra_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Alerts Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_alerts_ppe.ps1
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
     # Deploy infrastructure to PROD environment
     - stage: NonProd_Deploy_PROD_Infra
@@ -990,5 +1086,37 @@ extends:
               -Location                         "southeastasia" `
               -ResourceSuffix                   "-prod-sea" `
               -RegionIPSegment                  "5"
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+            
+      - job: Deploy_Alerts
+        displayName: "Deploy Alerts"
+        dependsOn: 
+          - Deploy_Infra_WestUS
+          - Deploy_Infra_EastUS
+          - Deploy_Infra_WestEurope
+          - Deploy_Infra_NorthEurope
+          - Deploy_Infra_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
+              Uninstall-AzureRm -Verbose
+        - task: AzurePowerShell@4
+          displayName: "Run Alerts Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_alerts_prod.ps1
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"

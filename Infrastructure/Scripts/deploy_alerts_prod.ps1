@@ -1,0 +1,24 @@
+$SubscriptionName                  = "SxGICon_OneChat_Prod"
+$ResourceGroupName                 = "modalityservice-rg-prod-global"
+$Location                          = "westus"
+$Environment                       = "modalityservice-rg-prod-global"
+$ComponentId                       = "e982eb41-6f74-4863-a475-2f1ecf15a166"
+$SubscriptionId                    = "d9d18e84-40fe-4f31-ab9d-92231d96e8fd"
+$ResourcePrefix                    = "modalityservice"
+$ActionGroupName                   = "SxG ICon Chat Team"
+$ActionGroupShortName              = "sxgchatall"
+$GlobalResourceSuffix              = "-prod"
+$GlobalResourceGroupName           = "modalityservice-rg-prod-global"
+
+.\manage_alerts.ps1 `
+	-SubscriptionName $SubscriptionName `
+	-ResourceGroupName $ResourceGroupName `
+	-Location $Location `
+	-Environment $Environment `
+	-ComponentId $ComponentId `
+	-SubscriptionId $SubscriptionId `
+	-ResourcePrefix	$ResourcePrefix `
+	-ActionGroupName $ActionGroupName `
+	-ActionGroupShortName $ActionGroupShortName `
+	-GlobalResourceSuffix $GlobalResourceSuffix `
+	-GlobalResourceGroupName $GlobalResourceGroupName

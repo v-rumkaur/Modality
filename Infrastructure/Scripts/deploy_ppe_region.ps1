@@ -13,6 +13,7 @@ $ResourcePrefix                    = "modalityservice"
 $GlobalResourceGroupName           = "modalityservice-rg-managedidentity-ppe-global"
 $GlobalResourceSuffix              = "-ppe" # Global resources have no location in suffix.
 $GlobalIdentitySuffix              = "-ppe-wus" # Needed to reference global MSI due to legacy naming convention mismatch
+$GlobalResourceLocation            = "westus"
 $UsePremiumSku                     = $true
 
 .\deploy_azure_region_resources.ps1 `
@@ -28,4 +29,5 @@ $UsePremiumSku                     = $true
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
     -RegionIPSegment $RegionIPSegment `
+	-GlobalResourceLocation $GlobalResourceLocation `
     -UsePremiumSku $UsePremiumSku

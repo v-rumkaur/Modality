@@ -33,6 +33,9 @@
         "Instance": {
           "type": "string",
           "defaultValue": "dev"
+        },
+        "GlobalResourceLocation": {
+            "type": "string"
         }
     },
     "variables": {
@@ -43,7 +46,9 @@
         "storageAccountName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'st', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
         "vnetName": "[concat(parameters('ResourcePrefix'), '-vnet', parameters('ResourceSuffix'))]",
         "subnetName": "[concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix'))]",
-        "identityName": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('GlobalIdentitySuffix'))]"
+        "identityName": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('GlobalIdentitySuffix'))]",
+        "actionGroupId": "[resourceId(parameters('GlobalResourceGroupName'),'Microsoft.Insights/actionGroups', 'SxG ICon Chat Team')]",
+        "pingTestName": "[concat(parameters('ResourcePrefix'), '-Modality2-health', parameters('ResourceSuffix'))]"
     },
     "resources": [
         {
@@ -308,6 +313,51 @@
                     }
                 ]
             }
+        },
+		// Modality Traffic Pattern Alert
+        {
+            "type": "Microsoft.Insights/metricAlerts",
+            "apiVersion": "2018-03-01",
+            "name": "[format('[Traffic Pattern] {0}', variables('appServiceName'))]",
+            "location": "global",
+            "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+            ],
+          "properties": {
+            "description": "Detected anomaly in total request count.",
+            "severity": 4,
+            "enabled": true,
+            "autoMitigate": true,
+            "scopes": [
+              "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+            ],
+            "evaluationFrequency": "PT5M",
+            "windowSize": "PT5M",
+            "criteria": {
+              "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria",
+              "allOf": [
+                {
+                  "criterionType": "DynamicThresholdCriterion",
+                  "name": "Server requests",
+                  "timeAggregation": "Total",
+                  "metricNamespace": "Microsoft.Web/sites",
+                  "metricName": "Requests",
+                  "operator": "GreaterOrLessThan",
+                  "alertSensitivity": "Low",
+                  "failingPeriods": {
+                    "numberOfEvaluationPeriods": 3,
+                    "minFailingPeriodsToAlert": 3
+                  }
+                }
+              ]
+            },
+            "actions": [
+              {
+                "actionGroupId": "[variables('actionGroupId')]"
+              }
+            ]
+          }
         }
     ],
     "outputs": {
