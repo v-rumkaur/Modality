@@ -60,19 +60,20 @@ extends:
             projects: '**/*.sln'
             arguments: "--configuration $(BuildConfiguration) /clp:ErrorsOnly"
 
+        - task: onebranch.pipeline.signing@1
+          displayName: 'Sign output'
+          inputs:
+            command: 'sign'
+            signing_environment: 'azure-ado'
+            signing_profile: 'internal_azure_service'
+            files_to_sign: '**/*.exe;**/*.dll;**/*.ps1;**/*.psm1'
+            search_root: '$(Build.SourcesDirectory)'
+
         - task: DotNetCoreCLI@2
           displayName: 'DotNetCore publish'
           inputs:
             command: 'publish'
             publishWebProjects: false
             projects: ${{ variables.projectPath }}
-            arguments: '--no-build --no-restore --configuration $(BuildConfiguration) --output $(Build.SourcesDirectory)\out'
+            arguments: '--no-build --no-restore --configuration $(BuildConfiguration) --output $(Build.SourcesDirectory)/out'
             zipAfterPublish: true
-
-        - task: onebranch.pipeline.signing@1
-          displayName: 'Sign output'
-          inputs:
-            command: 'sign'
-            signing_environment: 'azure-ado'
-            files_to_sign: '**/*.exe;**/*.dll;**/*.ps1;**/*.psm1'
-            search_root: '$(Build.SourcesDirectory)\out'
