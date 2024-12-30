@@ -1,5 +1,6 @@
 using Azure.Core;
 using CRM.ICon.Modality.Helpers;
+using CRM.ICon.Modality.Helpers.Cosmos;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
 using CRM.ICon.Modality.Services.Omnichannel;
@@ -7,6 +8,7 @@ using CRM.ICon.Modality.Services.VDM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using OpenTelemetry.Resources;
 using System.Data.Common;
 using System.Globalization;
@@ -23,12 +25,14 @@ namespace CRM.ICon.Modality.Controllers
         private readonly IOmnichannelService omnichannelService;
         private readonly ITelemetryService _telemetryService;
         private readonly IOmnichannelEUService omnichannelEUService;
-        public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService, ITelemetryService telemetryService, IOmnichannelEUService omnichannelEUService)
+        private readonly ICosmosDbClient cosmosDbClient;
+        public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService, ITelemetryService telemetryService, IOmnichannelEUService omnichannelEUService, ICosmosDbClient cosmosDbClient)
         {
             this.vdmService = vdmService;
             this.omnichannelService = omnichannelService;
             this.omnichannelEUService = omnichannelEUService;
             this._telemetryService = telemetryService ?? throw new ArgumentNullException(nameof(telemetryService));
+            this.cosmosDbClient = cosmosDbClient;
         }
 
         [HttpPost]
@@ -259,6 +263,56 @@ namespace CRM.ICon.Modality.Controllers
                 widgetDetails.Theme = widgetRequest.Theme;
             }
             return widgetDetails;
+        }
+
+        [HttpPost]
+        [Route("createThemeSubjectMapping")]
+        public async Task<ActionResult<ThemeSubjectMappingResponse>> CreateThemeSubjectMapping([FromBody] ThemeMappingRequest themeMappingRequest)
+        {
+
+            ThemeSubjectMappingResponse response = null;
+
+            foreach (var mapping in themeMappingRequest.ThemeRuleData)
+            {
+                var array = mapping.Split('_');
+                ThemeSubjectMappingResponse themeSubjectMappingResponse = new ThemeSubjectMappingResponse();
+
+                themeSubjectMappingResponse.id = mapping.ToLowerInvariant();
+                themeSubjectMappingResponse.theme = array[0];
+                themeSubjectMappingResponse.themeL1 = array[1];
+                themeSubjectMappingResponse.themeL2 = array[2];
+                themeSubjectMappingResponse.themeL3 = array[3];
+                themeSubjectMappingResponse.entitlement = array[4];
+                themeSubjectMappingResponse.languageName = array[5];
+                themeSubjectMappingResponse.countryName = array[6];
+                themeSubjectMappingResponse.subjectId = themeMappingRequest.subjectId;
+                themeSubjectMappingResponse.isC2C = themeMappingRequest.isC2C;
+                themeSubjectMappingResponse.isChat = themeMappingRequest.isChat;
+
+                response = this.cosmosDbClient.UpsertItemAsync<ThemeSubjectMappingResponse>(themeSubjectMappingResponse).Result;
+            }
+
+            if (response != null)
+            {
+                var themesubjectmapping = new JObject
+                {
+                    { "id", response.id },
+                    { "isC2C", response.isC2C },
+                    { "isChat", response.isChat },
+                    { "SubjectId", response.subjectId },
+                    { "Theme", response.theme },
+                    { "ThemeL1", response.themeL1 },
+                    { "ThemeL2", response.themeL2 },
+                    { "ThemeL3", response.themeL3 },
+                    { "LanguageName", response.languageName },
+                    { "CountryName", response.countryName },
+                    { "Entitlement", response.entitlement },
+                };
+
+                return Ok(themesubjectmapping);
+            }
+
+            return null;
         }
 
         private ModalityResponse GetModalityResponse(ModalityResponse modalityResponse, string languageCode, string userType, SupportTicketAttribute supportTicketAttribute, string country, string source)
