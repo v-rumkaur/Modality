@@ -60,20 +60,37 @@ extends:
             projects: '**/*.sln'
             arguments: "--configuration $(BuildConfiguration) /clp:ErrorsOnly"
 
-        - task: onebranch.pipeline.signing@1
-          displayName: 'Sign output'
-          inputs:
-            command: 'sign'
-            signing_environment: 'azure-ado'
-            signing_profile: 'internal_azure_service'
-            files_to_sign: '**/*.exe;**/*.dll;**/*.ps1;**/*.psm1'
-            search_root: '$(Build.SourcesDirectory)'
-
         - task: DotNetCoreCLI@2
           displayName: 'DotNetCore publish'
           inputs:
             command: 'publish'
             publishWebProjects: false
             projects: ${{ variables.projectPath }}
-            arguments: '--no-build --no-restore --configuration $(BuildConfiguration) --output $(Build.SourcesDirectory)/out'
+            arguments: '--no-build --no-restore --configuration $(BuildConfiguration) --output $(OUTPUTROOT)'
             zipAfterPublish: true
+
+        - task: ExtractFiles@1
+          displayName: 'Extract Modality Zip File'
+          inputs:
+            archiveFilePatterns: '$(OUTPUTROOT)/CRM.ICon.Modality.zip'
+            destinationFolder: '$(OUTPUTROOT)/extracted'
+            cleanDestinationFolder: true 
+              
+        - task: onebranch.pipeline.signing@1
+          displayName: "Sign development build"
+          inputs:
+            command: "sign"
+            signing_environment: "azure-ado"
+            signing_profile: "internal_azure_service"
+            files_to_sign: "**/*.zip;**/*.exe;**/*.dll;**/*.ps1;**/*.psm1"
+            search_root: "$(OUTPUTROOT)/extracted"
+            disable_strong_name_signing: true
+
+        - task: ArchiveFiles@2
+          displayName: 'Create Zip Archive'
+          inputs:
+            rootFolderOrFile: '$(OUTPUTROOT)/extracted'
+            includeRootFolder: false
+            archiveType: 'zip'
+            archiveFile: '$(OUTPUTROOT)/CRM.ICon.Modality.zip'
+            replaceExistingArchive: true
