@@ -133,10 +133,15 @@ namespace CRM.ICon.Modality
             services.AddSingleton<AuthTokenClient>();
        
 
-            services.AddHttpClient<IVDMService, VDMService>().ConfigureServiceAuthHandler<VDMConfiguration>((options) => new ServiceAuthHandlerParams
+            services.AddHttpClient<IVDMService, VDMService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            })
+                .ConfigureServiceAuthHandler<VDMConfiguration>((options) => new ServiceAuthHandlerParams
             {
                 Resource = options.Resource,
                 TenantId = options.TenantId,
+                
             });
 
             services.AddHttpClient<IOmnichannelService, OmnichannelService>().ConfigureServiceAuthHandler<OmnichannelConfiguration>((options) => new ServiceAuthHandlerParams

@@ -34,10 +34,10 @@ namespace ICon.OneChat.Common.Helpers.Cosmos
         /// Initializes a new instance of the <see cref="CosmosDbClient"/> class.
         /// </summary>
         /// <param name="cosmosDbConfiguration">Cosmos db configuration</param>
-        public CosmosDbClient(IOptions<CosmosDbConfiguration> cosmosDbConfiguration, AzureAdConfiguration azureAdConfiguration)
+        public CosmosDbClient(IOptions<CosmosDbConfiguration> cosmosDbConfiguration, IOptions<AzureAdConfiguration> azureAdConfiguration)
         {
             this.cosmosDbConfiguration = cosmosDbConfiguration?.Value ?? throw new ArgumentNullException(nameof(cosmosDbConfiguration));
-            this.azureAdConfiguration = azureAdConfiguration;
+            this.azureAdConfiguration = azureAdConfiguration.Value;
             var cosmosRequestTimeout = this.cosmosDbConfiguration.RequestTimeout > 0 ? this.cosmosDbConfiguration.RequestTimeout : 2;
             var cosmosClientOptions = new CosmosClientOptions
             {

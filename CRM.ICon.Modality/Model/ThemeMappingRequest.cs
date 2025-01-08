@@ -9,8 +9,6 @@ namespace CRM.ICon.Modality.Model
 {
     public class ThemeMappingRequest
     {
-        [JsonProperty(PropertyName = "id")]
-        public string id { get; set; }
 
         /// <summary>
         /// Gets or sets theme rule data

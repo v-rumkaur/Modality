@@ -7,7 +7,9 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Net.Http;
 using System.Runtime.Caching;
+using System.Threading.Tasks;
 
 namespace CRM.ICon.Modality.Services.VDM
 {
@@ -48,6 +50,11 @@ namespace CRM.ICon.Modality.Services.VDM
                     return vdmResponse;
                 }
                 return vdmResponse;
+            }
+            catch (TaskCanceledException exception)
+            {
+                this._telemetryService.LogException<VDMService>(exception, logProperties, "VDM Service Time out");
+                return null;
             }
             catch (Exception ex)
             {
