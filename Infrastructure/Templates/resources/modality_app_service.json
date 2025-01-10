@@ -258,7 +258,7 @@
                 "description": "Deny all access"
               }
             ],
-            "ipSecurityRestrictionsDefaultAction": "Allow",
+            "ipSecurityRestrictionsDefaultAction": "[if(or(equals(Parameters('Instance'), 'dev'), equals(Parameters('Instance'), 'int')), 'Allow', 'Deny')]",
             "scmIpSecurityRestrictions": [
               {
                 "ipAddress": "Any",

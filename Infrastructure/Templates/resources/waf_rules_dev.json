@@ -10,7 +10,7 @@
                         "priority": 99,
                         "ruleType": "RateLimitRule",
                         "rateLimitDurationInMinutes": 5,
-                        "rateLimitThreshold": 1500, // 50% more than max expected requests per 5 minutes in PROD
+                        "rateLimitThreshold": 2000,
                         "matchConditions": [
                             {
                                 "matchVariable": "SocketAddr",
