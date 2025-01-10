@@ -287,6 +287,23 @@
               }
             ],
             "action": "Block"
+          },
+          {
+            "name": "CatchAllBlock",
+            "priority": 100,
+            "ruleType": "MatchRule",
+            "matchConditions": [
+              {
+                "matchVariable": "SocketAddr",
+                "operator": "IPMatch",
+                "negateCondition": true,
+                "matchValue": [
+                  // List client IP addresses here that should be allowed to bypass WAF
+                  "25.4.0.0/16" // Need to have at least 1 IP rule to allow the rule to be created
+                ]
+              }
+            ],
+            "action": "Block"
           }
         ]
       }

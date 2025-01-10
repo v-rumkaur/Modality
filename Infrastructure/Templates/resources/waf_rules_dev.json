@@ -4,27 +4,27 @@
     "parameters": { 
         "WafCustomRules": {
             "value": {
-                "rules": [
+              "rules": [
+                {
+                  "name": "RateLimitRule",
+                  "priority": 99,
+                  "ruleType": "RateLimitRule",
+                  "rateLimitDurationInMinutes": 5,
+                  "rateLimitThreshold": 2000,
+                  "matchConditions": [
                     {
-                        "name": "RateLimitRule",
-                        "priority": 99,
-                        "ruleType": "RateLimitRule",
-                        "rateLimitDurationInMinutes": 5,
-                        "rateLimitThreshold": 2000,
-                        "matchConditions": [
-                            {
-                                "matchVariable": "SocketAddr",
-                                "operator": "IPMatch",
-                                "negateCondition": false,
-                                "matchValue": [
-                                    "0.0.0.0/0",
-                                    "::/0"
-                                ]
-                            }
-                        ],
-                        "action": "Block"
+                      "matchVariable": "SocketAddr",
+                      "operator": "IPMatch",
+                      "negateCondition": false,
+                      "matchValue": [
+                        "0.0.0.0/0",
+                        "::/0"
+                      ]
                     }
-                ]
+                  ],
+                  "action": "Block"
+                }
+              ]
             }
         }
     }
