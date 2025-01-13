@@ -15,7 +15,6 @@ using System.Globalization;
 
 namespace CRM.ICon.Modality.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("api/v1/modality")]
     public class ModalityController : ControllerBase
@@ -35,6 +34,7 @@ namespace CRM.ICon.Modality.Controllers
             this.cosmosDbClient = cosmosDbClient;
         }
 
+        [Authorize]
         [HttpPost]
         [Route("getAvailableModalities")]
         public async Task<ActionResult<ModalityResponse>> GetAvailableModalities([FromBody] ModalityRequest modalityRequest, [FromHeader] HeaderDictionary headers)
@@ -214,6 +214,7 @@ namespace CRM.ICon.Modality.Controllers
             return Ok(modalityResponse);
         }
 
+        [Authorize]
         [HttpPost]
         [Route("getWidgetDetails")]
         public async Task<ActionResult<WidgetDetails>> GetWidgetDetails([FromBody] WidgetRequest widgetRequest)
@@ -265,6 +266,7 @@ namespace CRM.ICon.Modality.Controllers
             return widgetDetails;
         }
 
+        [Authorize]
         [HttpPost]
         [Route("createThemeSubjectMapping")]
         public async Task<ActionResult<ThemeSubjectMappingResponse>> CreateThemeSubjectMapping([FromBody] ThemeMappingRequest themeMappingRequest)

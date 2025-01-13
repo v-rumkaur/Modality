@@ -6,11 +6,6 @@ using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
 using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
-using Microsoft.ApplicationInsights.Extensibility;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.S2S.Extensions.AspNetCore;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using CRM.ICon.Modality.Helpers.KeyVaultClient;
@@ -65,9 +60,9 @@ namespace CRM.ICon.Modality
             }
 
             app.UseDefaultFiles()
-              .UseAuthentication()
               .UseStaticFiles()
               .UseRouting()
+              .UseAuthentication()
               .UseAuthorization()
               .UseMise()
               .UseEndpoints(endpoints =>
@@ -127,8 +122,7 @@ namespace CRM.ICon.Modality
             }
 
             services.AddAuthentication(S2SAuthenticationDefaults.AuthenticationScheme)
-                            .AddMiseWithDefaultModules(Configuration, authenticationSectionName: "AzureAdConfiguration");
-
+                    .AddMiseWithDefaultModules(Configuration, authenticationSectionName: "AzureAdConfiguration");
 
             services.AddSingleton<AuthTokenClient>();
        
