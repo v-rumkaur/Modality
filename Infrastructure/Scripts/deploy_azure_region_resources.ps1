@@ -12,7 +12,9 @@ param(
         [String]         $GlobalIdentitySuffix,           # Suffix for global MSI. Needed due to legacy naming convention mismatch.
         [int]            $RegionIPSegment,                # Space to put IPs for resources in this region (ex. 10.{0}.0.0, where {0} is this segment).  Each region needs to be unique.
         [bool]           $UsePremiumSku,                   # Flag to determine if the app service plan should use premium SKU.
-		[String]         $GlobalResourceLocation          # Azure region of resources that are shared across all regions.
+		[String]         $GlobalResourceLocation,          # Azure region of resources that are shared across all regions.
+        [String]         $OCCActionGroupResourceGroupName,
+        [String]         $OCCActionGroupName
 )
 
 $TemplateName = $ResourcePrefix + $ResourceSuffix + "-deployment"
@@ -34,7 +36,10 @@ New-AzResourceGroupDeployment `
     -Environment $Environment `
     -ComponentId $ComponentId `
     -ResourcePrefix $ResourcePrefix `
-    -ResourceSuffix $ResourceSuffix
+    -ResourceSuffix $ResourceSuffix `
+	-Instance $Instance `
+    -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+    -OCCActionGroupName $OCCActionGroupName
 
 Write-Host "Setting up Virtual Network"
 $VirtualNetwork = New-AzResourceGroupDeployment `
@@ -48,7 +53,9 @@ $VirtualNetwork = New-AzResourceGroupDeployment `
     -ResourceSuffix $ResourceSuffix `
     -RegionIPSegment $RegionIPSegment `
 	-GlobalResourceGroupName $GlobalResourceGroupName `
-	-Instance $Instance
+	-Instance $Instance `
+    -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+    -OCCActionGroupName $OCCActionGroupName
 $VirtualNetwork
 
 Write-Host "Granting access to Key Vault from Virtual Network"
@@ -72,7 +79,9 @@ New-AzResourceGroupDeployment `
     -ResourceSuffix $ResourceSuffix `
     -UsePremiumSku $UsePremiumSku `
 	-GlobalResourceGroupName $GlobalResourceGroupName `
-	-Instance $Instance
+	-Instance $Instance `
+    -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+    -OCCActionGroupName $OCCActionGroupName
 
 Write-Host "Setting up Storage Account"
 $StorageAccount = New-AzResourceGroupDeployment `
@@ -100,6 +109,8 @@ New-AzResourceGroupDeployment `
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
     -Instance $Instance `
-	-GlobalResourceLocation $GlobalResourceLocation
+	-GlobalResourceLocation $GlobalResourceLocation `
+    -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+    -OCCActionGroupName $OCCActionGroupName
 
 Write-Host "Azure Infrastructure deployment completed!"

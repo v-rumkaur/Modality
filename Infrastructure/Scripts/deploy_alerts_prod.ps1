@@ -9,6 +9,9 @@ $ActionGroupName                   = "SxG ICon Chat Team"
 $ActionGroupShortName              = "sxgchatall"
 $GlobalResourceSuffix              = "-prod"
 $GlobalResourceGroupName           = "modalityservice-rg-prod-global"
+$OCCActionGroupResourceGroupName   = "occ-rg-monitors-prod-wus"
+$OCCActionGroupName                = "OCC-ServiceReliability-AG"
+$OCCEscalationActionGroupName      = "OCC-ServiceReliability-Escalation-AG"
 
 .\manage_alerts.ps1 `
 	-SubscriptionName $SubscriptionName `
@@ -21,4 +24,7 @@ $GlobalResourceGroupName           = "modalityservice-rg-prod-global"
 	-ActionGroupName $ActionGroupName `
 	-ActionGroupShortName $ActionGroupShortName `
 	-GlobalResourceSuffix $GlobalResourceSuffix `
-	-GlobalResourceGroupName $GlobalResourceGroupName
+	-GlobalResourceGroupName $GlobalResourceGroupName `
+	-OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+	-OCCActionGroupName $OCCActionGroupName `
+	-OCCEscalationActionGroupName $OCCEscalationActionGroupName

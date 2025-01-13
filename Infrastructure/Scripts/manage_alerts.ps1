@@ -7,7 +7,10 @@ param(
         [String]   $ResourcePrefix,
         [String]   $ActionGroupName,
         [String]   $GlobalResourceSuffix,
-        [String]   $GlobalResourceGroupName
+        [String]   $GlobalResourceGroupName,
+        [String]   $OCCActionGroupResourceGroupName,
+        [String]   $OCCActionGroupName,
+        [String]   $OCCEscalationActionGroupName
 )
 
 $TemplateName = $ResourcePrefix + "-deployment"
@@ -26,7 +29,10 @@ New-AzResourceGroupDeployment `
         -ResourcePrefix $ResourcePrefix `
         -GlobalResourceSuffix $GlobalResourceSuffix `
         -APIEndpoints @('getAvailableModalities', 'getWidgetDetails') `
-        -GlobalResourceGroupName $GlobalResourceGroupName	
+        -GlobalResourceGroupName $GlobalResourceGroupName `
+        -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+        -OCCActionGroupName $OCCActionGroupName `
+        -OCCEscalationActionGroupName $OCCEscalationActionGroupName
 
 Write-Host "Creating smart alerts"
 New-AzResourceGroupDeployment `
@@ -38,7 +44,9 @@ New-AzResourceGroupDeployment `
         -ActionGroupName $ActionGroupName `
         -Location $Location `
         -ResourcePrefix $ResourcePrefix `
-        -GlobalResourceSuffix $GlobalResourceSuffix 
+        -GlobalResourceSuffix $GlobalResourceSuffix `
+        -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+        -OCCActionGroupName $OCCActionGroupName
 		
 Write-Host "Creating activity alerts for subscription"
 New-AzResourceGroupDeployment `
@@ -47,4 +55,7 @@ New-AzResourceGroupDeployment `
         -TemplateFile "../Templates/alerts/activity_alerts.json" `
         -Environment $Environment `
         -SubscriptionId $SubscriptionId `
-        -ActionGroupName $ActionGroupName 
+        -ActionGroupName $ActionGroupName `
+        -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+        -OCCActionGroupName $OCCActionGroupName `
+        -Location $Location  

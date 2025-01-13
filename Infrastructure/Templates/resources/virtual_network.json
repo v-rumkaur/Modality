@@ -1,47 +1,55 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    "parameters": {
-        "Location": {
-            "type": "string"
-        },
-        "Environment": {
-            "type": "string"
-        },
-        "ComponentId": {
-            "type": "string"
-        },
-        "ResourcePrefix": {
-            "type": "string"
-        },
-        "ResourceSuffix": {
-            "type": "string",
-            "defaultValue": ""
-        },
-        "RegionIPSegment": {
-            "type": "int",
-            "minValue": 0,
-            "maxValue": 255
-        },
-        "GlobalResourceGroupName": {
-          "type": "string",
-          "defaultValue": ""
-        },
-		    "Instance": {
-          "type": "string",
-          "defaultValue": "dev"
-        }
+  "parameters": {
+    "Location": {
+      "type": "string"
     },
-    "variables": {
-        "vnetName": "[concat(parameters('ResourcePrefix'), '-vnet', parameters('ResourceSuffix'))]",
-        "subnetName": "[concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix'))]",
-        "nsgName": "[concat(parameters('ResourcePrefix'), '-nsg', parameters('ResourceSuffix'))]",
-        "outboundIpName": "[concat(parameters('ResourcePrefix'), '-outboundip', parameters('ResourceSuffix'))]",
-        "natGatewayName": "[concat(parameters('ResourcePrefix'), '-natgw', parameters('ResourceSuffix'))]",
-        "vnetPrefix": "[format('10.{0}.0.0/16', parameters('RegionIPSegment'))]",
-        "subnetPrefix": "[format('10.{0}.1.0/24', parameters('RegionIPSegment'))]",
-        "actionGroupId": "[resourceId(parameters('GlobalResourceGroupName'),'Microsoft.Insights/actionGroups', 'SxG ICon Chat Team')]"
+    "Environment": {
+      "type": "string"
     },
+    "ComponentId": {
+      "type": "string"
+    },
+    "ResourcePrefix": {
+      "type": "string"
+    },
+    "ResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "RegionIPSegment": {
+      "type": "int",
+      "minValue": 0,
+      "maxValue": 255
+    },
+    "GlobalResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "Instance": {
+      "type": "string",
+      "defaultValue": "dev"
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "vnetName": "[concat(parameters('ResourcePrefix'), '-vnet', parameters('ResourceSuffix'))]",
+    "subnetName": "[concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix'))]",
+    "nsgName": "[concat(parameters('ResourcePrefix'), '-nsg', parameters('ResourceSuffix'))]",
+    "outboundIpName": "[concat(parameters('ResourcePrefix'), '-outboundip', parameters('ResourceSuffix'))]",
+    "natGatewayName": "[concat(parameters('ResourcePrefix'), '-natgw', parameters('ResourceSuffix'))]",
+    "vnetPrefix": "[format('10.{0}.0.0/16', parameters('RegionIPSegment'))]",
+    "subnetPrefix": "[format('10.{0}.1.0/24', parameters('RegionIPSegment'))]",
+    "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]"
+  },
     "resources": [
         {
             "type": "Microsoft.Network/publicIPAddresses",

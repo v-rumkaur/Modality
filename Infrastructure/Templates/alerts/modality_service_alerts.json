@@ -22,19 +22,32 @@
       "type": "string",
       "defaultValue": ""
 
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCEscalationActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
     }
   },
-      "variables": {
-        "applicationInsightsName": "[concat(parameters('ResourcePrefix'), '-appinsight', parameters('GlobalResourceSuffix'))]",
-        "actionGroupId": "[resourceId(parameters('GlobalResourceGroupName'),'Microsoft.Insights/actionGroups', 'SxG ICon Chat Team')]",
-        "copy": [
-          {
-            "name": "apiEndpointsAvgDurationMs",
-            "count": "[length(parameters('APIEndpoints'))]",
-            "input": "[concat(parameters('APIEndpoints')[copyIndex('apiEndpointsAvgDurationMs')], ' AvgDurationMs')]"
-          }
-        ]
-      },
+  "variables": {
+    "applicationInsightsName": "[concat(parameters('ResourcePrefix'), '-appinsight', parameters('GlobalResourceSuffix'))]",
+    "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]",
+    "escalationactionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCEscalationActionGroupName'))]",
+    "copy": [
+      {
+        "name": "apiEndpointsAvgDurationMs",
+        "count": "[length(parameters('APIEndpoints'))]",
+        "input": "[concat(parameters('APIEndpoints')[copyIndex('apiEndpointsAvgDurationMs')], ' AvgDurationMs')]"
+      }
+    ]
+  },
   "resources": [
     // Modality Service Performance Alerts
     {
@@ -204,16 +217,16 @@
         }
       }
     },
-    // Modality Service Reliability < 95% / Sev 2
+    // Modality Service Reliability < 95% / Sev 3 Escalation
     {
       "type": "Microsoft.Insights/scheduledQueryRules",
       "apiVersion": "2021-02-01-preview",
-      "name": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev2', parameters('ResourcePrefix'))]",
+      "name": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
       "properties": {
-        "displayName": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev2', parameters('ResourcePrefix'))]",
+        "displayName": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
         "description": "Modality reliability has dropped below 95%.",
-        "severity": 2,
+        "severity": 3,
         "autoMitigate": false,
         "enabled": true,
         "scopes": [
@@ -254,7 +267,7 @@
           ]
         },
         "actions": {
-          "actionGroups": [ "[variables('actionGroupId')]" ]
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
         }
       }
     },
@@ -309,6 +322,60 @@
         },
         "actions": {
           "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Modality Service Usability Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Usability] {0}-Modality-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "properties": {
+        "displayName": "[format('[Usability] {0}-Modality-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "Modality usability has dropped below 50%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('requests
+                                        | where name has ''Modality/''
+                                        | extend statusCode = toint(resultCode)
+                                        | summarize 
+                                            totalRequests = count(), systemErrors = todouble(countif(statusCode > 399 and statusCode < 500))
+                                            by name, bin(timestamp, 5m)
+                                        | where totalRequests >= 5
+                                        | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                                        | extend Usability = 100 - FailureRate
+                                        | project timestamp, name, Usability, systemErrors, totalRequests')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Usability",
+              "dimensions": [
+                {
+                  "name": "name",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 50,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
         }
       }
     },
@@ -585,6 +652,58 @@
         }
       }
     },
+    // VDM Reliability < 95% / Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-VDM-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-VDM-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "VDM reliability has dropped below 95%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''vdmsdksvc''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))by target, cloud_RoleName, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Reliability = 100 - FailureRate
+                | project timestamp, target, Reliability, systemErrors, totalRequests, cloud_RoleName')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 95,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
+        }
+      }
+    },
     // Omnichannel Reliability < 99% / Sev 3
     {
       "type": "Microsoft.Insights/scheduledQueryRules",
@@ -634,6 +753,58 @@
         },
         "actions": {
           "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Omnichannel Reliability < 95% / Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-Omnichannel-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-Omnichannel-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "Omnichannel reliability has dropped below 95%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''omnichannelengagementhub''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))by target, cloud_RoleName, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Reliability = 100 - FailureRate
+                | project timestamp, target, Reliability, systemErrors, totalRequests, cloud_RoleName')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 95,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
         }
       }
     },
@@ -689,6 +860,58 @@
         }
       }
     },
+    // VDM Usability- Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Usability] {0}-VDM-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "properties": {
+        "displayName": "[format('[Usability] {0}-VDM-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "VDM usability has dropped below 50%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''vdmsdksvc''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 399 and statusCode < 500))by target, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Usability = 100 - FailureRate
+                | project timestamp, target, Usability, systemErrors, totalRequests')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Usability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 50,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
+        }
+      }
+    },
     // Omnichannel Usability-Sev 3
     {
       "type": "Microsoft.Insights/scheduledQueryRules",
@@ -738,6 +961,58 @@
         },
         "actions": {
           "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Omnichannel Usability-Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Usability] {0}-Omnichannel-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "properties": {
+        "displayName": "[format('[Usability] {0}-Omnichannel-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "Omnichannel usability has dropped below 50%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''omnichannelengagementhub''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 399 and statusCode < 500))by target, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Usability = 100 - FailureRate
+                | project timestamp, target, Usability, systemErrors, totalRequests')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Usability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 50,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
         }
       }
     },

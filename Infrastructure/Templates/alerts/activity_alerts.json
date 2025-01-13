@@ -10,10 +10,21 @@
     },
     "SubscriptionId": {
       "type": "string"
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "Location": {
+      "type": "string"
     }
   },
   "variables": {
-    "ActionGroupId": "[concat('/subscriptions/',parameters('SubscriptionId'),'/resourceGroups/',parameters('Environment'),'/providers/Microsoft.Insights/actionGroups/',parameters('ActionGroupName'))]"
+    "ActionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]"
   },
   "resources": [
     {

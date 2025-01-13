@@ -29,11 +29,19 @@
     "Instance": {
       "type": "string",
       "defaultValue": "dev"
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
     }
   },
   "variables": {
     "appServicePlanName": "[concat(parameters('ResourcePrefix'), '-serviceplan', parameters('ResourceSuffix'))]",
-    "actionGroupId": "[resourceId(parameters('GlobalResourceGroupName'),'Microsoft.Insights/actionGroups', 'SxG ICon Chat Team')]",
+    "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]",
     "nonPremiumSku": {
       "name": "B1",
       "tier": "Basic",

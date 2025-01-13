@@ -17,7 +17,15 @@
     "ActionGroupName": {
       "type": "string"
     },
-	"GlobalResourceSuffix": {
+    "GlobalResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
       "type": "string",
       "defaultValue": ""
     }
@@ -36,7 +44,7 @@
       "extension_securityextensionspackage",
       "extension_billingdatavolumedailyspikeextension"
     ],
-    "ActionGroupId": "[concat('/subscriptions/',parameters('SubscriptionId'),'/resourceGroups/',parameters('Environment'),'/providers/Microsoft.Insights/actionGroups/',parameters('ActionGroupName'))]"
+    "ActionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]"
   },
   "resources": [
     {

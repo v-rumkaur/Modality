@@ -1,55 +1,63 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    "parameters": {
-        "Location": {
-            "type": "string"
-        },
-        "Environment": {
-            "type": "string"
-        },
-        "ComponentId": {
-            "type": "string"
-        },
-        "ResourcePrefix": {
-            "type": "string"
-        },
-        "ResourceSuffix": {
-          "type": "string",
-          "defaultValue": ""
-        },
-        "GlobalResourceGroupName": {
-          "type": "string",
-          "defaultValue": ""
-        },
-        "GlobalResourceSuffix": {
-          "type": "string",
-          "defaultValue": ""
-        },
-        "GlobalIdentitySuffix": {
-          "type": "string",
-          "defaultValue": ""
-        },
-        "Instance": {
-          "type": "string",
-          "defaultValue": "dev"
-        },
-        "GlobalResourceLocation": {
-            "type": "string"
-        }
+  "parameters": {
+    "Location": {
+      "type": "string"
     },
-    "variables": {
-        "appServiceName": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('ResourceSuffix'))]",
-        "appServicePlanName": "[concat(parameters('ResourcePrefix'), '-serviceplan', parameters('ResourceSuffix'))]",
-        "applicationInsightsName": "[concat(parameters('ResourcePrefix'), '-appinsight', parameters('GlobalResourceSuffix'))]",
-        "logAnalyticsWorkspaceName": "[concat(parameters('ResourcePrefix'), '-loganalyticsw', parameters('GlobalResourceSuffix'))]",
-        "storageAccountName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'st', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
-        "vnetName": "[concat(parameters('ResourcePrefix'), '-vnet', parameters('ResourceSuffix'))]",
-        "subnetName": "[concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix'))]",
-        "identityName": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('GlobalIdentitySuffix'))]",
-        "actionGroupId": "[resourceId(parameters('GlobalResourceGroupName'),'Microsoft.Insights/actionGroups', 'SxG ICon Chat Team')]",
-        "pingTestName": "[concat(parameters('ResourcePrefix'), '-Modality2-health', parameters('ResourceSuffix'))]"
+    "Environment": {
+      "type": "string"
     },
+    "ComponentId": {
+      "type": "string"
+    },
+    "ResourcePrefix": {
+      "type": "string"
+    },
+    "ResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "GlobalResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "GlobalResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "GlobalIdentitySuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "Instance": {
+      "type": "string",
+      "defaultValue": "dev"
+    },
+    "GlobalResourceLocation": {
+      "type": "string"
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "appServiceName": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('ResourceSuffix'))]",
+    "appServicePlanName": "[concat(parameters('ResourcePrefix'), '-serviceplan', parameters('ResourceSuffix'))]",
+    "applicationInsightsName": "[concat(parameters('ResourcePrefix'), '-appinsight', parameters('GlobalResourceSuffix'))]",
+    "logAnalyticsWorkspaceName": "[concat(parameters('ResourcePrefix'), '-loganalyticsw', parameters('GlobalResourceSuffix'))]",
+    "storageAccountName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'st', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
+    "vnetName": "[concat(parameters('ResourcePrefix'), '-vnet', parameters('ResourceSuffix'))]",
+    "subnetName": "[concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix'))]",
+    "identityName": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('GlobalIdentitySuffix'))]",
+    "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]",
+    "pingTestName": "[concat(parameters('ResourcePrefix'), '-Modality2-health', parameters('ResourceSuffix'))]"
+  },
     "resources": [
         {
             "type": "Microsoft.Web/sites",

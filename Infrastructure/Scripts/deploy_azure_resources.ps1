@@ -9,7 +9,9 @@ param(
         [String]           $ResourceSuffix,                     # Suffix of all resources used to indicate their Azure region.
         [String]           $GlobalResourceSuffix,               # Suffix of resources that are shared across all regions.
         [String]           $GlobalIdentitySuffix,               # Suffix for global MSI. Needed due to legacy naming convention mismatch.
-        [String]           $AzureAdTenantId                     # Tenant of the service identity used by services. This is the id of the home tenant.
+        [String]           $AzureAdTenantId,                     # Tenant of the service identity used by services. This is the id of the home tenant.
+        [String]           $OCCActionGroupResourceGroupName,
+        [String]           $OCCActionGroupName
 )
 
 $TemplateName = $ResourcePrefix + $ResourceSuffix + "-deployment"
@@ -25,11 +27,11 @@ Write-Host "Azure Infrastructure deployment started!"
 # Deploy resources that are shared across regions
 Write-Host "Deploying Global Resources"
 
-Write-Host "Setting up shared alert Action Group"
-New-AzResourceGroupDeployment `
-    -Name $TemplateName `
-    -ResourceGroupName $ResourceGroupName `
-    -TemplateFile "../Templates/resources/action_groups.json"
+# Write-Host "Setting up shared alert Action Group"
+# New-AzResourceGroupDeployment `
+#     -Name $TemplateName `
+#    -ResourceGroupName $ResourceGroupName `
+#    -TemplateFile "../Templates/resources/action_groups.json"
 
 Write-Host "Setting up Modality App Identity"
 $ManagedIdentityModality = New-AzResourceGroupDeployment `
@@ -78,7 +80,9 @@ New-AzResourceGroupDeployment `
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
     -AzureAdTenantId $AzureAdTenantId `
-    -Instance $Instance
+    -Instance $Instance `
+    -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+    -OCCActionGroupName $OCCActionGroupName
 
 $WafCustomRulesFilePath = ""
 switch ($Instance) {
@@ -110,6 +114,8 @@ New-AzResourceGroupDeployment `
     -ResourcePrefix $ResourcePrefix `
     -ResourceSuffix $GlobalResourceSuffix `
     -ModalityRegionSuffixes $ModalityRegionSuffixes `
-    -Instance $Instance
+    -Instance $Instance `
+    -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+    -OCCActionGroupName $OCCActionGroupName
 
 Write-Host "Azure Infrastructure deployment completed!"

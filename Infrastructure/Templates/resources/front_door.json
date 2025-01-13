@@ -25,6 +25,14 @@
     "Instance": {
       "type": "string",
       "defaultValue": "dev"
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
     }
   },
   "variables": {
@@ -33,7 +41,7 @@
     "appservice-modality": "[concat(parameters('ResourcePrefix'), '-appservice')]",
     "webApplicationFirewallName": "[replace(concat(parameters('ResourcePrefix'), '-waf', parameters('ResourceSuffix')), '-', '')]",
     "logAnalyticsWorkspaceName": "[concat(parameters('ResourcePrefix'), '-loganalyticsw', parameters('ResourceSuffix'))]",
-    "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', 'SxG ICon Chat Team')]"
+    "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]"
   },
   "resources": [
     {

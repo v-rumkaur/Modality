@@ -1,42 +1,91 @@
 {
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
-    "parameters": {
-        "Location": {
-            "type": "string"
-        },
-        "Environment": {
-            "type": "string"
-        },
-        "ComponentId": {
-            "type": "string"
-        },
-        "ResourcePrefix": {
-            "type": "string"
-        },
-        "ResourceSuffix": {
-            "type": "string",
-            "defaultValue": ""
-        }
+  "parameters": {
+    "Location": {
+      "type": "string"
     },
-    "variables": {
-        "nsgName": "[concat(parameters('ResourcePrefix'), '-nsg', parameters('ResourceSuffix'))]"
+    "Environment": {
+      "type": "string"
     },
-    "resources": [
-        {
-            "type": "Microsoft.Network/networkSecurityGroups",
-            "apiVersion": "2019-11-01",
-            "name": "[variables('nsgName')]",
-            "location": "[parameters('Location')]",
-            "tags": {
-                "env": "[parameters('Environment')]",
-                "ComponentId": "[parameters('ComponentId')]"
+    "ComponentId": {
+      "type": "string"
+    },
+    "ResourcePrefix": {
+      "type": "string"
+    },
+    "ResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "Instance": {
+      "type": "string",
+      "defaultValue": "dev"
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "nsgName": "[concat(parameters('ResourcePrefix'), '-nsg', parameters('ResourceSuffix'))]",
+    "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2019-11-01",
+      "name": "[variables('nsgName')]",
+      "location": "[parameters('Location')]",
+      "tags": {
+        "env": "[parameters('Environment')]",
+        "ComponentId": "[parameters('ComponentId')]"
+      },
+      "properties": {
+        "securityRules": []
+      }
+    },
+    {
+      "type": "microsoft.insights/activitylogalerts",
+      "apiVersion": "2020-10-01",
+      "name": "[concat('[activitylogalerts] ', variables('nsgName'))]",
+      "location": "global",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+      ],
+      "properties": {
+        "scopes": [
+          "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+        ],
+        "condition": {
+          "allOf": [
+            {
+              "field": "category",
+              "equals": "Administrative"
             },
-            "properties": {
-                "securityRules": []
+            {
+              "field": "operationName",
+              "equals": "Microsoft.Network/networkSecurityGroups/write"
             }
-        }
-    ],
+          ]
+        },
+        "actions": {
+          "actionGroups": [
+            {
+              "actionGroupId": "[variables('actionGroupId')]"
+            }
+          ]
+        },
+        "enabled": true,
+        "description": "An update has been performed on OCC NSG"
+      }
+    }
+  ],
     "outputs": {
         "nsgName": {
             "type": "string",

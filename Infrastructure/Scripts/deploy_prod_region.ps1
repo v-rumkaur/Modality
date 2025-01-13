@@ -15,6 +15,8 @@ $GlobalResourceSuffix              = "-prod" # Global resources have no location
 $GlobalIdentitySuffix              = "-prod-wus" # Needed to reference global MSI due to legacy naming convention mismatch
 $GlobalResourceLocation            = "westus"
 $UsePremiumSku                     = $true
+$OCCActionGroupResourceGroupName   = "occ-rg-monitors-prod-wus"
+$OCCActionGroupName                = "OCC-ServiceReliability-AG"
 
 .\deploy_azure_region_resources.ps1 `
     -SubscriptionName $SubscriptionName `
@@ -30,4 +32,6 @@ $UsePremiumSku                     = $true
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
     -RegionIPSegment $RegionIPSegment `
 	-GlobalResourceLocation $GlobalResourceLocation `
-    -UsePremiumSku $UsePremiumSku
+    -UsePremiumSku $UsePremiumSku `
+	-OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+	-OCCActionGroupName $OCCActionGroupName

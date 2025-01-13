@@ -9,6 +9,8 @@ $ResourceSuffix                    = "-ppe-wus"
 $GlobalResourceSuffix              = "-ppe" # Global resources have no location in suffix.
 $GlobalIdentitySuffix              = "-ppe-wus" # Needed to reference global MSI due to legacy naming convention mismatch
 $AzureAdTenantId                   = "975f013f-7f24-47e8-a7d3-abc4752bf346"
+$OCCActionGroupResourceGroupName   = "occ-rg-common-ppe-wus"
+$OCCActionGroupName                = "OCC-ServiceReliability-AG"
 
 .\deploy_azure_resources.ps1 `
     -SubscriptionName $SubscriptionName `
@@ -21,4 +23,6 @@ $AzureAdTenantId                   = "975f013f-7f24-47e8-a7d3-abc4752bf346"
     -ResourceSuffix $ResourceSuffix `
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
-    -AzureAdTenantId $AzureAdTenantId
+    -AzureAdTenantId $AzureAdTenantId `
+	-OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
+	-OCCActionGroupName $OCCActionGroupName
