@@ -263,7 +263,7 @@ namespace CRM.ICon.Modality.Controllers
             {
                 widgetDetails.Theme = widgetRequest.Theme;
             }
-            return widgetDetails;
+            return Ok(widgetDetails);
         }
 
         [Authorize]
