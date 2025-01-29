@@ -190,7 +190,7 @@
     {
       "type": "microsoft.insights/activitylogalerts",
       "apiVersion": "2020-10-01",
-      "name": "[concat('[Administrative Action Performed] ', variables('keyVaultName'))]",
+      "name": "[concat('[Administrative Action is Performed on] ', variables('keyVaultName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
       "dependsOn": [
@@ -209,7 +209,6 @@
             {
               "field": "status",
               "containsAny": [
-                "started",
                 "succeeded"
               ]
             }

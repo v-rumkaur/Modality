@@ -52,7 +52,7 @@
     {
       "type": "microsoft.insights/activitylogalerts",
       "apiVersion": "2020-10-01",
-      "name": "[concat('[activitylogalerts] ', variables('nsgName'))]",
+      "name": "[concat('Change have been performed on - ', variables('nsgName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
       "dependsOn": [

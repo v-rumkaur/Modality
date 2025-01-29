@@ -497,7 +497,7 @@
               "timeAggregation": "Average",
               "metricName": "TotalLatency",
               "operator": "GreaterThan",
-              "threshold": 5000
+              "threshold": "[if(equals(parameters('Instance'), 'ppe'), 20000, 5000)]"
             }
           ]
         },
