@@ -70,9 +70,28 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -97,9 +116,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -127,9 +164,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -157,9 +212,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -187,9 +260,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -217,9 +308,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -252,9 +361,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Alerts Deployment Script"
           inputs:
@@ -295,9 +422,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -334,9 +479,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -376,9 +539,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -418,9 +599,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -460,9 +659,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -502,9 +719,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -537,9 +772,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Alerts Deployment Script"
           inputs:
@@ -580,9 +833,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -619,9 +890,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -661,9 +950,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -703,9 +1010,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -745,9 +1070,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -787,9 +1130,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -822,9 +1183,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Alerts Deployment Script"
           inputs:
@@ -865,9 +1244,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -904,9 +1301,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -946,9 +1361,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -988,9 +1421,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1030,9 +1481,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1072,9 +1541,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1107,9 +1594,27 @@ extends:
           inputs:
             targetType: 'inline'
             script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
               Get-PackageProvider -Name NuGet -ForceBootstrap
-              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber
-              Uninstall-AzureRm -Verbose
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
         - task: AzurePowerShell@4
           displayName: "Run Alerts Deployment Script"
           inputs:
