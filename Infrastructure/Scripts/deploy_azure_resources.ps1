@@ -21,7 +21,7 @@ Write-Host "Setting up prerequisites!"
 Install-PackageProvider -Name NuGet -Force -Confirm:$false
 Write-Host "NuGet Package Provider Installed Successfully."
 
-$AccessToken = "$(System.AccessToken)"
+$AccessToken = "$env:SYSTEM_ACCESSTOKEN"
 $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
 $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
 Write-Host "Credential object created."
