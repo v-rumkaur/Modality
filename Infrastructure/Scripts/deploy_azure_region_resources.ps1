@@ -14,7 +14,8 @@ param(
         [bool]           $UsePremiumSku,                   # Flag to determine if the app service plan should use premium SKU.
 		[String]         $GlobalResourceLocation,          # Azure region of resources that are shared across all regions.
         [String]         $OCCActionGroupResourceGroupName,
-        [String]         $OCCActionGroupName
+        [String]         $OCCActionGroupName,
+        [String]         $AccessToken
 )
 
 $TemplateName = $ResourcePrefix + $ResourceSuffix + "-deployment"
@@ -23,7 +24,6 @@ Write-Host "Setting up prerequisites!"
 Install-PackageProvider -Name NuGet -Force -Confirm:$false
 Write-Host "NuGet Package Provider Installed Successfully."
 
-$AccessToken = "$env:SYSTEM_ACCESSTOKEN"
 $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
 $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
 Write-Host "Credential object created."

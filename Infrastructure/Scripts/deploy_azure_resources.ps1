@@ -11,7 +11,8 @@ param(
         [String]           $GlobalIdentitySuffix,               # Suffix for global MSI. Needed due to legacy naming convention mismatch.
         [String]           $AzureAdTenantId,                     # Tenant of the service identity used by services. This is the id of the home tenant.
         [String]           $OCCActionGroupResourceGroupName,
-        [String]           $OCCActionGroupName
+        [String]           $OCCActionGroupName,
+        [String]           $AccessToken
 )
 
 $TemplateName = $ResourcePrefix + $ResourceSuffix + "-deployment"
@@ -21,7 +22,6 @@ Write-Host "Setting up prerequisites!"
 Install-PackageProvider -Name NuGet -Force -Confirm:$false
 Write-Host "NuGet Package Provider Installed Successfully."
 
-$AccessToken = "$env:SYSTEM_ACCESSTOKEN"
 $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
 $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
 Write-Host "Credential object created."

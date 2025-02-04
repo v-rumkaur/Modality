@@ -1,3 +1,6 @@
+param(
+        [String]           $AccessToken
+)
 $SubscriptionName                  = "SxGICon_OneChat_RD"
 $ResourceGroupName                 = "modalityservice-rg-int-global"
 $Location                          = "westus"
@@ -21,4 +24,5 @@ $AzureAdTenantId                   = "975f013f-7f24-47e8-a7d3-abc4752bf346"
     -ResourceSuffix $ResourceSuffix `
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
-    -AzureAdTenantId $AzureAdTenantId
+    -AzureAdTenantId $AzureAdTenantId `
+    -AccessToken $AccessToken

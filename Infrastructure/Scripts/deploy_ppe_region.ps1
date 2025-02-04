@@ -1,7 +1,8 @@
 param (
     [String]       $Location,                         # Azure region to deploy in.
     [String]       $ResourceSuffix,                   # Suffix for all resources used to indicate their Azure region.
-    [int]          $RegionIPSegment                   # Space to put IPs for resources in this region (ex. 10.{0}.0.0, where {0} is this segment).  Each region needs to be unique.
+    [int]          $RegionIPSegment,
+    [String]       $AccessToken                       # Space to put IPs for resources in this region (ex. 10.{0}.0.0, where {0} is this segment).  Each region needs to be unique.
 )
 
 $SubscriptionName                  = "SxGICon_OneChat_RD"
@@ -34,4 +35,5 @@ $OCCActionGroupName                = "OCC-ServiceReliability-AG"
 	-GlobalResourceLocation $GlobalResourceLocation `
     -UsePremiumSku $UsePremiumSku `
 	-OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
-	-OCCActionGroupName $OCCActionGroupName
+	-OCCActionGroupName $OCCActionGroupName `
+    -AccessToken $AccessToken

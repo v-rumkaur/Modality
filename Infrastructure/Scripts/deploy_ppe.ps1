@@ -1,3 +1,6 @@
+param(
+        [String]           $AccessToken
+)
 $SubscriptionName                  = "SxGICon_OneChat_RD"
 $ResourceGroupName                 = "modalityservice-rg-managedidentity-ppe-global"
 $Location                          = "westus"
@@ -25,4 +28,5 @@ $OCCActionGroupName                = "OCC-ServiceReliability-AG"
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
     -AzureAdTenantId $AzureAdTenantId `
 	-OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
-	-OCCActionGroupName $OCCActionGroupName
+	-OCCActionGroupName $OCCActionGroupName `
+    -AccessToken $AccessToken

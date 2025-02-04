@@ -1,3 +1,6 @@
+param(
+        [String]           $AccessToken
+)
 $SubscriptionName                  = "SxGICon_OneChat_RD"
 $ResourceGroupName                 = "modalityservice-rg-dev-global"
 $Location                          = "westus"
@@ -21,4 +24,5 @@ $GlobalIdentitySuffix              = "-dev-wus" # Needed to reference global MSI
     -ResourceSuffix $ResourceSuffix `
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
-    -AzureAdTenantId $AzureAdTenantId
+    -AzureAdTenantId $AzureAdTenantId `
+    -AccessToken $AccessToken

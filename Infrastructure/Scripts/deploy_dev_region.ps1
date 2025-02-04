@@ -1,7 +1,9 @@
 param (
     [String]       $Location,                         # Azure region to deploy in.
     [String]       $ResourceSuffix,                   # Suffix for all resources used to indicate their Azure region.
-    [int]          $RegionIPSegment                   # Space to put IPs for resources in this region (ex. 10.{0}.0.0, where {0} is this segment).  Each region needs to be unique.
+    [int]          $RegionIPSegment,                   # Space to put IPs for resources in this region (ex. 10.{0}.0.0, where {0} is this segment).  Each region needs to be unique.
+    [String]       $AccessToken
+
 )
 
 $SubscriptionName                  = "SxGICon_OneChat_RD"
@@ -30,4 +32,5 @@ $GlobalResourceLocation            = "westus"
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
     -RegionIPSegment $RegionIPSegment `
     -UsePremiumSku $UsePremiumSku `
-	-GlobalResourceLocation $GlobalResourceLocation
+	-GlobalResourceLocation $GlobalResourceLocation `
+    -AccessToken $AccessToken

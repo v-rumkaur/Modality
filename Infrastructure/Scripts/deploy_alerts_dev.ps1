@@ -1,3 +1,6 @@
+param(
+        [String]           $AccessToken
+)
 $SubscriptionName                  = "SxGICon_OneChat_RD"
 $ResourceGroupName                 = "modalityservice-rg-dev-global"
 $Location                          = "westus"
@@ -21,4 +24,5 @@ $GlobalResourceGroupName           = "modalityservice-rg-dev-global"
 	-ActionGroupName $ActionGroupName `
 	-ActionGroupShortName $ActionGroupShortName `
 	-GlobalResourceSuffix $GlobalResourceSuffix `
-	-GlobalResourceGroupName $GlobalResourceGroupName
+	-GlobalResourceGroupName $GlobalResourceGroupName `
+	-AccessToken $AccessToken

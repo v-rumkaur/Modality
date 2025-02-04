@@ -1,3 +1,6 @@
+param(
+        [String]           $AccessToken
+)
 $SubscriptionName                  = "SxGICon_OneChat_RD"
 $ResourceGroupName                 = "modalityservice-rg-managedidentity-ppe-global"
 $Location                          = "westus"
@@ -27,4 +30,5 @@ $OCCEscalationActionGroupName      = "OCC-ServiceReliability-AG"
 	-GlobalResourceGroupName $GlobalResourceGroupName `
 	-OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
 	-OCCActionGroupName $OCCActionGroupName `
-	-OCCEscalationActionGroupName $OCCEscalationActionGroupName
+	-OCCEscalationActionGroupName $OCCEscalationActionGroupName `
+	-AccessToken $AccessToken

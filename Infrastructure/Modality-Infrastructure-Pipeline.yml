@@ -99,9 +99,10 @@ extends:
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_dev.ps1
+              ./deploy_dev.ps1 -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+            env:SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
       - job: Deploy_Infra_WestUS
         displayName: "Deploy West US"
@@ -147,7 +148,8 @@ extends:
               ./deploy_dev_region.ps1 `
               -Location                         "westus" `
               -ResourceSuffix                   "-dev-wus" `
-              -RegionIPSegment                  "1"
+              -RegionIPSegment                  "1" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -195,7 +197,8 @@ extends:
               ./deploy_dev_region.ps1 `
               -Location                         "eastus" `
               -ResourceSuffix                   "-dev-eus" `
-              -RegionIPSegment                  "2"
+              -RegionIPSegment                  "2" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -243,7 +246,8 @@ extends:
               ./deploy_dev_region.ps1 `
               -Location                         "westeurope" `
               -ResourceSuffix                   "-dev-weu" `
-              -RegionIPSegment                  "3"
+              -RegionIPSegment                  "3" `
+              -AccessToken $(System.AccessToken) 
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -291,7 +295,8 @@ extends:
               ./deploy_dev_region.ps1 `
               -Location                         "northeurope" `
               -ResourceSuffix                   "-dev-neu" `
-              -RegionIPSegment                  "4"
+              -RegionIPSegment                  "4" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -339,7 +344,8 @@ extends:
               ./deploy_dev_region.ps1 `
               -Location                         "southeastasia" `
               -ResourceSuffix                   "-dev-sea" `
-              -RegionIPSegment                  "5"
+              -RegionIPSegment                  "5" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
             
@@ -389,7 +395,7 @@ extends:
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_alerts_dev.ps1
+              ./deploy_alerts_dev.ps1 -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -450,7 +456,7 @@ extends:
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_int.ps1
+              ./deploy_int.ps1 -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -510,7 +516,8 @@ extends:
               ./deploy_int_region.ps1 `
               -Location                         "westus" `
               -ResourceSuffix                   "-int-wus" `
-              -RegionIPSegment                  "1"
+              -RegionIPSegment                  "1" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -570,7 +577,8 @@ extends:
               ./deploy_int_region.ps1 `
               -Location                         "eastus" `
               -ResourceSuffix                   "-int-eus" `
-              -RegionIPSegment                  "2"
+              -RegionIPSegment                  "2" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -630,7 +638,8 @@ extends:
               ./deploy_int_region.ps1 `
               -Location                         "westeurope" `
               -ResourceSuffix                   "-int-weu" `
-              -RegionIPSegment                  "3"
+              -RegionIPSegment                  "3" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -690,7 +699,8 @@ extends:
               ./deploy_int_region.ps1 `
               -Location                         "northeurope" `
               -ResourceSuffix                   "-int-neu" `
-              -RegionIPSegment                  "4"
+              -RegionIPSegment                  "4" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -750,7 +760,8 @@ extends:
               ./deploy_int_region.ps1 `
               -Location                         "southeastasia" `
               -ResourceSuffix                   "-int-sea" `
-              -RegionIPSegment                  "5"
+              -RegionIPSegment                  "5" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
             
@@ -800,7 +811,7 @@ extends:
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_alerts_int.ps1
+              ./deploy_alerts_int.ps1 -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -861,7 +872,7 @@ extends:
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_ppe.ps1
+              ./deploy_ppe.ps1 -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -921,7 +932,8 @@ extends:
               ./deploy_ppe_region.ps1 `
               -Location                         "westus" `
               -ResourceSuffix                   "-ppe-wus" `
-              -RegionIPSegment                  "1"
+              -RegionIPSegment                  "1" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -981,7 +993,8 @@ extends:
               ./deploy_ppe_region.ps1 `
               -Location                         "eastus" `
               -ResourceSuffix                   "-ppe-eus" `
-              -RegionIPSegment                  "2"
+              -RegionIPSegment                  "2" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -1041,7 +1054,8 @@ extends:
               ./deploy_ppe_region.ps1 `
               -Location                         "westeurope" `
               -ResourceSuffix                   "-ppe-weu" `
-              -RegionIPSegment                  "3"
+              -RegionIPSegment                  "3" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -1101,7 +1115,8 @@ extends:
               ./deploy_ppe_region.ps1 `
               -Location                         "northeurope" `
               -ResourceSuffix                   "-ppe-neu" `
-              -RegionIPSegment                  "4"
+              -RegionIPSegment                  "4" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -1161,7 +1176,8 @@ extends:
               ./deploy_ppe_region.ps1 `
               -Location                         "southeastasia" `
               -ResourceSuffix                   "-ppe-sea" `
-              -RegionIPSegment                  "5"
+              -RegionIPSegment                  "5" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
         
@@ -1211,7 +1227,7 @@ extends:
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_alerts_ppe.ps1
+              ./deploy_alerts_ppe.ps1 -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -1272,7 +1288,7 @@ extends:
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_prod.ps1
+              ./deploy_prod.ps1 -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -1332,7 +1348,8 @@ extends:
               ./deploy_prod_region.ps1 `
               -Location                         "westus" `
               -ResourceSuffix                   "-prod-wus" `
-              -RegionIPSegment                  "1"
+              -RegionIPSegment                  "1" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -1392,7 +1409,8 @@ extends:
               ./deploy_prod_region.ps1 `
               -Location                         "eastus" `
               -ResourceSuffix                   "-prod-eus" `
-              -RegionIPSegment                  "2"
+              -RegionIPSegment                  "2" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -1452,7 +1470,8 @@ extends:
               ./deploy_prod_region.ps1 `
               -Location                         "westeurope" `
               -ResourceSuffix                   "-prod-weu" `
-              -RegionIPSegment                  "3"
+              -RegionIPSegment                  "3" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -1512,7 +1531,8 @@ extends:
               ./deploy_prod_region.ps1 `
               -Location                         "northeurope" `
               -ResourceSuffix                   "-prod-neu" `
-              -RegionIPSegment                  "4"
+              -RegionIPSegment                  "4" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
 
@@ -1572,7 +1592,8 @@ extends:
               ./deploy_prod_region.ps1 `
               -Location                         "southeastasia" `
               -ResourceSuffix                   "-prod-sea" `
-              -RegionIPSegment                  "5"
+              -RegionIPSegment                  "5" `
+              -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
             
@@ -1622,6 +1643,6 @@ extends:
             ScriptType: InlineScript
             Inline: |
               cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
-              ./deploy_alerts_prod.ps1
+              ./deploy_alerts_prod.ps1 -AccessToken $(System.AccessToken)
             azurePowerShellVersion: LatestVersion
             workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
