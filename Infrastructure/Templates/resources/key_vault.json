@@ -117,6 +117,9 @@
       "name": "[format('Key Vault - Drop in Availability - 99 Percent ({0})', variables('keyVaultName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
       ],
@@ -155,6 +158,9 @@
       "name": "[format('Key Vault - Drop in Availability - 90 Percent ({0})', variables('keyVaultName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
       ],
@@ -193,6 +199,9 @@
       "name": "[concat('[Administrative Action is Performed on] ', variables('keyVaultName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
       ],

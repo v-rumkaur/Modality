@@ -39,7 +39,14 @@ Write-Output "Repository '$CentralFeedName' registered successfully."
     Write-Output "Repository '$CentralFeedName' is already registered."
 }
 
+$AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+if ($AzureRM) {
+Write-Host "AzureRM module found. Uninstalling..."
 Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+} else {
+Write-Host "AzureRM module is not installed. Skipping uninstallation."
+}
+
 Write-Host "Installing Az modules."
 Install-Module AzureAD -Force -Repository $CentralFeedName -Credential $CredentialObj
 Install-Module Az.Resources -Force -Repository $CentralFeedName -Credential $CredentialObj

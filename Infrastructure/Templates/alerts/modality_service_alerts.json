@@ -1,6 +1,6 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-    "contentVersion": "1.0.0.0",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
   "parameters": {
     "Location": {
       "type": "string"
@@ -21,7 +21,6 @@
     "GlobalResourceGroupName": {
       "type": "string",
       "defaultValue": ""
-
     },
     "OCCActionGroupResourceGroupName": {
       "type": "string",
@@ -34,6 +33,10 @@
     "OCCEscalationActionGroupName": {
       "type": "string",
       "defaultValue": ""
+    },
+    "Instance": {
+      "type": "string",
+      "defaultValue": "dev"
     }
   },
   "variables": {
@@ -55,6 +58,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Performance] HTTP Response Time ({0}-Modality)', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Performance] HTTP Response Time ({0}-Modality)', parameters('ResourcePrefix'))]",
         "description": "Average response time exceeding performance target.",
@@ -110,6 +117,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
         "description": "Modality reliability has dropped below 99%.",
@@ -164,6 +175,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Reliability] {0}-Modality-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Reliability] {0}-Modality-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
         "description": "Modality reliability has dropped below 90%.",
@@ -223,6 +238,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
         "description": "Modality reliability has dropped below 95%.",
@@ -277,6 +296,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Usability] {0}-Modality-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Usability] {0}-Modality-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
         "description": "Modality usability has dropped below 70%.",
@@ -331,6 +354,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Usability] {0}-Modality-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Usability] {0}-Modality-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
         "description": "Modality usability has dropped below 50%.",
@@ -385,6 +412,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Performance] HTTP Response Time ({0}-VDM)', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Performance] HTTP Response Time ({0}-VDM)', parameters('ResourcePrefix'))]",
         "description": "Average response time exceeding performance target.",
@@ -439,6 +470,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Performance] HTTP Response Time ({0}-Omnichannel)', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Performance] HTTP Response Time ({0}-Omnichannel)', parameters('ResourcePrefix'))]",
         "description": "Average response time exceeding performance target.",
@@ -493,6 +528,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Reliability] {0}-VDM-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Reliability] {0}-VDM-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
         "description": "VDM reliability has dropped below 90%.",
@@ -550,6 +589,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Reliability] {0}-Omnichannel-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Reliability] {0}-Omnichannel-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
         "description": "Omnichannel reliability has dropped below 90%.",
@@ -606,6 +649,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Reliability] {0}-VDM-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Reliability] {0}-VDM-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
         "description": "VDM reliability has dropped below 99%.",
@@ -658,6 +705,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Reliability] {0}-VDM-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Reliability] {0}-VDM-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
         "description": "VDM reliability has dropped below 95%.",
@@ -710,6 +761,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Reliability] {0}-Omnichannel-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Reliability] {0}-Omnichannel-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
         "description": "Omnichannel reliability has dropped below 99%.",
@@ -762,6 +817,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Reliability] {0}-Omnichannel-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Reliability] {0}-Omnichannel-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
         "description": "Omnichannel reliability has dropped below 95%.",
@@ -814,6 +873,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Usability] {0}-VDM-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Usability] {0}-VDM-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
         "description": "VDM usability has dropped below 70%.",
@@ -866,6 +929,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Usability] {0}-VDM-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Usability] {0}-VDM-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
         "description": "VDM usability has dropped below 50%.",
@@ -918,6 +985,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Usability] {0}-Omnichannel-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Usability] {0}-Omnichannel-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
         "description": "Omnichannel usability has dropped below 70%.",
@@ -970,6 +1041,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Usability] {0}-Omnichannel-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Usability] {0}-Omnichannel-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
         "description": "Omnichannel usability has dropped below 50%.",
@@ -1022,6 +1097,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Null Response] {0}-VDM-Regionwise-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Null Response] {0}-VDM-Regionwise-Sev3', parameters('ResourcePrefix'))]",
         "description": "VDM response is null for more than 5 requests.",
@@ -1069,6 +1148,10 @@
       "apiVersion": "2021-02-01-preview",
       "name": "[format('[Null Response] {0}-Omnichannel-Regionwise-Sev3', parameters('ResourcePrefix'))]",
       "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "displayName": "[format('[Null Response] {0}-Omnichannel-Regionwise-Sev3', parameters('ResourcePrefix'))]",
         "description": "Omnichannel response is null for more than 5 requests.",

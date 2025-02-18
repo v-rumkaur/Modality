@@ -323,50 +323,53 @@
             }
         },
 		// Modality Traffic Pattern Alert
-        {
-            "type": "Microsoft.Insights/metricAlerts",
-            "apiVersion": "2018-03-01",
-            "name": "[format('[Traffic Pattern] {0}', variables('appServiceName'))]",
-            "location": "global",
-            "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
-            ],
-          "properties": {
-            "description": "Detected anomaly in total request count.",
-            "severity": 4,
-            "enabled": true,
-            "autoMitigate": true,
-            "scopes": [
-              "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
-            ],
-            "evaluationFrequency": "PT5M",
-            "windowSize": "PT5M",
-            "criteria": {
-              "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria",
-              "allOf": [
-                {
-                  "criterionType": "DynamicThresholdCriterion",
-                  "name": "Server requests",
-                  "timeAggregation": "Total",
-                  "metricNamespace": "Microsoft.Web/sites",
-                  "metricName": "Requests",
-                  "operator": "GreaterOrLessThan",
-                  "alertSensitivity": "Low",
-                  "failingPeriods": {
-                    "numberOfEvaluationPeriods": 3,
-                    "minFailingPeriodsToAlert": 3
-                  }
-                }
-              ]
-            },
-            "actions": [
+      {
+        "type": "Microsoft.Insights/metricAlerts",
+        "apiVersion": "2018-03-01",
+        "name": "[format('[Traffic Pattern] {0}', variables('appServiceName'))]",
+        "location": "global",
+        "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+        "tags": {
+          "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+        },
+        "dependsOn": [
+          "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+        ],
+        "properties": {
+          "description": "Detected anomaly in total request count.",
+          "severity": 4,
+          "enabled": true,
+          "autoMitigate": true,
+          "scopes": [
+            "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+          ],
+          "evaluationFrequency": "PT5M",
+          "windowSize": "PT5M",
+          "criteria": {
+            "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria",
+            "allOf": [
               {
-                "actionGroupId": "[variables('actionGroupId')]"
+                "criterionType": "DynamicThresholdCriterion",
+                "name": "Server requests",
+                "timeAggregation": "Total",
+                "metricNamespace": "Microsoft.Web/sites",
+                "metricName": "Requests",
+                "operator": "GreaterOrLessThan",
+                "alertSensitivity": "Low",
+                "failingPeriods": {
+                  "numberOfEvaluationPeriods": 3,
+                  "minFailingPeriodsToAlert": 3
+                }
               }
             ]
-          }
+          },
+          "actions": [
+            {
+              "actionGroupId": "[variables('actionGroupId')]"
+            }
+          ]
         }
+      }
     ],
     "outputs": {
         "appServiceName": {

@@ -37,7 +37,14 @@ Write-Output "Repository '$CentralFeedName' registered successfully."
     Write-Output "Repository '$CentralFeedName' is already registered."
 }
 
+$AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+if ($AzureRM) {
+Write-Host "AzureRM module found. Uninstalling..."
 Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+} else {
+Write-Host "AzureRM module is not installed. Skipping uninstallation."
+}
+
 Write-Host "Installing Az modules."
 Install-Module AzureAD -Force -Repository $CentralFeedName -Credential $CredentialObj
 Install-Module Az.Resources -Force -Repository $CentralFeedName -Credential $CredentialObj
@@ -48,11 +55,11 @@ Write-Host "Azure Infrastructure deployment started!"
 # Deploy resources that are shared across regions
 Write-Host "Deploying Global Resources"
 
-# Write-Host "Setting up shared alert Action Group"
-# New-AzResourceGroupDeployment `
-#     -Name $TemplateName `
-#    -ResourceGroupName $ResourceGroupName `
-#    -TemplateFile "../Templates/resources/action_groups.json"
+ Write-Host "Setting up shared alert Action Group"
+ New-AzResourceGroupDeployment `
+     -Name $TemplateName `
+    -ResourceGroupName $ResourceGroupName `
+    -TemplateFile "../Templates/resources/action_groups.json"
 
 Write-Host "Setting up Modality App Identity"
 $ManagedIdentityModality = New-AzResourceGroupDeployment `

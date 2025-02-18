@@ -153,44 +153,47 @@
                 "enableVmProtection": false
             }
         },
-		    {
-            "type": "Microsoft.Insights/metricAlerts",
-            "apiVersion": "2018-03-01",
-            "name": "[format('[Security] Potential DDoS Attack Detected ({0})', variables('vnetName'))]",
-            "location": "global",
-            "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
-            ],
-            "properties": {
-                "description": "Detected potential DDoS attack.",
-                "severity": 4,
-                "enabled": true,
-                "scopes": [
-                    "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
-                ],
-                "evaluationFrequency": "PT15M",
-                "windowSize": "PT15M",
-                "criteria": {
-                    "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
-                    "allOf": [
-                      {
-                        "criterionType": "StaticThresholdCriterion",
-                        "name": "DDoS Attack",
-                        "timeAggregation": "Maximum",
-                        "metricName": "IfUnderDDoSAttack",
-                        "operator": "GreaterThan",
-                        "threshold": 0
-                      }
-                    ]
-                },
-                "actions": [
-                    {
-                        "actionGroupId": "[variables('actionGroupId')]"
-                    }
-                ]
+      {
+        "type": "Microsoft.Insights/metricAlerts",
+        "apiVersion": "2018-03-01",
+        "name": "[format('[Security] Potential DDoS Attack Detected ({0})', variables('vnetName'))]",
+        "location": "global",
+        "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+        "tags": {
+          "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+        },
+        "dependsOn": [
+          "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        ],
+        "properties": {
+          "description": "Detected potential DDoS attack.",
+          "severity": 4,
+          "enabled": true,
+          "scopes": [
+            "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+          ],
+          "evaluationFrequency": "PT15M",
+          "windowSize": "PT15M",
+          "criteria": {
+            "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+            "allOf": [
+              {
+                "criterionType": "StaticThresholdCriterion",
+                "name": "DDoS Attack",
+                "timeAggregation": "Maximum",
+                "metricName": "IfUnderDDoSAttack",
+                "operator": "GreaterThan",
+                "threshold": 0
+              }
+            ]
+          },
+          "actions": [
+            {
+              "actionGroupId": "[variables('actionGroupId')]"
             }
+          ]
         }
+      }
     ],
     "outputs": {
         "vnetName": {

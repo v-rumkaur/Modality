@@ -5,9 +5,6 @@
     "Environment": {
       "type": "string"
     },
-    "ActionGroupName": {
-      "type": "string"
-    },
     "SubscriptionId": {
       "type": "string"
     },
@@ -21,6 +18,10 @@
     },
     "Location": {
       "type": "string"
+    },
+    "Instance": {
+      "type": "string",
+      "defaultValue": "dev"
     }
   },
   "variables": {
@@ -32,6 +33,10 @@
       "apiVersion": "2017-04-01",
       "name": "ResourceHealthAlert",
       "location": "Global",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "properties": {
         "enabled": true,
         "scopes": [
@@ -140,6 +145,10 @@
       "name": "ResourceGroupDeleted",
       "type": "Microsoft.Insights/activityLogAlerts",
       "location": "global",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "apiVersion": "2017-04-01",
       "properties": {
         "description": "Resource Group Deleted",
@@ -172,6 +181,10 @@
       "name": "FailedDeployment",
       "type": "Microsoft.Insights/activityLogAlerts",
       "location": "global",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "apiVersion": "2017-04-01",
       "properties": {
         "description": "Failed ARM Deployment",
@@ -210,6 +223,10 @@
       "apiVersion": "2017-04-01",
       "name": "ServiceHealthActivityLogAlert",
       "location": "Global",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "tags": {},
       "scale": null,
       "properties": {

@@ -91,7 +91,13 @@ extends:
 
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -137,7 +143,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -186,7 +198,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -235,7 +253,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -284,7 +308,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -333,7 +363,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -387,7 +423,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Alerts Deployment Script"
           inputs:
@@ -448,7 +490,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -505,7 +553,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -566,7 +620,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -627,7 +687,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -688,7 +754,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -749,7 +821,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -803,7 +881,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Alerts Deployment Script"
           inputs:
@@ -864,7 +948,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -921,7 +1011,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -982,7 +1078,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1043,7 +1145,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1104,7 +1212,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1165,7 +1279,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1219,7 +1339,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Alerts Deployment Script"
           inputs:
@@ -1280,7 +1406,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1337,7 +1469,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1398,7 +1536,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1459,7 +1603,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1520,7 +1670,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1581,7 +1737,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Infrastructure Deployment Script"
           inputs:
@@ -1635,7 +1797,13 @@ extends:
               }
               Get-PackageProvider -Name NuGet -ForceBootstrap
               Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
               Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
         - task: AzurePowerShell@4
           displayName: "Run Alerts Deployment Script"
           inputs:

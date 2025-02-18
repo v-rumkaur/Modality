@@ -16,8 +16,8 @@ $GlobalResourceSuffix              = "-ppe" # Global resources have no location 
 $GlobalIdentitySuffix              = "-ppe-wus" # Needed to reference global MSI due to legacy naming convention mismatch
 $GlobalResourceLocation            = "westus"
 $UsePremiumSku                     = $true
-$OCCActionGroupResourceGroupName   = "occ-rg-common-ppe-wus"
-$OCCActionGroupName                = "OCC-ServiceReliability-AG"
+$OCCActionGroupName                = "SxG ICon Chat Team"
+$OCCActionGroupResourceGroupName   = "modalityservice-rg-managedidentity-ppe-global"
 
 .\deploy_azure_region_resources.ps1 `
     -SubscriptionName $SubscriptionName `

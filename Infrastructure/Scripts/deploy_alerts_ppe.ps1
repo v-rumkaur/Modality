@@ -8,13 +8,13 @@ $Environment                       = "modalityservice-rg-managedidentity-ppe-glo
 $ComponentId                       = "e982eb41-6f74-4863-a475-2f1ecf15a166"
 $SubscriptionId                    = "bc970a64-0a20-44e7-a673-a1b9f20b0ca0"
 $ResourcePrefix                    = "modalityservice"
-$ActionGroupName                   = "SxG ICon Chat Team"
 $ActionGroupShortName              = "sxgchatall"
 $GlobalResourceSuffix              = "-ppe" 
 $GlobalResourceGroupName           = "modalityservice-rg-managedidentity-ppe-global"
-$OCCActionGroupResourceGroupName   = "occ-rg-common-ppe-wus"
-$OCCActionGroupName                = "OCC-ServiceReliability-AG"
-$OCCEscalationActionGroupName      = "OCC-ServiceReliability-AG"
+$OCCActionGroupResourceGroupName   = "modalityservice-rg-managedidentity-ppe-global"
+$OCCActionGroupName                = "SxG ICon Chat Team"
+$OCCEscalationActionGroupName      = "SxG ICon Chat Team"
+$Instance						   = "ppe"
 
 .\manage_alerts.ps1 `
 	-SubscriptionName $SubscriptionName `
@@ -24,11 +24,11 @@ $OCCEscalationActionGroupName      = "OCC-ServiceReliability-AG"
 	-ComponentId $ComponentId `
 	-SubscriptionId $SubscriptionId `
 	-ResourcePrefix	$ResourcePrefix `
-	-ActionGroupName $ActionGroupName `
 	-ActionGroupShortName $ActionGroupShortName `
 	-GlobalResourceSuffix $GlobalResourceSuffix `
 	-GlobalResourceGroupName $GlobalResourceGroupName `
 	-OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
 	-OCCActionGroupName $OCCActionGroupName `
 	-OCCEscalationActionGroupName $OCCEscalationActionGroupName `
+	-Instance $Instance `
 	-AccessToken $AccessToken

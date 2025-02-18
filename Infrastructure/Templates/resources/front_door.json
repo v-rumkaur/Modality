@@ -316,6 +316,9 @@
       "name": "[format('FrontDoor-Drop in Origin Health Percentage - 90 Percent ({0})', variables('frontDoorName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
       ],
@@ -354,6 +357,9 @@
       "name": "[format('FrontDoor-Drop in Origin Health Percentage - 50 Percent ({0})', variables('frontDoorName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
       ],
@@ -392,6 +398,9 @@
       "name": "[format('FrontDoor - HTTP 5xx Errors - Low Threshold ({0})', variables('frontDoorName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
       ],
@@ -434,6 +443,9 @@
       "name": "[format('FrontDoor - HTTP 4xx Errors - Low Threshold ({0})', variables('frontDoorName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
       ],
@@ -476,6 +488,9 @@
       "name": "[format('FrontDoor - Increase in Total Latency - Sev3 ({0})', variables('frontDoorName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.Cdn/profiles', variables('frontDoorName'))]"
       ],

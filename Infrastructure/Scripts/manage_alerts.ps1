@@ -5,12 +5,12 @@ param(
         [String]   $Environment,
         [String]   $SubscriptionId,
         [String]   $ResourcePrefix,
-        [String]   $ActionGroupName,
         [String]   $GlobalResourceSuffix,
         [String]   $GlobalResourceGroupName,
         [String]   $OCCActionGroupResourceGroupName,
         [String]   $OCCActionGroupName,
         [String]   $OCCEscalationActionGroupName,
+        [String]   $Instance,
         [String]   $AccessToken
 )
 
@@ -36,7 +36,14 @@ Write-Output "Repository '$CentralFeedName' registered successfully."
 }
 
 
+$AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+if ($AzureRM) {
+Write-Host "AzureRM module found. Uninstalling..."
 Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+} else {
+Write-Host "AzureRM module is not installed. Skipping uninstallation."
+}
+
 Write-Host "Installing Az modules."
 Install-Module AzureAD -Force -Repository $CentralFeedName -Credential $CredentialObj
 Install-Module Az.Resources -Force -Repository $CentralFeedName -Credential $CredentialObj
@@ -54,7 +61,8 @@ New-AzResourceGroupDeployment `
         -GlobalResourceGroupName $GlobalResourceGroupName `
         -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
         -OCCActionGroupName $OCCActionGroupName `
-        -OCCEscalationActionGroupName $OCCEscalationActionGroupName
+        -OCCEscalationActionGroupName $OCCEscalationActionGroupName `
+        -Instance $Instance
 
 Write-Host "Creating smart alerts"
 New-AzResourceGroupDeployment `
@@ -63,12 +71,12 @@ New-AzResourceGroupDeployment `
         -TemplateFile "../Templates/alerts/smart_detection_alerts.json" `
         -Environment $Environment `
         -SubscriptionId $SubscriptionId `
-        -ActionGroupName $ActionGroupName `
         -Location $Location `
         -ResourcePrefix $ResourcePrefix `
         -GlobalResourceSuffix $GlobalResourceSuffix `
         -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
-        -OCCActionGroupName $OCCActionGroupName
+        -OCCActionGroupName $OCCActionGroupName `
+        -Instance $Instance
 		
 Write-Host "Creating activity alerts for subscription"
 New-AzResourceGroupDeployment `
@@ -77,7 +85,7 @@ New-AzResourceGroupDeployment `
         -TemplateFile "../Templates/alerts/activity_alerts.json" `
         -Environment $Environment `
         -SubscriptionId $SubscriptionId `
-        -ActionGroupName $ActionGroupName `
         -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
         -OCCActionGroupName $OCCActionGroupName `
+        -Instance $Instance `
         -Location $Location  

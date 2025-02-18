@@ -55,6 +55,9 @@
       "name": "[concat('Change have been performed on - ', variables('nsgName'))]",
       "location": "global",
       "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
       ],
@@ -82,7 +85,7 @@
           ]
         },
         "enabled": true,
-        "description": "An update has been performed on OCC NSG"
+        "description": "An update has been performed on Modality Service NSG"
       }
     }
   ],
