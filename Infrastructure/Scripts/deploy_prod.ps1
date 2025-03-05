@@ -14,6 +14,7 @@ $GlobalIdentitySuffix              = "-prod-wus" # Needed to reference global MS
 $AzureAdTenantId                   = "975f013f-7f24-47e8-a7d3-abc4752bf346"
 $OCCActionGroupResourceGroupName   = "occ-rg-monitors-prod-wus"
 $OCCActionGroupName                = "OCC-ServiceReliability-AG"
+$SubscriptionId                    = "d9d18e84-40fe-4f31-ab9d-92231d96e8fd"
 
 .\deploy_azure_resources.ps1 `
     -SubscriptionName $SubscriptionName `
@@ -29,4 +30,5 @@ $OCCActionGroupName                = "OCC-ServiceReliability-AG"
     -AzureAdTenantId $AzureAdTenantId `
 	-OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
 	-OCCActionGroupName $OCCActionGroupName `
-    -AccessToken $AccessToken
+    -AccessToken $AccessToken `
+    -SubscriptionId $SubscriptionId

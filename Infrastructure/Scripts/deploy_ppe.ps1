@@ -14,6 +14,7 @@ $GlobalIdentitySuffix              = "-ppe-wus" # Needed to reference global MSI
 $AzureAdTenantId                   = "975f013f-7f24-47e8-a7d3-abc4752bf346"
 $OCCActionGroupResourceGroupName   = "modalityservice-rg-managedidentity-ppe-global"
 $OCCActionGroupName                = "SxG ICon Chat Team"
+$SubscriptionId                    = "bc970a64-0a20-44e7-a673-a1b9f20b0ca0"
 
 .\deploy_azure_resources.ps1 `
     -SubscriptionName $SubscriptionName `
@@ -29,4 +30,5 @@ $OCCActionGroupName                = "SxG ICon Chat Team"
     -AzureAdTenantId $AzureAdTenantId `
 	-OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
 	-OCCActionGroupName $OCCActionGroupName `
-    -AccessToken $AccessToken
+    -AccessToken $AccessToken `
+    -SubscriptionId $SubscriptionId

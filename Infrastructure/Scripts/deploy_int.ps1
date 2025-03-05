@@ -12,6 +12,7 @@ $ResourceSuffix                    = "-int-wus"
 $GlobalResourceSuffix              = "-int" # Global resources have no location in suffix.
 $GlobalIdentitySuffix              = "-int-wus" # Needed to reference global MSI due to legacy naming convention mismatch
 $AzureAdTenantId                   = "975f013f-7f24-47e8-a7d3-abc4752bf346"
+$SubscriptionId                    = "bc970a64-0a20-44e7-a673-a1b9f20b0ca0"
 
 .\deploy_azure_resources.ps1 `
     -SubscriptionName $SubscriptionName `
@@ -25,4 +26,5 @@ $AzureAdTenantId                   = "975f013f-7f24-47e8-a7d3-abc4752bf346"
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -GlobalIdentitySuffix $GlobalIdentitySuffix `
     -AzureAdTenantId $AzureAdTenantId `
-    -AccessToken $AccessToken
+    -AccessToken $AccessToken `
+    -SubscriptionId $SubscriptionId

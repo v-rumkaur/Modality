@@ -56,273 +56,514 @@
     "subnetName": "[concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix'))]",
     "identityName": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('GlobalIdentitySuffix'))]",
     "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]",
-    "pingTestName": "[concat(parameters('ResourcePrefix'), '-Modality2-health', parameters('ResourceSuffix'))]"
-  },
+    "pingTestName": "[concat(parameters('ResourcePrefix'), '-Modality2-health', parameters('ResourceSuffix'))]",
+    "defaultIpRestrictions": [
+      {
+        "ipAddress": "ApplicationInsightsAvailability",
+        "action": "Allow",
+        "tag": "ServiceTag",
+        "priority": 1000,
+        "name": "Allow Availability Tests"
+      },
+      {
+        "ipAddress": "AzureFrontDoor.Backend",
+        "action": "Allow",
+        "tag": "ServiceTag",
+        "priority": 1001,
+        "name": "Allow Azure Front Door"
+      },
+      {
+        "vnetSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', concat(parameters('ResourcePrefix'), '-vnet', parameters('ResourceSuffix')), concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix')))]",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1002,
+        "name": "Allow Local VNet"
+      },
+      {
+        "ipAddress": "AzureTrafficManager",
+        "action": "Allow",
+        "tag": "ServiceTag",
+        "priority": 1003,
+        "name": "Allow Traffic Manager"
+      },
+      {
+        "ipAddress": "207.68.190.32/27",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1004,
+        "name": "SAW207.68.190.32"
+      },
+      {
+        "ipAddress": "157.58.216.64/26",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1005,
+        "name": "SAW157.58.216.64/26"
+      },
+      {
+        "ipAddress": "13.106.78.32/27",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1006,
+        "name": "SAW13.106.78.32/27"
+      },
+      {
+        "ipAddress": "13.106.174.32/27",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1007,
+        "name": "SAW13.106.174.32/27"
+      },
+      {
+        "ipAddress": "194.69.119.64/26",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1008,
+        "name": "SAW194.69.119.64/26"
+      },
+      {
+        "ipAddress": "13.106.78.32/27",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1009,
+        "name": "SAW13.106.78.32/27"
+      },
+      {
+        "ipAddress": "167.220.249.128/26",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1010,
+        "name": "SAW167.220.249.128/26"
+      },
+      {
+        "ipAddress": "2001:4898:b080::/64",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1011,
+        "name": "SAW2001:4898:b080::/64"
+      },
+      {
+        "ipAddress": "2a01:110:b080::/64",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1012,
+        "name": "SAW2a01:110:b080::/64"
+      },
+      {
+        "ipAddress": "2404:f801:b080::/64",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1013,
+        "name": "SAW2404:f801:b080::/64"
+      },
+      {
+        "ipAddress": "Any",
+        "action": "Deny",
+        "priority": 2147483647,
+        "name": "Deny all",
+        "description": "Deny all access"
+      }
+    ],
+    "environmentIpRestrictions": {
+      "-int": [
+        {
+          "ipAddress": "13.93.149.227/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1014,
+          "name": "MSaaS13.93.149.227"
+        },
+        {
+          "ipAddress": "52.138.177.17/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1015,
+          "name": "MSaaS52.138.177.17"
+        },
+        {
+          "ipAddress": "13.90.137.26/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1016,
+          "name": "MSaaS13.90.137.26"
+        },
+        {
+          "ipAddress": "13.95.158.64/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1017,
+          "name": "MSaaS13.95.158.64"
+        },
+        {
+          "ipAddress": "52.138.192.136/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1018,
+          "name": "MSaaS52.138.192.136"
+        }
+      ],
+      "-ppe": [
+        {
+          "ipAddress": "13.93.149.227/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1014,
+          "name": "MSaaS13.93.149.227"
+        },
+        {
+          "ipAddress": "52.138.177.17/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1015,
+          "name": "MSaaS52.138.177.17"
+        },
+        {
+          "ipAddress": "13.90.137.26/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1016,
+          "name": "MSaaS13.90.137.26"
+        },
+        {
+          "ipAddress": "13.95.158.64/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1017,
+          "name": "MSaaS13.95.158.64"
+        },
+        {
+          "ipAddress": "52.138.192.136/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1018,
+          "name": "MSaaS52.138.192.136"
+        }
+      ],
+      "-prod": [
+        {
+          "ipAddress": "52.237.106.177/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1014,
+          "name": "MSaaS52.237.106.177"
+        },
+        {
+          "ipAddress": "13.67.225.3/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1015,
+          "name": "MSaaS13.67.225.3"
+        },
+        {
+          "ipAddress": "172.178.26.139/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1016,
+          "name": "MSaaS172.178.26.139"
+        },
+        {
+          "ipAddress": "23.102.233.131/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1017,
+          "name": "MSaaS23.102.233.131"
+        },
+        {
+          "ipAddress": "13.88.98.42/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1018,
+          "name": "MSaaS13.88.98.42"
+        },
+        {
+          "ipAddress": "172.201.64.220/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1019,
+          "name": "MSaaS172.201.64.220"
+        },
+        {
+          "ipAddress": "52.138.219.112/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1020,
+          "name": "MSaaS52.138.219.112"
+        },
+        {
+          "ipAddress": "13.94.103.147/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1021,
+          "name": "MSaaS13.94.103.147"
+        },
+        {
+          "ipAddress": "52.163.120.235/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1022,
+          "name": "MSaaS52.163.120.235"
+        },
+        {
+          "ipAddress": "13.89.41.12/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1023,
+          "name": "MSaaS13.89.41.12"
+        },
+        {
+          "ipAddress": "20.12.54.62/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1024,
+          "name": "MSaaS20.12.54.62"
+        },
+        {
+          "ipAddress": "13.76.184.73/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1025,
+          "name": "MSaaS13.76.184.73"
+        }
+      ]
+    }
+    },
     "resources": [
-        {
-            "type": "Microsoft.Web/sites",
-            "apiVersion": "2022-09-01",
-            "name": "[variables('appServiceName')]",
-            "location": "[parameters('Location')]",
-            "tags": {
-                "env": "[parameters('Environment')]",
-                "ComponentId": "[parameters('ComponentId')]"
-            },
-            "kind": "app",
-            "identity": {
-                "type": "UserAssigned",
-              "userAssignedIdentities": {
-                "[resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.ManagedIdentity/userAssignedIdentities/', variables('identityName'))]": {}
-              }
-            },
-            "properties": {
-                "enabled": true,
-                "httpsOnly": true,
-                "vnetRouteAllEnabled": true,
-                "hostNameSslStates": [
-                    {
-                        "name": "[concat(variables('appServiceName'), '.azurewebsites.net')]",
-                        "sslState": "Disabled",
-                        "hostType": "Standard"
-                    },
-                    {
-                        "name": "[concat(variables('appServiceName'), '.scm.azurewebsites.net')]",
-                        "sslState": "Disabled",
-                        "hostType": "Repository"
-                    }
-                ],
-                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
-                "siteConfig": {
-                  "appSettings": [
-                    {
-                      "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
-                      "value": "[reference(resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.Insights/components', variables('applicationInsightsName')), '2015-05-01').InstrumentationKey]"
-                    },
-                    {
-                      "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
-                      "value": "~2"
-                    },
-                    {
-                      "name": "AzureWebJobsStorage__accountName",
-                      "value": "[variables('storageAccountName')]"
-                    },
-                    {
-                      "name": "AzureWebJobsStorage__clientId",
-                      "value": "[reference(resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2018-11-30').clientId]"
-                    },
-                    {
-                      "name": "AzureWebJobsStorage__credential",
-                      "value": "managedidentity"
-                    },
-                    {
-                      "name": "BlobServiceUri",
-                      "value": "[concat('https://',variables('storageAccountName'),'.blob.core.windows.net')]"
-                    },
-                    {
-                      "name": "ASPNETCORE_ENVIRONMENT",
-                      "value": "[parameters('Instance')]"
-                    },
-                    {
-                      "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
-                      "value": "true"
-                    },
-                    {
-                      "name": "WEBSITE_RUN_FROM_PACKAGE",
-                      "value": "1"
-                    }
-                  ]
-                }
-            },
-            "resources": [
-                {
-                    "type": "networkConfig",
-                    "apiVersion": "2022-09-01",
-                    "name": "virtualNetwork",
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
-                    ],
-                    "properties": {
-                        "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]",
-                        "isSwift": true
-                    }
-                }
-            ]
+      {
+        "type": "Microsoft.Web/sites",
+        "apiVersion": "2022-09-01",
+        "name": "[variables('appServiceName')]",
+        "location": "[parameters('Location')]",
+        "tags": {
+          "env": "[parameters('Environment')]",
+          "ComponentId": "[parameters('ComponentId')]"
         },
-        {
-            "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-            "apiVersion": "2022-09-01",
-            "name": "[concat(variables('appServiceName'), '/ftp')]",
-            "location": "[parameters('Location')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
-            ],
-            "tags": {
-                "env": "[parameters('Environment')]",
-                "ComponentId": "[parameters('ComponentId')]"
-            },
-            "properties": {
-                "allow": false
-            }
-        },
-        {
-            "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
-            "apiVersion": "2022-09-01",
-            "name": "[concat(variables('appServiceName'), '/scm')]",
-            "location": "[parameters('Location')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
-            ],
-            "tags": {
-                "env": "[parameters('Environment')]",
-                "ComponentId": "[parameters('ComponentId')]"
-            },
-            "properties": {
-                "allow": false
-            }
-        },
-        {
-            "type": "Microsoft.Web/sites/config",
-            "apiVersion": "2022-09-01",
-            "name": "[concat(variables('appServiceName'), '/web')]",
-            "location": "[parameters('Location')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
-            ],
-          "properties": {
-            "numberOfWorkers": 1,
-            "defaultDocuments": [
-              "Default.htm",
-              "Default.html",
-              "Default.asp",
-              "index.htm",
-              "index.html",
-              "iisstart.htm",
-              "default.aspx",
-              "index.php"
-            ],
-            "netFrameworkVersion": "v8.0",
-            "phpVersion": "5.6",
-            "requestTracingEnabled": false,
-            "remoteDebuggingEnabled": false,
-            "httpLoggingEnabled": false,
-            "logsDirectorySizeLimit": 35,
-            "detailedErrorLoggingEnabled": false,
-            "publishingUsername": "[concat('$', variables('appServiceName'))]",
-            "scmType": "None",
-            "use32BitWorkerProcess": false,
-            "webSocketsEnabled": false,
-            "alwaysOn": false,
-            "managedPipelineMode": "Integrated",
-            "virtualApplications": [
-              {
-                "virtualPath": "/",
-                "physicalPath": "site\\wwwroot",
-                "preloadEnabled": true
-              }
-            ],
-            "loadBalancing": "LeastRequests",
-            "experiments": {
-              "rampUpRules": []
-            },
-            "autoHealEnabled": false,
-            "cors": {
-              "allowedOrigins": [
-                "https://functions.azure.com",
-                "https://functions-staging.azure.com",
-                "https://functions-next.azure.com",
-                "https://localhost:5001",
-                "https://localhost:6001"
-              ],
-              "supportCredentials": false
-            },
-            "localMySqlEnabled": false,
-            "ipSecurityRestrictions": [
-              {
-                "ipAddress": "ApplicationInsightsAvailability",
-                "action": "Allow",
-                "tag": "ServiceTag",
-                "priority": 1000,
-                "name": "Allow Availability Tests"
-              },
-              {
-                "ipAddress": "AzureFrontDoor.Backend",
-                "action": "Allow",
-                "tag": "ServiceTag",
-                "priority": 1001,
-                "name": "Allow Azure Front Door"
-              },
-              {
-                "vnetSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]",
-                "action": "Allow",
-                "tag": "Default",
-                "priority": 1002,
-                "name": "Allow Local VNet"
-              },
-              {
-                "ipAddress": "Any",
-                "action": "Deny",
-                "priority": 2147483647,
-                "name": "Deny all",
-                "description": "Deny all access"
-              }
-            ],
-            "ipSecurityRestrictionsDefaultAction": "[if(or(equals(Parameters('Instance'), 'dev'), equals(Parameters('Instance'), 'int')), 'Allow', 'Deny')]",
-            "scmIpSecurityRestrictions": [
-              {
-                "ipAddress": "Any",
-                "action": "Allow",
-                "priority": 1,
-                "name": "Allow all",
-                "description": "Allow all access"
-              }
-            ],
-            "scmIpSecurityRestrictionsUseMain": false,
-            "scmIpSecurityRestrictionsDefaultAction": "Allow",
-            "http20Enabled": true,
-            "minTlsVersion": "1.2",
-            "ftpsState": "FtpsOnly",
-            "healthCheckPath": "/health"
+        "kind": "app",
+        "identity": {
+          "type": "UserAssigned",
+          "userAssignedIdentities": {
+            "[resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.ManagedIdentity/userAssignedIdentities/', variables('identityName'))]": {}
           }
         },
-        {
-            "type": "Microsoft.Web/sites/hostNameBindings",
+        "properties": {
+          "enabled": true,
+          "httpsOnly": true,
+          "vnetRouteAllEnabled": true,
+          "hostNameSslStates": [
+            {
+              "name": "[concat(variables('appServiceName'), '.azurewebsites.net')]",
+              "sslState": "Disabled",
+              "hostType": "Standard"
+            },
+            {
+              "name": "[concat(variables('appServiceName'), '.scm.azurewebsites.net')]",
+              "sslState": "Disabled",
+              "hostType": "Repository"
+            }
+          ],
+          "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+          "siteConfig": {
+            "appSettings": [
+              {
+                "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                "value": "[reference(resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.Insights/components', variables('applicationInsightsName')), '2015-05-01').InstrumentationKey]"
+              },
+              {
+                "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
+                "value": "~2"
+              },
+              {
+                "name": "AzureWebJobsStorage__accountName",
+                "value": "[variables('storageAccountName')]"
+              },
+              {
+                "name": "AzureWebJobsStorage__clientId",
+                "value": "[reference(resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2018-11-30').clientId]"
+              },
+              {
+                "name": "AzureWebJobsStorage__credential",
+                "value": "managedidentity"
+              },
+              {
+                "name": "BlobServiceUri",
+                "value": "[concat('https://',variables('storageAccountName'),'.blob.core.windows.net')]"
+              },
+              {
+                "name": "ASPNETCORE_ENVIRONMENT",
+                "value": "[parameters('Instance')]"
+              },
+              {
+                "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
+                "value": "true"
+              },
+              {
+                "name": "WEBSITE_RUN_FROM_PACKAGE",
+                "value": "1"
+              }
+            ]
+          }
+        },
+        "resources": [
+          {
+            "type": "networkConfig",
             "apiVersion": "2022-09-01",
-            "name": "[concat(variables('appServiceName'), '/', variables('appServiceName'), '.azurewebsites.net')]",
-            "location": "[parameters('Location')]",
+            "name": "virtualNetwork",
             "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+              "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
             ],
             "properties": {
-                "siteName": "variables('appServiceName')",
-                "hostNameType": "Verified"
+              "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]",
+              "isSwift": true
             }
+          }
+        ]
+      },
+      {
+        "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+        "apiVersion": "2022-09-01",
+        "name": "[concat(variables('appServiceName'), '/ftp')]",
+        "location": "[parameters('Location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+        ],
+        "tags": {
+          "env": "[parameters('Environment')]",
+          "ComponentId": "[parameters('ComponentId')]"
         },
-        {
-            // This is supported, there is a bug with the schema validation
-            "type": "Microsoft.Insights/diagnosticSettings",
-            "apiVersion": "2021-05-01-preview",
-            "name": "[concat(variables('appServiceName'), '-diagnosticSettings')]",
-            "scope": "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+        "properties": {
+          "allow": false
+        }
+      },
+      {
+        "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+        "apiVersion": "2022-09-01",
+        "name": "[concat(variables('appServiceName'), '/scm')]",
+        "location": "[parameters('Location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+        ],
+        "tags": {
+          "env": "[parameters('Environment')]",
+          "ComponentId": "[parameters('ComponentId')]"
+        },
+        "properties": {
+          "allow": false
+        }
+      },
+      {
+        "type": "Microsoft.Web/sites/config",
+        "apiVersion": "2022-09-01",
+        "name": "[concat(variables('appServiceName'), '/web')]",
+        "location": "[parameters('Location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+        ],
+        "properties": {
+          "numberOfWorkers": 1,
+          "defaultDocuments": [
+            "Default.htm",
+            "Default.html",
+            "Default.asp",
+            "index.htm",
+            "index.html",
+            "iisstart.htm",
+            "default.aspx",
+            "index.php"
+          ],
+          "netFrameworkVersion": "v8.0",
+          "phpVersion": "5.6",
+          "requestTracingEnabled": false,
+          "remoteDebuggingEnabled": false,
+          "httpLoggingEnabled": false,
+          "logsDirectorySizeLimit": 35,
+          "detailedErrorLoggingEnabled": false,
+          "publishingUsername": "[concat('$', variables('appServiceName'))]",
+          "scmType": "None",
+          "use32BitWorkerProcess": false,
+          "webSocketsEnabled": false,
+          "alwaysOn": false,
+          "managedPipelineMode": "Integrated",
+          "virtualApplications": [
+            {
+              "virtualPath": "/",
+              "physicalPath": "site\\wwwroot",
+              "preloadEnabled": true
+            }
+          ],
+          "loadBalancing": "LeastRequests",
+          "experiments": {
+            "rampUpRules": []
+          },
+          "autoHealEnabled": false,
+          "cors": {
+            "allowedOrigins": [
+              "https://functions.azure.com",
+              "https://functions-staging.azure.com",
+              "https://functions-next.azure.com",
+              "https://localhost:5001",
+              "https://localhost:6001"
             ],
-            "properties": {
-                "workspaceId": "[resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]",
-                "logs": [
-                    {
-                        "categoryGroup": "allLogs",
-                        "enabled": true
-                    }
-                ],
-                "metrics": [
-                    {
-                        "category": "AllMetrics",
-                        "enabled": true
-                    }
-                ]
+            "supportCredentials": false
+          },
+          "localMySqlEnabled": false,
+
+          "ipSecurityRestrictions": "[concat(variables('defaultIpRestrictions'), variables('environmentIpRestrictions')[parameters('GlobalResourceSuffix')])]",
+          "ipSecurityRestrictionsDefaultAction": "[if(or(equals(Parameters('Instance'), 'dev'), equals(Parameters('Instance'), 'int')), 'Allow', 'Deny')]",
+          "scmIpSecurityRestrictions": [
+            {
+              "ipAddress": "Any",
+              "action": "Allow",
+              "priority": 1,
+              "name": "Allow all",
+              "description": "Allow all access"
             }
-        },
-		// Modality Traffic Pattern Alert
+          ],
+          "scmIpSecurityRestrictionsUseMain": false,
+          "scmIpSecurityRestrictionsDefaultAction": "Allow",
+          "http20Enabled": true,
+          "minTlsVersion": "1.2",
+          "ftpsState": "FtpsOnly",
+          "healthCheckPath": "/health"
+        }
+      },
+      {
+        "type": "Microsoft.Web/sites/hostNameBindings",
+        "apiVersion": "2022-09-01",
+        "name": "[concat(variables('appServiceName'), '/', variables('appServiceName'), '.azurewebsites.net')]",
+        "location": "[parameters('Location')]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+        ],
+        "properties": {
+          "siteName": "variables('appServiceName')",
+          "hostNameType": "Verified"
+        }
+      },
+      {
+        // This is supported, there is a bug with the schema validation
+        "type": "Microsoft.Insights/diagnosticSettings",
+        "apiVersion": "2021-05-01-preview",
+        "name": "[concat(variables('appServiceName'), '-diagnosticSettings')]",
+        "scope": "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]",
+        "dependsOn": [
+          "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+        ],
+        "properties": {
+          "workspaceId": "[resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]",
+          "logs": [
+            {
+              "categoryGroup": "allLogs",
+              "enabled": true
+            }
+          ],
+          "metrics": [
+            {
+              "category": "AllMetrics",
+              "enabled": true
+            }
+          ]
+        }
+      },
+      // Modality Traffic Pattern Alert
       {
         "type": "Microsoft.Insights/metricAlerts",
         "apiVersion": "2018-03-01",
@@ -372,9 +613,9 @@
       }
     ],
     "outputs": {
-        "appServiceName": {
-            "type": "string",
-            "value": "[variables('appServiceName')]"
-        }
+      "appServiceName": {
+        "type": "string",
+        "value": "[variables('appServiceName')]"
+      }
     }
-}
+  }

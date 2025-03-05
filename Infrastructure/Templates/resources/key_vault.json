@@ -73,6 +73,15 @@
               "secrets": [ "get", "list" ],
               "certificates": [ "get", "list" ]
             }
+          },
+          {
+            "tenantId": "[parameters('AzureAdTenantId')]",
+            "objectId": "b453993d-81d4-41a7-be3a-549bc2435ffa",
+            "permissions": {
+              "keys": [ ],
+              "secrets": [ "get", "list" ],
+              "certificates": [ "get", "list" ]
+            }
           }
         ],
         "enabledForDeployment": true,

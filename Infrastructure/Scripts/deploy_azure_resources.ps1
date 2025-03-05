@@ -12,7 +12,8 @@ param(
         [String]           $AzureAdTenantId,                     # Tenant of the service identity used by services. This is the id of the home tenant.
         [String]           $OCCActionGroupResourceGroupName,
         [String]           $OCCActionGroupName,
-        [String]           $AccessToken
+        [String]           $AccessToken,
+        [String]           $SubscriptionId  
 )
 
 $TemplateName = $ResourcePrefix + $ResourceSuffix + "-deployment"
@@ -145,5 +146,15 @@ New-AzResourceGroupDeployment `
     -Instance $Instance `
     -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
     -OCCActionGroupName $OCCActionGroupName
+
+Write-Host "Setting up Traffic Manager"
+New-AzResourceGroupDeployment `
+    -Name $TemplateName `
+    -ResourceGroupName $ResourceGroupName `
+    -TemplateFile "../Templates/resources/traffic_manager.json" `
+    -ResourcePrefix $ResourcePrefix `
+    -ResourceSuffix $GlobalResourceSuffix `
+    -GlobalResourceSuffix $GlobalResourceSuffix `
+    -SubscriptionId $SubscriptionId
 
 Write-Host "Azure Infrastructure deployment completed!"
