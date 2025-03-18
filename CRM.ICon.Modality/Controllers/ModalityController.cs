@@ -1,6 +1,7 @@
 using Azure.Core;
 using CRM.ICon.Modality.Helpers;
 using CRM.ICon.Modality.Helpers.Cosmos;
+using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
 using CRM.ICon.Modality.Services.Omnichannel;
@@ -25,6 +26,9 @@ namespace CRM.ICon.Modality.Controllers
         private readonly ITelemetryService _telemetryService;
         private readonly IOmnichannelEUService omnichannelEUService;
         private readonly ICosmosDbClient cosmosDbClient;
+
+        private readonly bool IsMCS = false;
+        private readonly string Ring = "Ring4";
         public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService, ITelemetryService telemetryService, IOmnichannelEUService omnichannelEUService, ICosmosDbClient cosmosDbClient)
         {
             this.vdmService = vdmService;
@@ -192,7 +196,7 @@ namespace CRM.ICon.Modality.Controllers
             modalityResponse.Skills.Add(vdmSkill);
             modalityResponse.Skills.Add(regionSkill);
 
-            WidgetDetails widgetDetails = omnichannelService.GetWidgetDetails(languageCode, source, userType);
+            WidgetDetails widgetDetails = omnichannelService.GetWidgetDetails(languageCode, source, userType, IsMCS, Ring);
 
             widgetDetails.Theme = modalityRequest.Theme;
 
@@ -258,12 +262,29 @@ namespace CRM.ICon.Modality.Controllers
 
             var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
 
-            WidgetDetails widgetDetails = omnichannelService.GetWidgetDetails(languageCode, source, userType);
-            if (widgetDetails != null)
+            string ring = widgetRequest.Ring ?? "Ring4";
+            
+            // GetWidgetDetails for MCS
+            WidgetDetails widgetDetailsMCS = omnichannelService.GetWidgetDetails(languageCode, source, userType, true, ring);
+
+            // GetWidgetDetails for Non MCS
+            WidgetDetails widgetDetailsNonMCS = omnichannelService.GetWidgetDetails(languageCode, source, userType, false, ring);
+
+            List<WidgetDetails> widgetDetailsList = new List<WidgetDetails>();
+            if (widgetDetailsMCS != null && widgetDetailsMCS.WidgetId != null)
             {
-                widgetDetails.Theme = widgetRequest.Theme;
+                widgetDetailsMCS.Theme = widgetRequest.Theme;
+                widgetDetailsMCS.IsMCS = true;
+                widgetDetailsList.Add(widgetDetailsMCS);
             }
-            return Ok(widgetDetails);
+
+            if (widgetDetailsNonMCS != null && widgetDetailsNonMCS.WidgetId != null)
+            {
+                widgetDetailsNonMCS.Theme = widgetRequest.Theme;
+                widgetDetailsList.Add(widgetDetailsNonMCS);
+            }          
+            
+            return Ok(widgetDetailsList);
         }
 
         [Authorize]
@@ -315,6 +336,56 @@ namespace CRM.ICon.Modality.Controllers
             }
 
             return null;
+        }
+
+        [Authorize]
+        [HttpPost]
+        [Route("createWidgetMapping")]
+        public async Task<ActionResult<WidgetMappingResponse>> CreateWidgetMapping([FromBody] WidgetMappingRequest widgetRequest)
+        {
+
+            if (widgetRequest == null)
+            {
+                return BadRequest();
+            }
+
+            var source = widgetRequest.Source.ToLowerInvariant();
+
+            string locale = widgetRequest.Locale.ToLowerInvariant();
+            string languageCode = "en";
+            try
+            {
+                CultureInfo cultureInfo = new CultureInfo(locale);
+                languageCode = cultureInfo.TwoLetterISOLanguageName;
+                if (string.IsNullOrEmpty(languageCode))
+                {
+                    languageCode = "en";
+                }
+                else
+                {
+                    languageCode = languageCode.ToLowerInvariant();
+                }
+            }
+            catch (Exception exception)
+            {
+                // fallback locale is always en-us
+                locale = "en-us";
+            }
+
+            var userType = widgetRequest.UserType;
+
+            if (string.IsNullOrEmpty(userType))
+            {
+                userType = "commercial"; //default value is commercial
+            }
+
+            userType = userType.ToLowerInvariant();
+
+            var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
+
+            WidgetMappingResponse widgetMappingResponse = omnichannelService.CreateWidgetDetails(widgetRequest, languageCode, source, userType);
+
+            return Ok(widgetMappingResponse);
         }
 
         private ModalityResponse GetModalityResponse(ModalityResponse modalityResponse, string languageCode, string userType, SupportTicketAttribute supportTicketAttribute, string country, string source)
@@ -380,7 +451,7 @@ namespace CRM.ICon.Modality.Controllers
             modalityResponse.Skills.Add(vdmSkill);
             modalityResponse.Skills.Add(regionSkill);
 
-            WidgetDetails widgetDetails = omnichannelService.GetWidgetDetails(languageCode, source, userType);
+            WidgetDetails widgetDetails = omnichannelService.GetWidgetDetails(languageCode, source, userType, IsMCS, Ring);
 
             widgetDetails.Theme = "Light";
 

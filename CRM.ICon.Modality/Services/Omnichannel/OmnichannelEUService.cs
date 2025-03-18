@@ -1,5 +1,6 @@
 ﻿using Azure.Core;
 using CRM.ICon.Modality.Helpers;
+using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
 using CRM.ICon.Modality.Services.VDM;
@@ -61,7 +62,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             }
         }
 
-        public WidgetDetails GetWidgetDetails(string language, string source, string userType)
+        public WidgetDetails GetWidgetDetails(string language, string source, string userType, bool isMCS, string Ring)
         {
             if (string.IsNullOrEmpty(userType))
             {
@@ -82,6 +83,11 @@ namespace CRM.ICon.Modality.Services.Omnichannel
         {
             skillcharacteristicConfiguration.TryGetValue(skill, out string characteristicid);
             return characteristicid;
+        }
+
+        public WidgetMappingResponse CreateWidgetDetails(WidgetMappingRequest widgetmappingRequest, string language, string source, string userType)
+        {
+            throw new NotImplementedException();
         }
     }
 }

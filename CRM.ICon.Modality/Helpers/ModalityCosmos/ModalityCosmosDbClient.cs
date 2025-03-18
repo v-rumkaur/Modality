@@ -4,7 +4,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
-namespace CRM.ICon.Modality.Helpers.Cosmos
+namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 {
     using System;
     using System.Collections.Concurrent;
@@ -23,17 +23,17 @@ namespace CRM.ICon.Modality.Helpers.Cosmos
     /// <summary>
     /// A client for manipulating DocumentDB data
     /// </summary>
-    public class CosmosDbClient : ICosmosDbClient
+    public class ModalityCosmosDbClient : IModalityCosmosDbClient
     {
-        private readonly CosmosDbConfiguration cosmosDbConfiguration;
+        private readonly ModalityCosmosDbConfiguration cosmosDbConfiguration;
         private readonly CosmosClient cosmosClient;
         private readonly AzureAdConfiguration azureAdConfiguration;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CosmosDbClient"/> class.
+        /// Initializes a new instance of the <see cref="ModalityCosmosDbClient"/> class.
         /// </summary>
         /// <param name="cosmosDbConfiguration">Cosmos db configuration</param>
-        public CosmosDbClient(IOptions<CosmosDbConfiguration> cosmosDbConfiguration, IOptions<AzureAdConfiguration> azureAdConfiguration)
+        public ModalityCosmosDbClient(IOptions<ModalityCosmosDbConfiguration> cosmosDbConfiguration, IOptions<AzureAdConfiguration> azureAdConfiguration)
         {
             this.cosmosDbConfiguration = cosmosDbConfiguration?.Value ?? throw new ArgumentNullException(nameof(cosmosDbConfiguration));
             this.azureAdConfiguration = azureAdConfiguration.Value;
@@ -54,7 +54,7 @@ namespace CRM.ICon.Modality.Helpers.Cosmos
 
         public async Task<T> UpsertItemAsync<T>(T item)
         {
-            var container = GetContainerAsync();
+            var container = await GetContainerAsync();
             var response = await container.UpsertItemAsync<T>(item).ConfigureAwait(false);
             var resource = response.Resource;
             if (resource != null)
@@ -64,9 +64,33 @@ namespace CRM.ICon.Modality.Helpers.Cosmos
             return default(T);
         }
 
-        private Container GetContainerAsync()
+        public async Task<T> GetItemAsync<T>(string id)
         {
-            return this.cosmosClient.GetContainer(cosmosDbConfiguration.DatabaseId, cosmosDbConfiguration.ContainerId);
+            try
+            {
+                var container = await GetContainerAsync();
+                var response = await container.ReadItemAsync<T>(id, new PartitionKey(id)).ConfigureAwait(false);
+                var resource = response.Resource;
+                if (resource != null)
+                {
+                    return (T)(dynamic)resource;
+                }
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                return default(T);
+            }
+            catch (Exception ex)
+            {
+                return default(T);
+            }
+            return default(T);
+        }
+
+        private async Task<Container> GetContainerAsync()
+        {
+            var database = await this.cosmosClient.CreateDatabaseIfNotExistsAsync(this.cosmosDbConfiguration.DatabaseId);
+            return await database.Database.CreateContainerIfNotExistsAsync(this.cosmosDbConfiguration.ContainerId, "/id");
         }
     }
 }

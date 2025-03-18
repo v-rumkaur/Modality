@@ -12,8 +12,8 @@ using CRM.ICon.Modality.Helpers.KeyVaultClient;
 using Microsoft.Extensions.Caching.Memory;
 using CRM.ICon.Modality.Helpers.KeyvaultClient;
 using Microsoft.Identity.ServiceEssentials.Extensions.AspNetCoreMiddleware;
+using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Cosmos;
-using ICon.OneChat.Common.Helpers.Cosmos;
 
 namespace CRM.ICon.Modality
 {
@@ -98,6 +98,7 @@ namespace CRM.ICon.Modality
             services.Configure<Configuration.KeyVaultConfiguration>(Configuration.GetSection(Constants.KeyVaultConfiguration));
             services.Configure<Dictionary<string, WorkstreamDetails>>(this.Configuration.GetSection("WorkstreamConfiguration"));
             services.Configure<CosmosDbConfiguration>(this.Configuration.GetSection("CosmosDbConfiguration"));
+            services.Configure<ModalityCosmosDbConfiguration>(this.Configuration.GetSection("ModalityCosmosDbConfiguration"));
 
             // Initialize Telemetry
             var applicationInsightsServiceOptions = new Microsoft.ApplicationInsights.AspNetCore.Extensions.ApplicationInsightsServiceOptions();
@@ -160,6 +161,7 @@ namespace CRM.ICon.Modality
             services.AddSingleton<IHttpContextHandler, HttpContextHandler>();
             services.AddSingleton<IKeyVaultClient, KeyVaultClient>();
             services.AddSingleton<ICosmosDbClient, CosmosDbClient>();
+            services.AddSingleton<IModalityCosmosDbClient, ModalityCosmosDbClient>();
 
         }
     }

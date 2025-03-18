@@ -8,5 +8,7 @@
 
         public string Theme { get; set; }
 
+        public bool IsMCS { get; set; }
+
     }
 }

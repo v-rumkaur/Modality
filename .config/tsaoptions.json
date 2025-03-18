@@ -2,7 +2,7 @@
     "instanceUrl":  "https://dynamicscrm.visualstudio.com",
     "TSADocumentation": "https://aka.ms/OBTSA",
     "projectName":  "OneCRM",
-    "areaPath":  "OneCRM\\CRM\\SxG\\ICon\\Communication\\Chat",
+    "areaPath":  "OneCRM\\CRM\\SxG\\ICon\\Digital\\Services\\Modalities",
     "notificationAliases": ["sxgchatall@microsoft.com"],
     "ppe":  "false",
     "template":  "TFSMSAzure",
