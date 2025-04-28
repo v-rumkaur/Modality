@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenTelemetry.Resources;
+using System;
 using System.Data.Common;
 using System.Globalization;
 
@@ -51,10 +52,12 @@ namespace CRM.ICon.Modality.Controllers
                 return BadRequest();
             }
 
-            var locale = modalityRequest.Locale.ToLowerInvariant();
+            var locale = modalityRequest.Locale?.ToLowerInvariant();
             var source = modalityRequest.Source.ToLowerInvariant();
-            var userType = modalityRequest.UserType;
+            var supportAreaName = modalityRequest.SupportTicketAttributes?.SupportAreaName?.ToLowerInvariant();
+            var userType = modalityRequest.UserType?.ToLowerInvariant();
             var requestId = modalityRequest.RequestId;
+            var userLCID = modalityRequest.UserLcid.GetValueOrDefault();
 
             logProperties.AddObjectAsString("Source", source);
             logProperties.AddObjectAsString("RequestId", modalityRequest.RequestId);
@@ -75,14 +78,146 @@ namespace CRM.ICon.Modality.Controllers
             modalityInfoPhone.IsAgentAvailable = true;
             modalityInfoPhone.InHoops = true;
 
+            ICollection<LanguageSkillData> languageSkills = UserLcidToSkillData(userLCID);
+
+            LanguageSkillData languageSkillData = languageSkills.FirstOrDefault();
+            string language = languageSkillData?.SkillName.ToString();
+            List<BusinessHour> businessHourDatas;
+            BusinessHourConstants.BusinessHourData.TryGetValue(language, out businessHourDatas);
+
+            if (!IsBusinessHour(businessHourDatas))
+            {
+                var businessHourData = businessHourDatas.LastOrDefault();
+
+                if (ValidateBusinessHourData(businessHourData))
+                {
+                    var businessHoursDetails = new BusinessHour
+                    {
+                            StartDayOfWeek = businessHourData.StartDayOfWeek,
+                            EndDayOfWeek = businessHourData.EndDayOfWeek,
+                            StartHour = businessHourData.StartHour,
+                            EndHour = businessHourData.EndHour,
+                            TimeZoneName = businessHourData.TimeZoneName,
+                            UtcOffset = businessHourData.UtcOffset,
+                            StartMin = businessHourData.StartMin,
+                            EndMin = businessHourData.EndMin
+                    };
+                                       
+                    List<BusinessHour> list = new List<BusinessHour>();
+                    list.Add(businessHoursDetails);
+
+                    HoopsInfo businessHoursInfo = new HoopsInfo();
+                    businessHoursInfo.BusinessHours = list;
+
+                    modalityInfoPhone.InHoops = false;
+                    modalityInfoPhone.HoopsInfo = businessHoursInfo;
+                    modalityInfoPhone.IsAgentAvailable = false;
+
+                    modalityInfoEmail.InHoops = false;
+                    modalityInfoEmail.HoopsInfo = businessHoursInfo;
+                    modalityInfoEmail.IsAgentAvailable = false;
+
+                }
+            }
+
             (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfoEmail);
             modalityResponse.Modalities.Add(modalityInfoPhone);
 
+            if (string.IsNullOrEmpty(userType))
+            {
+                userType = "commercial"; //default value is commercial
+            }
+
+            var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
+            
+            // Queue based Routing and Assignment
+            if (source != null && !source.Contains("ppac"))
+            { 
+
+                bool isConciergeChat = supportAreaName != null && string.Equals(supportAreaName, "concierge", StringComparison.CurrentCultureIgnoreCase) && ValidateConciergeChat(modalityRequest, language);
+
+                bool isSCIMChat = ValidateSCIMChat(modalityRequest, language);
+
+                if (isSCIMChat)
+                {
+                    source = source + "SCIM";
+                }
+                else if (isConciergeChat)
+                {
+                    source = source + "Concierge";
+                }
+                else if (string.Equals(source, "SupportCentral", StringComparison.CurrentCultureIgnoreCase) ||
+                    string.Equals(source, "SupportCentralSearch", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    return Ok(modalityResponse);
+                }
+
+                CustomContext chatCustomContext = new CustomContext();
+                chatCustomContext.LCID = new LCID { value = userLCID, isDisplayable = true };
+                chatCustomContext.Source = new Source { value = source, isDisplayable = true };
+                
+                OmnichannelRequest chatOmnichannelRequest = new OmnichannelRequest();
+                chatOmnichannelRequest.CustomContext = chatCustomContext;
+
+                var queueAvailability = await omnichannelService.GetAgentAvailability(chatOmnichannelRequest, source, userType, requestId);
+
+                if (queueAvailability != null)
+                {
+                    ModalityInfo modalityInfoChat = new ModalityInfo();
+
+                    int averagewaittime = 0;
+                    int.TryParse(queueAvailability.AverageWaitTime, out averagewaittime);
+
+                    if (isConciergeChat && averagewaittime > 15)
+                    {
+                        return Ok(modalityResponse);
+                    }
+
+                    if (isSCIMChat && averagewaittime > 5)
+                    {
+                        return Ok(modalityResponse);
+                    }
+
+                    if (!queueAvailability.IsQueueAvailable)
+                    {
+                        var businessHourDetails = GetEmeraldBusinessHours();
+
+                        if (isSCIMChat)
+                        {
+                            businessHourDetails = GetSCIMBusinessHours();
+                        }
+
+                        else if (isConciergeChat)
+                        {
+                            businessHourDetails = GetConciergeBusinessHours();
+                        }
+
+                        List<BusinessHour> businessHourList = new List<BusinessHour>();
+                        businessHourList.Add(businessHourDetails);
+                        HoopsInfo hoopsInfo = new HoopsInfo();
+                        hoopsInfo.BusinessHours = businessHourList;
+                        modalityInfoChat.HoopsInfo = hoopsInfo;
+                    }
+
+                    modalityInfoChat.Modality = 4;
+                    modalityInfoChat.WaitTime = queueAvailability.AverageWaitTime;
+                    modalityInfoChat.IsAgentAvailable = queueAvailability.IsAgentAvailable;
+                    modalityInfoChat.InHoops = queueAvailability.IsQueueAvailable;
+
+                    modalityResponse.Modalities.Add(modalityInfoChat);                   
+                }
+
+                return Ok(modalityResponse);
+            }
+
+            var languageCode = GetLanguage(locale, userLCID);
+
+            // Skill based Routing and Assignment
             CustomerAttribute customerAttributes = modalityRequest.CustomerAttributes;
+
             bool isACE = customerAttributes?.IsACE ?? false;
             if (isACE)
             {
-
                 this._telemetryService.LogTrace<ModalityController>("ACE customer is true", logProperties);
                 return Ok(modalityResponse);
             }
@@ -94,61 +229,30 @@ namespace CRM.ICon.Modality.Controllers
             {
                 country = "US";
             }
-
-            string languageCode = "en";
-            try 
-            { 
-                CultureInfo cultureInfo = new CultureInfo(locale);
-                languageCode = cultureInfo.TwoLetterISOLanguageName;
-                if (string.IsNullOrEmpty(languageCode))
-                {
-                    languageCode = "en";
-                }
-                else
-                {
-                    languageCode = languageCode.ToLowerInvariant();
-                }
-            } 
-            catch (Exception exception)
-            {
-                this._telemetryService.LogException<ModalityController>(exception, logProperties, "Get language code from locale Failure");
-                // fallback locale is always en-us
-                locale = "en-us";
-            }
-
+            
             var vdmResponse = await vdmService.GetVDMSkill(new VDMRequest { Text = supportTicketAttribute.Description, Boundary = "public", SapId = supportTicketAttribute.SapId, PredictionPurposes = "crmee_ml_skill_model" }, requestId);
 
             if (vdmResponse == null || vdmResponse.skillValue == null)
             {
-                //modalityResponse = GetModalityResponse(modalityResponse, languageCode, userType, supportTicketAttribute, country, source);
                 this._telemetryService.LogTrace<ModalityController>("VDM response is null", logProperties);
                 // If VDM response is null, then chat modality and skills are not returned. 
                 return Ok(modalityResponse);
             }
 
-            if (string.IsNullOrEmpty(userType))
-            {
-                userType = "commercial"; //default value is commercial
-            }
-            userType = userType.ToLowerInvariant();
-
-            var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
-
             //language characteristic 
             string languageCharacteristicId = omnichannelService.GetSkillCharacteristicId(languageCode);
             SkillObject languageSkillObject = new SkillObject();
             languageSkillObject.characteristicid = languageCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("en"); ;
-            //languageSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
+
             //region characteristic 
             string region = CountryToRegionMapping.CountryToRegionData[country];
             string regionCharacteristicId = omnichannelService.GetSkillCharacteristicId(region ?? "Americas");
             SkillObject regionSkillObject = new SkillObject();
             regionSkillObject.characteristicid = regionCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("Americas");
-            //regionSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
+
             //vdm characteristic
             SkillObject vdmSkillObject = new SkillObject();
             vdmSkillObject.characteristicid = vdmResponse.skillValue;
-            //vdmSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
 
             List<SkillObject> skillObjects = new List<SkillObject>();
             skillObjects.Add(vdmSkillObject);
@@ -160,7 +264,7 @@ namespace CRM.ICon.Modality.Controllers
             skills.skills = skillObjects;
 
             CustomContext customContext = new CustomContext();
-            customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills) , isDisplayable = true };
+            customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills), isDisplayable = true };
             customContext.ServiceLevel = new ServiceLevel { value = supportTicketAttribute.EntitlementInformation?.ServiceLevel, isDisplayable = true };
             customContext.Skill = new Skill { value = vdmResponse.skillName, isDisplayable = true };
             customContext.ACE = new ACE { value = isACE.ToString(), isDisplayable = true };
@@ -172,7 +276,6 @@ namespace CRM.ICon.Modality.Controllers
 
             if (omnichannelResponse == null)
             {
-                //modalityResponse = GetModalityResponse(modalityResponse, languageCode, userType, supportTicketAttribute, country, source);
                 this._telemetryService.LogTrace<ModalityController>("Omnichannel response is null", logProperties);
                 return Ok(modalityResponse);
             }
@@ -209,8 +312,7 @@ namespace CRM.ICon.Modality.Controllers
             modalityInfo.WidgetDetails = widgetDetails;
 
             skills.queueid = omnichannelResponse.QueueId;
-            //Adding queue id to enrich routing context
-            //customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills), isDisplayable = true };
+
             modalityInfo.CustomContext = customContext;
 
             (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfo);
@@ -263,7 +365,7 @@ namespace CRM.ICon.Modality.Controllers
             var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
 
             string ring = widgetRequest.Ring ?? "Ring4";
-            
+
             // GetWidgetDetails for MCS
             WidgetDetails widgetDetailsMCS = omnichannelService.GetWidgetDetails(languageCode, source, userType, true, ring);
 
@@ -282,8 +384,8 @@ namespace CRM.ICon.Modality.Controllers
             {
                 widgetDetailsNonMCS.Theme = widgetRequest.Theme;
                 widgetDetailsList.Add(widgetDetailsNonMCS);
-            }          
-            
+            }
+
             return Ok(widgetDetailsList);
         }
 
@@ -318,19 +420,19 @@ namespace CRM.ICon.Modality.Controllers
             if (response != null)
             {
                 var themesubjectmapping = new JObject
-                {
-                    { "id", response.id },
-                    { "isC2C", response.isC2C },
-                    { "isChat", response.isChat },
-                    { "SubjectId", response.subjectId },
-                    { "Theme", response.theme },
-                    { "ThemeL1", response.themeL1 },
-                    { "ThemeL2", response.themeL2 },
-                    { "ThemeL3", response.themeL3 },
-                    { "LanguageName", response.languageName },
-                    { "CountryName", response.countryName },
-                    { "Entitlement", response.entitlement },
-                };
+            {
+                { "id", response.id },
+                { "isC2C", response.isC2C },
+                { "isChat", response.isChat },
+                { "SubjectId", response.subjectId },
+                { "Theme", response.theme },
+                { "ThemeL1", response.themeL1 },
+                { "ThemeL2", response.themeL2 },
+                { "ThemeL3", response.themeL3 },
+                { "LanguageName", response.languageName },
+                { "CountryName", response.countryName },
+                { "Entitlement", response.entitlement },
+            };
 
                 return Ok(themesubjectmapping);
             }
@@ -469,6 +571,280 @@ namespace CRM.ICon.Modality.Controllers
 
             (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfo);
             return modalityResponse;
+        }
+        private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
+        {
+            if (modalityRequest.ExtensionAttributes != null && modalityRequest.ExtensionAttributes.ContainsKey("Theme"))
+            {
+                string theme = modalityRequest.ExtensionAttributes["Theme"];
+                if (theme == null)
+                {
+                    return false;
+                }
+
+                bool isTrial;
+                bool isBizAssist;
+                bool isProdirect;
+
+                if ((modalityRequest.ExtensionAttributes.ContainsKey("IsTrial") && bool.TryParse(modalityRequest.ExtensionAttributes["IsTrial"], out isTrial) && isTrial)
+                    || (modalityRequest.ExtensionAttributes.ContainsKey("IsBizAssist") && bool.TryParse(modalityRequest.ExtensionAttributes["IsBizAssist"], out isBizAssist) && isBizAssist)
+                    || (modalityRequest.ExtensionAttributes.ContainsKey("IsProdirect") && bool.TryParse(modalityRequest.ExtensionAttributes["IsProdirect"], out isProdirect) && isProdirect))
+                {
+                    return false;
+                }
+
+                HashSet<string> themes = new HashSet<string> {"Office Client - activate office apps",
+                    "Prevent user accounts from getting compromised", "Office Client - Word",
+                    "Office Client - download and install office apps", "Admin - Sign in and password issues", "Commerce - Manage bills, payments, subscriptions and licenses",
+                    "Admin - Manage my users, groups and resources", "Outlook - Setup and use Outlook (including Mac)", "Office Client - Use Office apps (including Mac)"};
+
+                return modalityRequest.CustomerAttributes?.SubscriptionType != "1" && language.Equals("ENG") && themes.Contains(theme, StringComparer.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+
+        private static bool ValidateSCIMChat(ModalityRequest modalityRequest, string language)
+        {
+            if (modalityRequest.ExtensionAttributes != null && modalityRequest.ExtensionAttributes.ContainsKey("AimIssue"))
+            {
+                string aimIssue = modalityRequest.ExtensionAttributes["AimIssue"];
+                if (aimIssue == null)
+                {
+                    return false;
+                }
+
+                HashSet<string> aimIssues = new HashSet<string> { "6700002", "9012387", "9012386", "9023195", "9023950", "9000171", "9000221", "9000652", "9000654", "9000662", "9012172", "9004438",
+                    "6700005", "6200002", "6700006", "6700008", "9003834", "6700003", "9004639", "9004635", "9004638", "9004644", "9004636", "9003771", "9004641", "9004640", "9004634", "9003785", "9003781", "9024087", "9023049", "9012173" };
+
+                return (!String.IsNullOrWhiteSpace(modalityRequest.CustomerAttributes?.SubscriptionType) && modalityRequest.CustomerAttributes.SubscriptionType != "1")
+                    && (!String.IsNullOrWhiteSpace(language) && language.Equals("ENG"))
+                    && aimIssues.Contains(aimIssue, StringComparer.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Get the SkillData from user preference
+        /// </summary>
+        /// <param name="userLcid">User LCID</param>
+        /// <returns>The SkillData</returns>
+        private static ICollection<LanguageSkillData> UserLcidToSkillData(int userLcid)
+        {
+            CultureInfo cultureInfo = null;
+            RegionInfo regionInfo = null;
+            try
+            {
+                cultureInfo = new CultureInfo(userLcid);
+            }
+            catch (Exception ex)
+            {           
+                return LanguageSkillData.Default;
+            }
+
+            try
+            {
+                regionInfo = new RegionInfo(userLcid);
+            }
+            catch (Exception ex)
+            {
+                
+            }
+
+            string language = cultureInfo.ThreeLetterISOLanguageName;
+            if (regionInfo != null)
+            {
+                if (regionInfo.TwoLetterISORegionName.Equals(BusinessHourConstants.PortgualPortugueseSuffix))
+                {
+                    language += BusinessHourConstants.PortgualPortugueseSuffix;
+                }
+                else if (regionInfo.TwoLetterISORegionName.Equals(BusinessHourConstants.TaiwanChineseSuffix))
+                {
+                    language += BusinessHourConstants.TaiwanChineseSuffix;
+                }
+                else if (regionInfo.TwoLetterISORegionName.Equals(BusinessHourConstants.HongkongChineseSuffix))
+                {
+                    language += BusinessHourConstants.HongkongChineseSuffix;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(language))
+            {
+                foreach (KeyValuePair<string, string> isoCodes in IsoLanguageReplacementCodes)
+                {
+                    if (language.Contains(isoCodes.Key))
+                    {
+                        language = language.Replace(isoCodes.Key, isoCodes.Value);
+                        break;
+                    }
+                }
+            }
+
+            LanguageSkill languageSkill;
+            if (!Enum.TryParse<LanguageSkill>(language, true, out languageSkill))
+            {
+                languageSkill = LanguageSkill.ENG;
+            }
+
+            IList<LanguageSkillData> result = new List<LanguageSkillData>
+            {
+                new LanguageSkillData() { SkillName = languageSkill },
+            };
+
+            return result;
+        }
+
+        /// <summary>
+        /// Flag to determine if it is Business Hours
+        /// </summary>
+        /// <param name="datas">Data</param>
+        /// <returns>Flag to show if it is Business Hour</returns>
+        private static bool IsBusinessHour(List<BusinessHour> datas)
+        {
+            bool isBusinessHour = false;
+            if (datas != null && datas.Count > 0)
+            {
+                var businessHourData = datas.FirstOrDefault();
+
+                if (IsBusinessHour(businessHourData))
+                {
+                    isBusinessHour = true;
+                }
+            }
+            else
+            {
+                isBusinessHour = true;
+            }
+
+            return isBusinessHour;
+        }
+
+        /// <summary>
+        /// Check whether it is in business hours now
+        /// </summary>
+        /// <param name="data">Business Hours</param>
+        /// <returns>Whether it is in business hours now</returns>
+        private static bool IsBusinessHour(BusinessHour data)
+        {
+            if (data == null)
+            {
+                throw new ArgumentNullException("business hour data is null");
+            }
+
+            DateTime now = DateTime.UtcNow;
+            TimeZoneInfo timezone = TimeZoneInfo.FindSystemTimeZoneById(data.TimeZoneName);
+            DateTime localNow = TimeZoneInfo.ConvertTime(now, timezone);
+
+            // Calcalute UtcOffset
+            string timeStr1 = localNow.ToString("MM/dd/yyyy HH:mm");
+            string timeStr2 = now.ToString("MM/dd/yyyy HH:mm");
+            data.UtcOffset = (Convert.ToDateTime(timeStr1) - Convert.ToDateTime(timeStr2)).ToString(@"hh\:mm\:ss");
+
+            // Check if business hour
+            int currentDayOfWeek = (int)localNow.DayOfWeek;
+            double currentTime = localNow.Hour + (localNow.Minute / 100.0);
+            double dataStartTime = data.StartHour + (data.StartMin / 100.0);
+            double dataEndTime = data.EndHour + (data.EndMin / 100.0);
+
+            // case to accomodate crossing of days when support schedule ends in the next day
+            if (dataStartTime > dataEndTime && data.StartDayOfWeek == data.EndDayOfWeek)
+            {
+                int dataEndDay = (data.StartDayOfWeek == (int)DayOfWeek.Saturday) ? (int)DayOfWeek.Sunday : data.StartDayOfWeek + 1;
+
+                return (currentDayOfWeek == data.StartDayOfWeek && currentTime >= dataStartTime) || (currentDayOfWeek == dataEndDay && currentTime < dataEndTime);
+            }
+
+            return (currentDayOfWeek >= data.StartDayOfWeek && currentDayOfWeek <= data.EndDayOfWeek) && ((dataStartTime == dataEndTime) || (currentTime >= dataStartTime && currentTime < dataEndTime));
+        }
+
+        private static bool ValidateBusinessHourData(BusinessHour businessHourData)
+        {
+            return businessHourData != null && businessHourData.StartDayOfWeek != null
+                && businessHourData.EndDayOfWeek != null && businessHourData.EndHour != null
+                && businessHourData.StartMin != null && businessHourData.EndMin != null;
+        }
+
+        /// <summary>
+        /// Gets a value of ISO language replacement codes
+        /// </summary>
+        private static readonly IDictionary<string, string> IsoLanguageReplacementCodes = new Dictionary<string, string>
+        {
+            { "nob", "nor" },
+            { "dnk", "dan" },
+            { "hrb", "hrv" },
+            { "srn", "srp" },
+            { "srs", "srp" },
+        };
+
+        private static BusinessHour GetConciergeBusinessHours()
+        {
+            return new BusinessHour
+            {
+                StartDayOfWeek = 1,
+                EndDayOfWeek = 5,
+                StartHour = 4,
+                EndHour = 16,
+                TimeZoneName = "Pacfic Standard Time",
+                UtcOffset = "07:00:00",
+                StartMin = 0,
+                EndMin = 0
+            };
+        }
+
+        private static BusinessHour GetSCIMBusinessHours()
+        {
+            return new BusinessHour
+            {
+                StartDayOfWeek = 1,
+                EndDayOfWeek = 5,
+                StartHour = 5,
+                EndHour = 15,
+                TimeZoneName = "Pacfic Standard Time",
+                UtcOffset = "07:00:00",
+                StartMin = 0,
+                EndMin = 0
+
+            };
+        }
+
+        private static BusinessHour GetEmeraldBusinessHours()
+        {
+            return new BusinessHour
+            {
+                StartDayOfWeek = 1,
+                EndDayOfWeek = 0,
+                StartHour = 7,
+                EndHour = 18,
+                TimeZoneName = "Pacfic Standard Time",
+                UtcOffset = "07:00:00",
+                StartMin = 0,
+                EndMin = 0
+            };
+        }
+
+        private static string GetLanguage(string locale, int userLCID)
+        {
+            string languageCode = "en";
+            try
+            {
+                CultureInfo cultureInfo = locale != null ? new CultureInfo(locale) : new CultureInfo(userLCID);
+                languageCode = cultureInfo.TwoLetterISOLanguageName;
+                if (string.IsNullOrEmpty(languageCode))
+                {
+                    languageCode = "en";
+                }
+                else
+                {
+                    languageCode = languageCode.ToLowerInvariant();
+                }
+            }
+            catch (Exception exception)
+            {
+                return languageCode;
+            }
+
+            return languageCode;
         }
     }
 }

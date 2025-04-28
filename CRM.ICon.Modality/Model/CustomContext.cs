@@ -9,5 +9,9 @@
 
         public ACE ACE { get; set; }
 
+        public LCID LCID { get; set; }
+
+        public Source Source { get; set; }
+
     }
 }

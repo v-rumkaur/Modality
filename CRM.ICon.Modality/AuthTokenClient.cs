@@ -74,6 +74,7 @@ namespace CRM.ICon.Modality
                 var app = ConfidentialClientApplicationBuilder
                             .Create(clientId)
                             .WithTenantId(tenantId)
+                            .WithAzureRegion()
                             .WithCertificate(cert)
                             .Build();
 

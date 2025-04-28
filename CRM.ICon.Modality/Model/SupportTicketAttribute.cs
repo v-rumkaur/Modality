@@ -7,5 +7,6 @@
         public string? SapId { get; set; }
         public string? Severity { get; set; }
         public EntitlementInformation? EntitlementInformation { get; set; }
+        public string? SupportAreaName { get; set; }
     }
 }
