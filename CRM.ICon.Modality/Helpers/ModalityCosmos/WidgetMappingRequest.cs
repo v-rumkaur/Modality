@@ -15,5 +15,6 @@
         public WidgetData Primary { get; set; }
         public WidgetData? Secondary { get; set; }
         public WidgetData? Backup { get; set; }
+        public bool IsBackUp { get; set; }
     }
 }

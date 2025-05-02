@@ -23,5 +23,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         public bool IsMCS { get; set; }
 
+        public bool IsBackUp { get; set; }
+
     }
 }

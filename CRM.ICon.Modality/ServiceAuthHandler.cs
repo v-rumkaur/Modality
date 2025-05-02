@@ -38,6 +38,7 @@ namespace CRM.ICon.Modality
                 token = await tokenClient.GetTokenWithCertAsync(clientId, certificateSubjectName, resource, tenantId);
                 request.Headers.Add("OrganizationId", OrgId);
                 request.Headers.Add("TenantId", dfmTenantId);
+                request.Headers.Add("x-ms-organizationid", OrgId);
             }
        
             request.Headers.Add("Authorization", $"Bearer {token}");
