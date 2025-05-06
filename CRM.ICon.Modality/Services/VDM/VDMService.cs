@@ -39,6 +39,11 @@ namespace CRM.ICon.Modality.Services.VDM
                 if (!this.memoryCache.TryGetValue(vdmKey, out VDMResponse vdmResponse))
                 {
                     var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, request);
+                    if (response != null && response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    {
+                        var message = await response.Content.ReadAsStringAsync();
+                        logProperties.Add("ErrorDetails", message);
+                    }
                     response.EnsureSuccessStatusCode();
                     var stringresponse = await response.Content.ReadAsStringAsync();
                     var deserializedResponse = JsonConvert.DeserializeObject<VDMResult>(stringresponse);

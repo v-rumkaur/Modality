@@ -10,5 +10,7 @@
 
         public bool IsMCS { get; set; }
 
+        public string BotId { get; set; }
+
     }
 }

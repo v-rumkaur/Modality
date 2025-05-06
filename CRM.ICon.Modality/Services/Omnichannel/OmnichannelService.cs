@@ -93,7 +93,8 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                 var response = modalityCosmosDbClient.GetItemAsync<WidgetMappingResponse>(widgetkey).Result;
                 if (response != null)
                 {
-                    widgetDetails.WidgetId = response.Primary?.WidgetId;
+                    widgetDetails.WidgetId = response.IsBackUp ? response.Backup?.WidgetId : response.Primary?.WidgetId;
+                    widgetDetails.BotId = response.IsBackUp ? response.Backup?.BotId : response.Primary?.BotId;
                     widgetDetails.OrgUrl = omnichannelConfiguration != null ? omnichannelConfiguration.OrgUrl : null;
                     widgetDetails.OrgId = omnichannelConfiguration != null ? omnichannelConfiguration.OrgId : null;
                 }
@@ -110,23 +111,20 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             widgetMappingResponse.Language = language;
             widgetMappingResponse.UserType = userType;
             widgetMappingResponse.IsMCS = widgetMappingRequest.IsMCS;
+            widgetMappingResponse.IsBackUp = widgetMappingRequest.IsBackUp;
 
             widgetMappingResponse.Primary = new WidgetData
             {
                 WidgetId = widgetMappingRequest.Primary?.WidgetId,
                 WorkstreamId = widgetMappingRequest.Primary?.WorkstreamId,
-            };
-
-            widgetMappingResponse.Secondary = new WidgetData
-            {
-                WidgetId = widgetMappingRequest.Secondary?.WidgetId,
-                WorkstreamId = widgetMappingRequest.Secondary?.WorkstreamId,
+                BotId = widgetMappingRequest.Primary?.BotId,
             };
 
             widgetMappingResponse.Backup = new WidgetData
             {
                 WidgetId = widgetMappingRequest.Backup?.WidgetId,
                 WorkstreamId = widgetMappingRequest.Backup?.WorkstreamId,
+                BotId = widgetMappingRequest.Primary?.BotId,
             };
 
             string ring = widgetMappingRequest.Ring ?? "Ring4";

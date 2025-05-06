@@ -229,8 +229,21 @@ namespace CRM.ICon.Modality.Controllers
             {
                 country = "US";
             }
-            
-            var vdmResponse = await vdmService.GetVDMSkill(new VDMRequest { Text = supportTicketAttribute.Description, Boundary = "public", SapId = supportTicketAttribute.SapId, PredictionPurposes = "crmee_ml_skill_model" }, requestId);
+
+            VDMResponse vdmResponse = null;
+
+            if (supportTicketAttribute?.SkillName != null && supportTicketAttribute?.SkillValue != null)
+            {             
+                vdmResponse = new VDMResponse();
+                vdmResponse.skillValue = supportTicketAttribute.SkillValue;
+                vdmResponse.skillName = supportTicketAttribute.SkillName;
+            }
+
+            else
+            {
+                this._telemetryService.LogTrace<ModalityController>("Partner did not provide skill", logProperties);
+                vdmResponse = await vdmService.GetVDMSkill(new VDMRequest { Text = supportTicketAttribute.Description, Boundary = "public", SapId = supportTicketAttribute.SapId, PredictionPurposes = "crmee_ml_skill_model" }, requestId);
+            }
 
             if (vdmResponse == null || vdmResponse.skillValue == null)
             {
@@ -387,6 +400,28 @@ namespace CRM.ICon.Modality.Controllers
             }
 
             return Ok(widgetDetailsList);
+        }
+
+        [Authorize]
+        [HttpPost]
+        [Route("getPredictedSkill")]
+        public async Task<ActionResult<VDMResponse>> GetSkillPrediction([FromBody] ModalityRequest modalityRequest)
+        {
+            var supportTicketAttribute = modalityRequest.SupportTicketAttributes;
+            if (supportTicketAttribute == null || supportTicketAttribute.Title == null || supportTicketAttribute.Description == null)
+            {
+                return BadRequest();
+            }
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties.Add("RequestId", modalityRequest.RequestId);
+            logProperties.Add("Source", modalityRequest.Source);
+            var vdmResponse = await vdmService.GetVDMSkill(new VDMRequest { Text = supportTicketAttribute.Description, Boundary = "public", SapId = supportTicketAttribute.SapId, PredictionPurposes = "crmee_ml_skill_model" }, modalityRequest.RequestId);
+            if (vdmResponse == null || vdmResponse.skillValue == null)
+            {
+                this._telemetryService.LogTrace<ModalityController>("VDM Response is null for GetPredictedSkill", logProperties);
+                return NotFound();
+            }
+            return Ok(vdmResponse);         
         }
 
         [Authorize]
