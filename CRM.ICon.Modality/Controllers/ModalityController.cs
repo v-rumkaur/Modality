@@ -238,7 +238,6 @@ namespace CRM.ICon.Modality.Controllers
                 vdmResponse.skillValue = supportTicketAttribute.SkillValue;
                 vdmResponse.skillName = supportTicketAttribute.SkillName;
             }
-
             else
             {
                 this._telemetryService.LogTrace<ModalityController>("Partner did not provide skill", logProperties);
