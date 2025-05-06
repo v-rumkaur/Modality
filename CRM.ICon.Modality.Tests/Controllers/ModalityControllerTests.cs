@@ -88,9 +88,9 @@ namespace CRM.ICon.Modality.Tests.Controllers
             var cosmosDbClient = Substitute.For<ICosmosDbClient>();
             var controller = new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient);
 
-            var result = await controller.GetWidgetDetails(null);
+            var result = controller.GetWidgetDetails(null);
 
-            var statusCode = (StatusCodeResult)result.Result;
+            var statusCode = (await result).Result as StatusCodeResult;
 
             Assert.True(statusCode.StatusCode.Equals(400));
         }
@@ -111,9 +111,9 @@ namespace CRM.ICon.Modality.Tests.Controllers
             widgetDetails.Locale = "en-us";
             widgetDetails.UserType = "Commercial";
 
-            var result = await controller.GetWidgetDetails(widgetDetails);
+            var result = controller.GetWidgetDetails(widgetDetails);
 
-            var statusCode = (ObjectResult)result.Result;
+            var statusCode = (await result).Result as ObjectResult;
 
             Assert.True(statusCode.StatusCode.Equals(200));
         }

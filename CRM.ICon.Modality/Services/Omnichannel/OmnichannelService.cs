@@ -66,7 +66,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             }
         }
 
-        public WidgetDetails GetWidgetDetails(string language, string source, string userType, bool isMCS, string ring)
+        public async Task<WidgetDetails> GetWidgetDetails(string language, string source, string userType, bool isMCS, string ring)
         {
             if (string.IsNullOrEmpty(userType))
             {
@@ -74,36 +74,37 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             }
 
             WidgetDetails widgetDetails = new WidgetDetails();
+            widgetDetails.IsMCS = isMCS;
             if (!isMCS)
             {
                 string widgetkey = (source + "-" + language + "-" + userType).ToLowerInvariant();
                 if (widgetConfiguration.TryGetValue(widgetkey, out widgetDetails))
                 {
-
                     widgetDetails.OrgUrl = omnichannelConfiguration != null ? omnichannelConfiguration.OrgUrl : null;
                     widgetDetails.OrgId = omnichannelConfiguration != null ? omnichannelConfiguration.OrgId : null;
                 }
             }
             else
             {
-                string region;
-                region = RingRegionalMapping.RingRegionalData.TryGetValue(ring, out region) ? region : "nam";
+                string region = RingRegionalMapping.RingRegionalData.TryGetValue(ring, out var regionResult) ? regionResult : "nam";
 
                 string widgetkey = (source + "-" + language + "-" + userType + "-" + region).ToLowerInvariant();
-                var response = modalityCosmosDbClient.GetItemAsync<WidgetMappingResponse>(widgetkey).Result;
+
+                var response = await modalityCosmosDbClient.GetItemAsync<WidgetMappingResponse>(widgetkey);
+
                 if (response != null)
                 {
                     widgetDetails.WidgetId = response.IsBackUp ? response.Backup?.WidgetId : response.Primary?.WidgetId;
                     widgetDetails.BotId = response.IsBackUp ? response.Backup?.BotId : response.Primary?.BotId;
-                    widgetDetails.OrgUrl = omnichannelConfiguration != null ? omnichannelConfiguration.OrgUrl : null;
-                    widgetDetails.OrgId = omnichannelConfiguration != null ? omnichannelConfiguration.OrgId : null;
+                    widgetDetails.OrgUrl = omnichannelConfiguration?.OrgUrl;
+                    widgetDetails.OrgId = omnichannelConfiguration?.OrgId;
                 }
             }
 
             return widgetDetails;
         }
 
-        public WidgetMappingResponse CreateWidgetDetails(WidgetMappingRequest widgetMappingRequest,string language, string source, string userType)
+        public async Task<WidgetMappingResponse> CreateWidgetDetails(WidgetMappingRequest widgetMappingRequest,string language, string source, string userType)
         {
 
             WidgetMappingResponse widgetMappingResponse = new WidgetMappingResponse();
@@ -124,7 +125,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             {
                 WidgetId = widgetMappingRequest.Backup?.WidgetId,
                 WorkstreamId = widgetMappingRequest.Backup?.WorkstreamId,
-                BotId = widgetMappingRequest.Primary?.BotId,
+                BotId = widgetMappingRequest.Backup?.BotId,
             };
 
             string ring = widgetMappingRequest.Ring ?? "Ring4";
@@ -150,9 +151,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                 widgetMappingResponse.Id = (source + "-" + language + "-" + userType).ToLowerInvariant();
             }
 
-            var response = modalityCosmosDbClient.UpsertItemAsync<WidgetMappingResponse>(widgetMappingResponse).Result;
-
-                return response;
+            return await modalityCosmosDbClient.UpsertItemAsync<WidgetMappingResponse>(widgetMappingResponse);
         }
 
         public string GetSkillCharacteristicId(string skill)

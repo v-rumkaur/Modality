@@ -62,7 +62,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             }
         }
 
-        public WidgetDetails GetWidgetDetails(string language, string source, string userType, bool isMCS, string Ring)
+        public async Task<WidgetDetails> GetWidgetDetails(string language, string source, string userType, bool isMCS, string Ring)
         {
             if (string.IsNullOrEmpty(userType))
             {
@@ -85,7 +85,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             return characteristicid;
         }
 
-        public WidgetMappingResponse CreateWidgetDetails(WidgetMappingRequest widgetmappingRequest, string language, string source, string userType)
+        public async Task<WidgetMappingResponse> CreateWidgetDetails(WidgetMappingRequest widgetmappingRequest, string language, string source, string userType)
         {
             throw new NotImplementedException();
         }

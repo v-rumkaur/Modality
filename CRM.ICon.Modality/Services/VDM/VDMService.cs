@@ -31,39 +31,47 @@ namespace CRM.ICon.Modality.Services.VDM
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
             logProperties.AddObjectAsString("RequestId", requestId);
+
             try
             {
-                var vdmKey = (request.SapId + "-" + request
-                    .Text ).ToLowerInvariant();
+                var vdmKey = (request.SapId + "-" + request.Text).ToLowerInvariant();
 
-                if (!this.memoryCache.TryGetValue(vdmKey, out VDMResponse vdmResponse))
+                if (this.memoryCache.TryGetValue(vdmKey, out VDMResponse cachedResponse))
                 {
-                    var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, request);
-                    if (response != null && response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                    {
-                        var message = await response.Content.ReadAsStringAsync();
-                        logProperties.Add("ErrorDetails", message);
-                    }
-                    response.EnsureSuccessStatusCode();
-                    var stringresponse = await response.Content.ReadAsStringAsync();
-                    var deserializedResponse = JsonConvert.DeserializeObject<VDMResult>(stringresponse);
-                    vdmResponse = deserializedResponse.purposefulResults.FirstOrDefault();
-                    if (vdmResponse != null)
-                    {
-                        this.AddInMemoryCacheEntry(vdmKey, vdmResponse);
-                    }
-                    return vdmResponse;
+                    return cachedResponse;
                 }
+
+                var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, request);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    var message = await response.Content.ReadAsStringAsync();
+                    logProperties.Add("ErrorDetails", message);
+                    this._telemetryService.LogTrace<VDMService>("BadRequest from VDM service", logProperties);
+                    return null;
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var stringResponse = await response.Content.ReadAsStringAsync();
+                var deserializedResponse = JsonConvert.DeserializeObject<VDMResult>(stringResponse);
+                var vdmResponse = deserializedResponse?.purposefulResults?.FirstOrDefault();
+
+                if (vdmResponse != null)
+                {
+                    this.AddInMemoryCacheEntry(vdmKey, vdmResponse);
+                }
+
                 return vdmResponse;
             }
-            catch (TaskCanceledException exception)
+            catch (TaskCanceledException ex)
             {
-                this._telemetryService.LogException<VDMService>(exception, logProperties, "VDM Service Time out");
+                this._telemetryService.LogException<VDMService>(ex, logProperties, "VDM Service timeout");
                 return null;
             }
             catch (Exception ex)
             {
-                this._telemetryService.LogException<VDMService>(ex, logProperties, "GetVDMSkill Failure");
+                this._telemetryService.LogException<VDMService>(ex, logProperties, "GetVDMSkill failure");
                 return null;
             }
         }
