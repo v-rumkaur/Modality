@@ -61,7 +61,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             }
             catch (Exception exception)
             {
-                _telemetryService.LogException<OmnichannelService>(exception, null, "GetAgentAvailability Failure");
+                _telemetryService.LogException<OmnichannelService>(exception, logProperties, "GetAgentAvailability Failure");
                 return null;
             }
         }
@@ -106,51 +106,53 @@ namespace CRM.ICon.Modality.Services.Omnichannel
 
         public async Task<WidgetMappingResponse> CreateWidgetDetails(WidgetMappingRequest widgetMappingRequest,string language, string source, string userType)
         {
+            //default to commercial
+            userType ??= "commercial";
 
-            WidgetMappingResponse widgetMappingResponse = new WidgetMappingResponse();
-            widgetMappingResponse.Source = source;
-            widgetMappingResponse.Language = language;
-            widgetMappingResponse.UserType = userType;
-            widgetMappingResponse.IsMCS = widgetMappingRequest.IsMCS;
-            widgetMappingResponse.IsBackUp = widgetMappingRequest.IsBackUp;
-
-            widgetMappingResponse.Primary = new WidgetData
+            // Extract country
+            string country = "us";
+            if (!string.IsNullOrEmpty(widgetMappingRequest.Locale))
             {
-                WidgetId = widgetMappingRequest.Primary?.WidgetId,
-                WorkstreamId = widgetMappingRequest.Primary?.WorkstreamId,
-                BotId = widgetMappingRequest.Primary?.BotId,
+                var parts = widgetMappingRequest.Locale.Replace('_', '-').Split('-');
+                if (parts.Length > 1)
+                {
+                    country = parts[1].ToLowerInvariant();
+                }
+            }
+
+            // Initialize response
+            var widgetMappingResponse = new WidgetMappingResponse
+            {
+                Source = source,
+                Language = language,
+                UserType = userType,
+                IsMCS = widgetMappingRequest.IsMCS,
+                IsBackUp = widgetMappingRequest.IsBackUp,
+                Country = country,
+                Primary = new WidgetData
+                {
+                    WidgetId = widgetMappingRequest.Primary?.WidgetId,
+                    WorkstreamId = widgetMappingRequest.Primary?.WorkstreamId,
+                    BotId = widgetMappingRequest.Primary?.BotId,
+                },
+                Backup = new WidgetData
+                {
+                    WidgetId = widgetMappingRequest.Backup?.WidgetId,
+                    WorkstreamId = widgetMappingRequest.Backup?.WorkstreamId,
+                    BotId = widgetMappingRequest.Backup?.BotId,
+                }
             };
 
-            widgetMappingResponse.Backup = new WidgetData
-            {
-                WidgetId = widgetMappingRequest.Backup?.WidgetId,
-                WorkstreamId = widgetMappingRequest.Backup?.WorkstreamId,
-                BotId = widgetMappingRequest.Backup?.BotId,
-            };
-
+            // Get region from ring
             string ring = widgetMappingRequest.Ring ?? "Ring4";
-            if (RingRegionalMapping.RingRegionalData.TryGetValue(ring, out string region))
-            {
-                widgetMappingResponse.Region = region;
-            }
-            else
-            {
-                widgetMappingResponse.Region = "nam";
-            }
+            widgetMappingResponse.Region = RingRegionalMapping.RingRegionalData.TryGetValue(ring, out string region) ? region : "nam";
 
-            if (string.IsNullOrEmpty(userType))
-            {
-                userType = "commercial"; //default value is commercial
-            }
+            // Generate ID
+            widgetMappingResponse.Id = widgetMappingResponse.IsMCS
+                ? $"{source}-{language}-{userType}-{widgetMappingResponse.Region}".ToLowerInvariant()
+                : $"{source}-{language}-{userType}".ToLowerInvariant();
 
-            if (widgetMappingRequest.IsMCS) {
-                 widgetMappingResponse.Id = (source + "-" + language + "-" + userType + "-" + region).ToLowerInvariant();
-            }
-            else
-            {
-                widgetMappingResponse.Id = (source + "-" + language + "-" + userType).ToLowerInvariant();
-            }
-
+            // Save to Cosmos DB
             return await modalityCosmosDbClient.UpsertItemAsync<WidgetMappingResponse>(widgetMappingResponse);
         }
 

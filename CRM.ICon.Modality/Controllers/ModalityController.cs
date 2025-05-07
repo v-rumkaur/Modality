@@ -513,26 +513,20 @@ namespace CRM.ICon.Modality.Controllers
             }
 
             var source = widgetRequest.Source.ToLowerInvariant();
-
             string locale = widgetRequest.Locale.ToLowerInvariant();
+
             string languageCode = "en";
             try
             {
                 CultureInfo cultureInfo = new CultureInfo(locale);
-                languageCode = cultureInfo.TwoLetterISOLanguageName;
-                if (string.IsNullOrEmpty(languageCode))
-                {
-                    languageCode = "en";
-                }
-                else
-                {
-                    languageCode = languageCode.ToLowerInvariant();
-                }
+                languageCode = cultureInfo.TwoLetterISOLanguageName.ToLowerInvariant();
+
             }
             catch (Exception exception)
             {
-                // fallback locale is always en-us
-                locale = "en-us";
+                // fallback to en-us
+                languageCode = "en";
+                widgetRequest.Locale = "en-us";
             }
 
             var userType = widgetRequest.UserType;
