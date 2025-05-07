@@ -14,7 +14,6 @@ using OpenTelemetry.Resources;
 using System;
 using System.Data.Common;
 using System.Globalization;
-using System.Runtime.Intrinsics.Arm;
 
 namespace CRM.ICon.Modality.Controllers
 {
