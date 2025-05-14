@@ -1129,7 +1129,7 @@
               ],
               "resourceIdColumn": "",
               "operator": "GreaterThanOrEqual",
-              "threshold": 5,
+              "threshold": 3,
               "failingPeriods": {
                 "numberOfEvaluationPeriods": 3,
                 "minFailingPeriodsToAlert": 3
