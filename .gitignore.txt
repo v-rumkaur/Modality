@@ -1,0 +1,19 @@
+# Ignore build output and auto-generated files
+bin/
+obj/
+
+# Ignore Visual Studio and VS Code settings
+.vs/
+.vscode/
+
+# Ignore user-specific and IDE files
+*.user
+*.suo
+
+# Ignore test results and logs
+TestResults/
+*.log
+
+# Ignore database and cache files
+*.db
+*.cache
