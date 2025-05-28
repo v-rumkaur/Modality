@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Identity.ServerAuthorization" Version="4.13.4" />
     <PackageReference Include="Microsoft.Identity.ServiceEssentials.AspNetCore" Version="1.35.0" />
     <PackageReference Include="Microsoft.Identity.Web" Version="3.9.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
