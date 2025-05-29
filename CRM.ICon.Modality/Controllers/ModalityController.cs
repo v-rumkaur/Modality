@@ -235,8 +235,8 @@ namespace CRM.ICon.Modality.Controllers
             if (supportTicketAttribute?.SkillName != null && supportTicketAttribute?.SkillValue != null)
             {             
                 vdmResponse = new VDMResponse();
-                vdmResponse.skillValue = supportTicketAttribute.SkillValue;
-                vdmResponse.skillName = supportTicketAttribute.SkillName;
+                vdmResponse.SkillValue = supportTicketAttribute.SkillValue;
+                vdmResponse.SkillName = supportTicketAttribute.SkillName;
             }
             else
             {
@@ -244,7 +244,7 @@ namespace CRM.ICon.Modality.Controllers
                 vdmResponse = await vdmService.GetVDMSkill(new VDMRequest { Text = supportTicketAttribute.Description, Boundary = "public", SapId = supportTicketAttribute.SapId, PredictionPurposes = "crmee_ml_skill_model" }, requestId);
             }
 
-            if (vdmResponse == null || vdmResponse.skillValue == null)
+            if (vdmResponse == null || vdmResponse.SkillValue == null)
             {
                 this._telemetryService.LogTrace<ModalityController>("VDM response is null", logProperties);
                 // If VDM response is null, then chat modality and skills are not returned. 
@@ -264,7 +264,7 @@ namespace CRM.ICon.Modality.Controllers
 
             //vdm characteristic
             SkillObject vdmSkillObject = new SkillObject();
-            vdmSkillObject.characteristicid = vdmResponse.skillValue;
+            vdmSkillObject.characteristicid = vdmResponse.SkillValue;
 
             List<SkillObject> skillObjects = new List<SkillObject>();
             skillObjects.Add(vdmSkillObject);
@@ -278,7 +278,7 @@ namespace CRM.ICon.Modality.Controllers
             CustomContext customContext = new CustomContext();
             customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills), isDisplayable = true };
             customContext.ServiceLevel = new ServiceLevel { value = supportTicketAttribute.EntitlementInformation?.ServiceLevel, isDisplayable = true };
-            customContext.Skill = new Skill { value = vdmResponse.skillName, isDisplayable = true };
+            customContext.Skill = new Skill { value = vdmResponse.SkillName, isDisplayable = true };
             customContext.ACE = new ACE { value = isACE.ToString(), isDisplayable = true };
             OmnichannelRequest omnichannelRequest = new OmnichannelRequest();
 
@@ -293,8 +293,8 @@ namespace CRM.ICon.Modality.Controllers
             }
 
             SkillInfo vdmSkill = new SkillInfo();
-            vdmSkill.SkillValue = vdmResponse.skillValue;
-            vdmSkill.SkillLabel = vdmResponse.skillName;
+            vdmSkill.SkillValue = vdmResponse.SkillValue;
+            vdmSkill.SkillLabel = vdmResponse.SkillName;
             vdmSkill.SkillType = "Skill";
 
             SkillInfo languageSkill = new SkillInfo();
@@ -436,7 +436,7 @@ namespace CRM.ICon.Modality.Controllers
                 modalityRequest.RequestId
             );
 
-            if (vdmResponse?.skillValue == null)
+            if (vdmResponse?.SkillValue == null)
             {
                 this._telemetryService.LogTrace<ModalityController>("No skill prediction was returned by the VDM service for the provided support ticket.", logProperties);
                 return NotFound(new
