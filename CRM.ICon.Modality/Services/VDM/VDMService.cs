@@ -30,7 +30,9 @@ namespace CRM.ICon.Modality.Services.VDM
         public async Task<VDMResponse> GetVDMSkill(VDMRequest request, string requestId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties.AddObjectAsString("RequestId", requestId);
+            logProperties["RequestId"] = requestId;
+            logProperties["VDMRequest"] = JsonConvert.SerializeObject(request);
+            _telemetryService.LogTrace<VDMService>("Entry", logProperties);
 
             try
             {
@@ -38,10 +40,17 @@ namespace CRM.ICon.Modality.Services.VDM
 
                 if (this.memoryCache.TryGetValue(vdmKey, out VDMResponse cachedResponse))
                 {
+                    logProperties["CacheHit"] = "true";
+                    _telemetryService.LogTrace<VDMService>("Returning cached VDM response", logProperties);
                     return cachedResponse;
                 }
 
+                logProperties["CacheHit"] = "false";
+                _telemetryService.LogTrace<VDMService>("Calling VDM endpoint", logProperties);
+
                 var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, request);
+
+                logProperties["StatusCode"] = response.StatusCode.ToString();
 
                 if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
@@ -59,7 +68,13 @@ namespace CRM.ICon.Modality.Services.VDM
 
                 if (vdmResponse != null)
                 {
-                    this.AddInMemoryCacheEntry(vdmKey, vdmResponse);
+                    AddInMemoryCacheEntry(vdmKey, vdmResponse);
+                    logProperties["VDMResponse"] = JsonConvert.SerializeObject(vdmResponse);
+                    _telemetryService.LogTrace<VDMService>("Returning VDM response", logProperties);
+                }
+                else
+                {
+                    _telemetryService.LogTrace<VDMService>("No VDM response found in results", logProperties);
                 }
 
                 return vdmResponse;

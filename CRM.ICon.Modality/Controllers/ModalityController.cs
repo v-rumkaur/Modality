@@ -45,10 +45,15 @@ namespace CRM.ICon.Modality.Controllers
         public async Task<ActionResult<ModalityResponse>> GetAvailableModalities([FromBody] ModalityRequest modalityRequest, [FromHeader] HeaderDictionary headers)
         {
             headers.TryGetValue(Constants.Target, out var target);// Determines whether its a dfm/dfc request
+
             var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["RequestBody"] = JsonConvert.SerializeObject(modalityRequest);
+            _telemetryService.LogTrace<ModalityController>("Entry", logProperties);
+
             if (modalityRequest == null)
             {
-                this._telemetryService.LogTrace<ModalityController>("Request body for GetAvailableModalities is null", logProperties);
+                logProperties["Reason"] = "Request body is null";
+                _telemetryService.LogTrace<ModalityController>("Validation failed", logProperties);
                 return BadRequest("Request body for GetAvailableModalities is null");
             }
 
@@ -61,8 +66,6 @@ namespace CRM.ICon.Modality.Controllers
 
             logProperties.AddObjectAsString("Source", source);
             logProperties.AddObjectAsString("RequestId", modalityRequest.RequestId);
-
-            this._telemetryService.LogTrace<ModalityController>("GetAvailableModalities", logProperties);
 
             ModalityResponse modalityResponse = new ModalityResponse();
 
@@ -93,16 +96,16 @@ namespace CRM.ICon.Modality.Controllers
                 {
                     var businessHoursDetails = new BusinessHour
                     {
-                            StartDayOfWeek = businessHourData.StartDayOfWeek,
-                            EndDayOfWeek = businessHourData.EndDayOfWeek,
-                            StartHour = businessHourData.StartHour,
-                            EndHour = businessHourData.EndHour,
-                            TimeZoneName = businessHourData.TimeZoneName,
-                            UtcOffset = businessHourData.UtcOffset,
-                            StartMin = businessHourData.StartMin,
-                            EndMin = businessHourData.EndMin
+                        StartDayOfWeek = businessHourData.StartDayOfWeek,
+                        EndDayOfWeek = businessHourData.EndDayOfWeek,
+                        StartHour = businessHourData.StartHour,
+                        EndHour = businessHourData.EndHour,
+                        TimeZoneName = businessHourData.TimeZoneName,
+                        UtcOffset = businessHourData.UtcOffset,
+                        StartMin = businessHourData.StartMin,
+                        EndMin = businessHourData.EndMin
                     };
-                                       
+
                     List<BusinessHour> list = new List<BusinessHour>();
                     list.Add(businessHoursDetails);
 
@@ -125,14 +128,15 @@ namespace CRM.ICon.Modality.Controllers
 
             if (string.IsNullOrEmpty(userType))
             {
+                _telemetryService.LogTrace<ModalityController>("Empty User Type defaulting to Commercial", logProperties);
                 userType = "commercial"; //default value is commercial
             }
 
             var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
-            
+
             // Queue based Routing and Assignment
             if (source != null && !source.Contains("ppac"))
-            { 
+            {
 
                 bool isConciergeChat = supportAreaName != null && string.Equals(supportAreaName, "concierge", StringComparison.CurrentCultureIgnoreCase) && ValidateConciergeChat(modalityRequest, language);
 
@@ -155,9 +159,11 @@ namespace CRM.ICon.Modality.Controllers
                 CustomContext chatCustomContext = new CustomContext();
                 chatCustomContext.LCID = new LCID { value = userLCID, isDisplayable = true };
                 chatCustomContext.Source = new Source { value = source, isDisplayable = true };
-                
+
                 OmnichannelRequest chatOmnichannelRequest = new OmnichannelRequest();
                 chatOmnichannelRequest.CustomContext = chatCustomContext;
+
+                _telemetryService.LogTrace<ModalityController>("Calling OmnichannelService.GetAgentAvailability", logProperties);
 
                 var queueAvailability = await omnichannelService.GetAgentAvailability(chatOmnichannelRequest, source, userType, requestId);
 
@@ -204,7 +210,7 @@ namespace CRM.ICon.Modality.Controllers
                     modalityInfoChat.IsAgentAvailable = queueAvailability.IsAgentAvailable;
                     modalityInfoChat.InHoops = queueAvailability.IsQueueAvailable;
 
-                    modalityResponse.Modalities.Add(modalityInfoChat);                   
+                    modalityResponse.Modalities.Add(modalityInfoChat);
                 }
 
                 return Ok(modalityResponse);
@@ -233,7 +239,7 @@ namespace CRM.ICon.Modality.Controllers
             VDMResponse vdmResponse = null;
 
             if (supportTicketAttribute?.SkillName != null && supportTicketAttribute?.SkillValue != null)
-            {             
+            {
                 vdmResponse = new VDMResponse();
                 vdmResponse.SkillValue = supportTicketAttribute.SkillValue;
                 vdmResponse.SkillName = supportTicketAttribute.SkillName;
@@ -329,6 +335,8 @@ namespace CRM.ICon.Modality.Controllers
 
             (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfo);
 
+            logProperties["ModalityResponse"] = JsonConvert.SerializeObject(modalityResponse);
+            _telemetryService.LogTrace<ModalityController>("Returning modality response", logProperties);
             return Ok(modalityResponse);
         }
 
@@ -337,6 +345,11 @@ namespace CRM.ICon.Modality.Controllers
         [Route("getWidgetDetails")]
         public async Task<ActionResult<WidgetDetails>> GetWidgetDetails([FromBody] WidgetRequest widgetRequest)
         {
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["WidgetRequest"] = JsonConvert.SerializeObject(widgetRequest);
+
+            _telemetryService.LogTrace<ModalityController>("Entry", logProperties);
+
             if (widgetRequest == null)
             {
                 return BadRequest("Request body is missing.");
@@ -358,8 +371,10 @@ namespace CRM.ICon.Modality.Controllers
                     ? "en"
                     : cultureInfo.TwoLetterISOLanguageName.ToLowerInvariant();
             }
-            catch
+            catch (Exception ex)
             {
+                logProperties["LocaleParseError"] = ex.ToString();
+                _telemetryService.LogTrace<ModalityController>("Locale parsing failed, defaulting to 'en'.", logProperties);
                 languageCode = "en";
             }
 
@@ -391,6 +406,8 @@ namespace CRM.ICon.Modality.Controllers
             AddIfValid(widgetDetailsMCS);
             AddIfValid(widgetDetailsNonMCS);
 
+            logProperties["WidgetDetailsList"] = JsonConvert.SerializeObject(widgetDetailsList);
+            _telemetryService.LogTrace<ModalityController>("Returning widget details list", logProperties);
             return Ok(widgetDetailsList);
         }
 
@@ -399,12 +416,18 @@ namespace CRM.ICon.Modality.Controllers
         [Route("getPredictedSkill")]
         public async Task<ActionResult<VDMResponse>> GetSkillPrediction([FromBody] ModalityRequest modalityRequest)
         {
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["RequestBody"] = JsonConvert.SerializeObject(modalityRequest);
+            _telemetryService.LogTrace<ModalityController>("Entry", logProperties);
+
             var supportTicketAttribute = modalityRequest.SupportTicketAttributes;
             var validationErrors = new List<string>();
 
             if (supportTicketAttribute == null)
             {
                 validationErrors.Add("Support ticket attribute is missing.");
+                logProperties["ValidationErrors"] = JsonConvert.SerializeObject(validationErrors);
+                _telemetryService.LogTrace<ModalityController>("Validation failed", logProperties);
                 return BadRequest(new { Errors = validationErrors });
             }
 
@@ -419,11 +442,15 @@ namespace CRM.ICon.Modality.Controllers
                 validationErrors.Add("Sap Id is missing or empty.");
 
             if (validationErrors.Count != 0)
+            {
+                logProperties["ValidationErrors"] = JsonConvert.SerializeObject(validationErrors);
+                _telemetryService.LogTrace<ModalityController>("Validation failed", logProperties);
                 return BadRequest(new { Errors = validationErrors });
+            }
 
-            var logProperties = ModalityExtensions.GetRequestProperties();
             logProperties.Add("RequestId", modalityRequest.RequestId);
             logProperties.Add("Source", modalityRequest.Source);
+            _telemetryService.LogTrace<ModalityController>("Calling VDMService.GetVDMSkill", logProperties);
 
             var vdmResponse = await vdmService.GetVDMSkill(
                 new VDMRequest
@@ -436,9 +463,11 @@ namespace CRM.ICon.Modality.Controllers
                 modalityRequest.RequestId
             );
 
+            logProperties["VDMResponse"] = JsonConvert.SerializeObject(vdmResponse);
+
             if (vdmResponse?.SkillValue == null)
             {
-                this._telemetryService.LogTrace<ModalityController>("No skill prediction was returned by the VDM service for the provided support ticket.", logProperties);
+                _telemetryService.LogTrace<ModalityController>("No skill prediction was returned by the VDM service for the provided support ticket.", logProperties);
                 return NotFound(new
                 {
                     ErrorCode = "SkillNotFound",
@@ -446,6 +475,7 @@ namespace CRM.ICon.Modality.Controllers
                 });
             }
 
+            _telemetryService.LogTrace<ModalityController>("Returning VDM response", logProperties);
             return Ok(vdmResponse);
         }
 
@@ -611,7 +641,7 @@ namespace CRM.ICon.Modality.Controllers
                 cultureInfo = new CultureInfo(userLcid);
             }
             catch (Exception ex)
-            {           
+            {
                 return LanguageSkillData.Default;
             }
 
@@ -621,7 +651,7 @@ namespace CRM.ICon.Modality.Controllers
             }
             catch (Exception ex)
             {
-                
+
             }
 
             string language = cultureInfo.ThreeLetterISOLanguageName;
