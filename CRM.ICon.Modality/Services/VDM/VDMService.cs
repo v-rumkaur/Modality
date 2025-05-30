@@ -32,7 +32,7 @@ namespace CRM.ICon.Modality.Services.VDM
             var logProperties = ModalityExtensions.GetRequestProperties();
             logProperties["RequestId"] = requestId;
             logProperties["VDMRequest"] = JsonConvert.SerializeObject(request);
-            _telemetryService.LogTrace<VDMService>("Entry", logProperties);
+            _telemetryService.LogTrace<VDMService>("Received GetVDMSkill request", logProperties);
 
             try
             {

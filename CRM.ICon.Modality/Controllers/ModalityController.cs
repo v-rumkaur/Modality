@@ -48,7 +48,7 @@ namespace CRM.ICon.Modality.Controllers
 
             var logProperties = ModalityExtensions.GetRequestProperties();
             logProperties["RequestBody"] = JsonConvert.SerializeObject(modalityRequest);
-            _telemetryService.LogTrace<ModalityController>("Entry", logProperties);
+            _telemetryService.LogTrace<ModalityController>("Received GetAvailableModalities request", logProperties);
 
             if (modalityRequest == null)
             {
@@ -348,7 +348,7 @@ namespace CRM.ICon.Modality.Controllers
             var logProperties = ModalityExtensions.GetRequestProperties();
             logProperties["WidgetRequest"] = JsonConvert.SerializeObject(widgetRequest);
 
-            _telemetryService.LogTrace<ModalityController>("Entry", logProperties);
+            _telemetryService.LogTrace<ModalityController>("Received GetWidgetDetails request", logProperties);
 
             if (widgetRequest == null)
             {
@@ -418,7 +418,7 @@ namespace CRM.ICon.Modality.Controllers
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
             logProperties["RequestBody"] = JsonConvert.SerializeObject(modalityRequest);
-            _telemetryService.LogTrace<ModalityController>("Entry", logProperties);
+            _telemetryService.LogTrace<ModalityController>("Received GetSkillPrediction request", logProperties);
 
             var supportTicketAttribute = modalityRequest.SupportTicketAttributes;
             var validationErrors = new List<string>();
