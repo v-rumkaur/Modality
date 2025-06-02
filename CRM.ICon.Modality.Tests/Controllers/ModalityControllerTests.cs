@@ -7,115 +7,105 @@ using CRM.ICon.Modality.Services.VDM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow;
-using Newtonsoft.Json;
 using NSubstitute;
-using OpenTelemetry.Trace;
+using Xunit;
 
 namespace CRM.ICon.Modality.Tests.Controllers
 {
     public class ModalityControllerTests
     {
+        private ModalityController CreateController()
+        {
+            var vdmService = Substitute.For<IVDMService>();
+            var omnichannelService = Substitute.For<IOmnichannelService>();
+            var telemetryService = Substitute.For<ITelemetryService>();
+            var omniChannelEUService = Substitute.For<IOmnichannelEUService>();
+            var cosmosDbClient = Substitute.For<ICosmosDbClient>();
+            return new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient);
+        }
+
         [Theory]
         [InlineData("GetAvailableModalities")]
         [InlineData("GetWidgetDetails")]
         [InlineData("CreateThemeSubjectMapping")]
-        public async Task ModalityController_AllMethodsShouldImplementAuthorizeAttribute(string methodName)
+        public void AllMethods_ShouldHaveAuthorizeAttribute(string methodName)
         {
-            var vdmService = Substitute.For<IVDMService>();
-            var omnichannelService = Substitute.For<IOmnichannelService>();
-            var telemetryService = Substitute.For<ITelemetryService>();
-            var omniChannelEUService = Substitute.For<IOmnichannelEUService>();
-            var cosmosDbClient = Substitute.For<ICosmosDbClient>();
-            var controller = new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient);
-
+            var controller = CreateController();
             var type = controller.GetType();
             var methodInfo = type.GetMethod(methodName);
             var attributes = methodInfo.GetCustomAttributes(typeof(AuthorizeAttribute), true);
 
-            Assert.True(attributes.Any()); //Ensure [Authorize] Attribute exist
+            Assert.True(attributes.Any()); // Ensure [Authorize] Attribute exists
         }
 
         [Fact]
-        public async Task ModalityController_GetAvailableModalitiesBadRequest()
+        public async Task GetAvailableModalities_ShouldReturnBadRequest_WhenRequestIsNull()
         {
-            var vdmService = Substitute.For<IVDMService>();
-            var omnichannelService = Substitute.For<IOmnichannelService>();
-            var telemetryService = Substitute.For<ITelemetryService>();
-            var omniChannelEUService = Substitute.For<IOmnichannelEUService>();
-            var cosmosDbClient = Substitute.For<ICosmosDbClient>();
-            var controller = new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient);
+            var controller = CreateController();
 
             var result = await controller.GetAvailableModalities(null, new HeaderDictionary());
-            
-            var statusCode = (StatusCodeResult)result.Result;
-                      
-            Assert.True(statusCode.StatusCode.Equals(400));
+
+            var objectResult = result.Result as ObjectResult;
+            Assert.NotNull(objectResult);
+            Assert.Equal(400, objectResult.StatusCode);
+            // Optionally check the message:
+            // Assert.Equal("Request body for GetAvailableModalities is null", objectResult.Value);
         }
 
         [Fact]
-        public async Task ModalityController_GetAvailableModalitiesSuccess()
+        public async Task GetAvailableModalities_ShouldReturnOk_WhenRequestIsValid()
         {
-            var vdmService = Substitute.For<IVDMService>();
-            var omnichannelService = Substitute.For<IOmnichannelService>();
-            var telemetryService = Substitute.For<ITelemetryService>();
-            var omniChannelEUService = Substitute.For<IOmnichannelEUService>();
-            var cosmosDbClient = Substitute.For<ICosmosDbClient>();
-            var controller = new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient);
+            var controller = CreateController();
 
-            ModalityRequest modalityRequest = new ModalityRequest();
-            modalityRequest.Country = "US";
-            modalityRequest.UserLcid = 1033;
-            modalityRequest.Locale = "en-us";
-            modalityRequest.UserType = "Commercial";
-            modalityRequest.Source = "PPAC";
-            modalityRequest.SupportTicketAttributes = new SupportTicketAttribute();
+            var modalityRequest = new ModalityRequest
+            {
+                Country = "US",
+                UserLcid = 1033,
+                Locale = "en-us",
+                UserType = "Commercial",
+                Source = "PPAC",
+                SupportTicketAttributes = new SupportTicketAttribute()
+            };
 
             var result = await controller.GetAvailableModalities(modalityRequest, new HeaderDictionary());
 
-            var statusCode = (ObjectResult)result.Result;
-
-            Assert.True(statusCode.StatusCode.Equals(200));
+            var objectResult = result.Result as ObjectResult;
+            Assert.NotNull(objectResult);
+            Assert.Equal(200, objectResult.StatusCode);
         }
 
         [Fact]
-        public async Task ModalityController_GetWidgetDetailsBadRequest()
+        public async Task GetWidgetDetails_ShouldReturnBadRequest_WhenRequestIsNull()
         {
-            var vdmService = Substitute.For<IVDMService>();
-            var omnichannelService = Substitute.For<IOmnichannelService>();
-            var telemetryService = Substitute.For<ITelemetryService>();
-            var omniChannelEUService = Substitute.For<IOmnichannelEUService>();
-            var cosmosDbClient = Substitute.For<ICosmosDbClient>();
-            var controller = new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient);
+            var controller = CreateController();
 
             var result = await controller.GetWidgetDetails(null);
 
-            var statusCode = (StatusCodeResult)result.Result;
-
-            Assert.True(statusCode.StatusCode.Equals(400));
+            var objectResult = result.Result as ObjectResult;
+            Assert.NotNull(objectResult);
+            Assert.Equal(400, objectResult.StatusCode);
+            // Optionally check the message:
+            // Assert.Equal("Request body for GetWidgetDetails is null", objectResult.Value);
         }
 
         [Fact]
-        public async Task ModalityController_GetWidgetDetailsSuccess()
+        public async Task GetWidgetDetails_ShouldReturnOk_WhenRequestIsValid()
         {
-            var vdmService = Substitute.For<IVDMService>();
-            var omnichannelService = Substitute.For<IOmnichannelService>();
-            var telemetryService = Substitute.For<ITelemetryService>();
-            var omniChannelEUService = Substitute.For<IOmnichannelEUService>();
-            var cosmosDbClient = Substitute.For<ICosmosDbClient>();
-            var controller = new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient);
+            var controller = CreateController();
 
-            WidgetRequest widgetDetails = new WidgetRequest();
-            widgetDetails.Source = "PPAC";
-            widgetDetails.UserLcid = 1033;
-            widgetDetails.Locale = "en-us";
-            widgetDetails.UserType = "Commercial";
+            var widgetRequest = new WidgetRequest
+            {
+                Source = "PPAC",
+                UserLcid = 1033,
+                Locale = "en-us",
+                UserType = "Commercial"
+            };
 
-            var result = await controller.GetWidgetDetails(widgetDetails);
+            var result = await controller.GetWidgetDetails(widgetRequest);
 
-            var statusCode = (ObjectResult)result.Result;
-
-            Assert.True(statusCode.StatusCode.Equals(200));
+            var objectResult = result.Result as ObjectResult;
+            Assert.NotNull(objectResult);
+            Assert.Equal(200, objectResult.StatusCode);
         }
     }
 }

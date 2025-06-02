@@ -45,11 +45,16 @@ namespace CRM.ICon.Modality.Controllers
         public async Task<ActionResult<ModalityResponse>> GetAvailableModalities([FromBody] ModalityRequest modalityRequest, [FromHeader] HeaderDictionary headers)
         {
             headers.TryGetValue(Constants.Target, out var target);// Determines whether its a dfm/dfc request
+
             var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["RequestBody"] = JsonConvert.SerializeObject(modalityRequest);
+            _telemetryService.LogTrace<ModalityController>("Received GetAvailableModalities request", logProperties);
+
             if (modalityRequest == null)
             {
-                this._telemetryService.LogTrace<ModalityController>("Request body for GetAvailableModalities is null", logProperties);
-                return BadRequest();
+                logProperties["Reason"] = "Request body is null";
+                _telemetryService.LogTrace<ModalityController>("Validation failed", logProperties);
+                return BadRequest("Request body for GetAvailableModalities is null");
             }
 
             var locale = modalityRequest.Locale?.ToLowerInvariant();
@@ -61,8 +66,6 @@ namespace CRM.ICon.Modality.Controllers
 
             logProperties.AddObjectAsString("Source", source);
             logProperties.AddObjectAsString("RequestId", modalityRequest.RequestId);
-
-            this._telemetryService.LogTrace<ModalityController>("GetAvailableModalities", logProperties);
 
             ModalityResponse modalityResponse = new ModalityResponse();
 
@@ -93,16 +96,16 @@ namespace CRM.ICon.Modality.Controllers
                 {
                     var businessHoursDetails = new BusinessHour
                     {
-                            StartDayOfWeek = businessHourData.StartDayOfWeek,
-                            EndDayOfWeek = businessHourData.EndDayOfWeek,
-                            StartHour = businessHourData.StartHour,
-                            EndHour = businessHourData.EndHour,
-                            TimeZoneName = businessHourData.TimeZoneName,
-                            UtcOffset = businessHourData.UtcOffset,
-                            StartMin = businessHourData.StartMin,
-                            EndMin = businessHourData.EndMin
+                        StartDayOfWeek = businessHourData.StartDayOfWeek,
+                        EndDayOfWeek = businessHourData.EndDayOfWeek,
+                        StartHour = businessHourData.StartHour,
+                        EndHour = businessHourData.EndHour,
+                        TimeZoneName = businessHourData.TimeZoneName,
+                        UtcOffset = businessHourData.UtcOffset,
+                        StartMin = businessHourData.StartMin,
+                        EndMin = businessHourData.EndMin
                     };
-                                       
+
                     List<BusinessHour> list = new List<BusinessHour>();
                     list.Add(businessHoursDetails);
 
@@ -125,14 +128,15 @@ namespace CRM.ICon.Modality.Controllers
 
             if (string.IsNullOrEmpty(userType))
             {
+                _telemetryService.LogTrace<ModalityController>("Empty User Type defaulting to Commercial", logProperties);
                 userType = "commercial"; //default value is commercial
             }
 
             var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
-            
+
             // Queue based Routing and Assignment
             if (source != null && !source.Contains("ppac"))
-            { 
+            {
 
                 bool isConciergeChat = supportAreaName != null && string.Equals(supportAreaName, "concierge", StringComparison.CurrentCultureIgnoreCase) && ValidateConciergeChat(modalityRequest, language);
 
@@ -155,9 +159,11 @@ namespace CRM.ICon.Modality.Controllers
                 CustomContext chatCustomContext = new CustomContext();
                 chatCustomContext.LCID = new LCID { value = userLCID, isDisplayable = true };
                 chatCustomContext.Source = new Source { value = source, isDisplayable = true };
-                
+
                 OmnichannelRequest chatOmnichannelRequest = new OmnichannelRequest();
                 chatOmnichannelRequest.CustomContext = chatCustomContext;
+
+                _telemetryService.LogTrace<ModalityController>("Calling OmnichannelService.GetAgentAvailability", logProperties);
 
                 var queueAvailability = await omnichannelService.GetAgentAvailability(chatOmnichannelRequest, source, userType, requestId);
 
@@ -204,7 +210,7 @@ namespace CRM.ICon.Modality.Controllers
                     modalityInfoChat.IsAgentAvailable = queueAvailability.IsAgentAvailable;
                     modalityInfoChat.InHoops = queueAvailability.IsQueueAvailable;
 
-                    modalityResponse.Modalities.Add(modalityInfoChat);                   
+                    modalityResponse.Modalities.Add(modalityInfoChat);
                 }
 
                 return Ok(modalityResponse);
@@ -229,10 +235,22 @@ namespace CRM.ICon.Modality.Controllers
             {
                 country = "US";
             }
-            
-            var vdmResponse = await vdmService.GetVDMSkill(new VDMRequest { Text = supportTicketAttribute.Description, Boundary = "public", SapId = supportTicketAttribute.SapId, PredictionPurposes = "crmee_ml_skill_model" }, requestId);
 
-            if (vdmResponse == null || vdmResponse.skillValue == null)
+            VDMResponse vdmResponse = null;
+
+            if (supportTicketAttribute?.SkillName != null && supportTicketAttribute?.SkillValue != null)
+            {
+                vdmResponse = new VDMResponse();
+                vdmResponse.SkillValue = supportTicketAttribute.SkillValue;
+                vdmResponse.SkillName = supportTicketAttribute.SkillName;
+            }
+            else
+            {
+                this._telemetryService.LogTrace<ModalityController>("Partner did not provide skill", logProperties);
+                vdmResponse = await vdmService.GetVDMSkill(new VDMRequest { Text = supportTicketAttribute.Description, Boundary = "public", SapId = supportTicketAttribute.SapId, PredictionPurposes = "crmee_ml_skill_model" }, requestId);
+            }
+
+            if (vdmResponse == null || vdmResponse.SkillValue == null)
             {
                 this._telemetryService.LogTrace<ModalityController>("VDM response is null", logProperties);
                 // If VDM response is null, then chat modality and skills are not returned. 
@@ -252,7 +270,7 @@ namespace CRM.ICon.Modality.Controllers
 
             //vdm characteristic
             SkillObject vdmSkillObject = new SkillObject();
-            vdmSkillObject.characteristicid = vdmResponse.skillValue;
+            vdmSkillObject.characteristicid = vdmResponse.SkillValue;
 
             List<SkillObject> skillObjects = new List<SkillObject>();
             skillObjects.Add(vdmSkillObject);
@@ -266,7 +284,7 @@ namespace CRM.ICon.Modality.Controllers
             CustomContext customContext = new CustomContext();
             customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills), isDisplayable = true };
             customContext.ServiceLevel = new ServiceLevel { value = supportTicketAttribute.EntitlementInformation?.ServiceLevel, isDisplayable = true };
-            customContext.Skill = new Skill { value = vdmResponse.skillName, isDisplayable = true };
+            customContext.Skill = new Skill { value = vdmResponse.SkillName, isDisplayable = true };
             customContext.ACE = new ACE { value = isACE.ToString(), isDisplayable = true };
             OmnichannelRequest omnichannelRequest = new OmnichannelRequest();
 
@@ -281,8 +299,8 @@ namespace CRM.ICon.Modality.Controllers
             }
 
             SkillInfo vdmSkill = new SkillInfo();
-            vdmSkill.SkillValue = vdmResponse.skillValue;
-            vdmSkill.SkillLabel = vdmResponse.skillName;
+            vdmSkill.SkillValue = vdmResponse.SkillValue;
+            vdmSkill.SkillLabel = vdmResponse.SkillName;
             vdmSkill.SkillType = "Skill";
 
             SkillInfo languageSkill = new SkillInfo();
@@ -299,7 +317,7 @@ namespace CRM.ICon.Modality.Controllers
             modalityResponse.Skills.Add(vdmSkill);
             modalityResponse.Skills.Add(regionSkill);
 
-            WidgetDetails widgetDetails = omnichannelService.GetWidgetDetails(languageCode, source, userType, IsMCS, Ring);
+            WidgetDetails widgetDetails = await omnichannelService.GetWidgetDetails(languageCode, source, userType, IsMCS, Ring);
 
             widgetDetails.Theme = modalityRequest.Theme;
 
@@ -317,6 +335,8 @@ namespace CRM.ICon.Modality.Controllers
 
             (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfo);
 
+            logProperties["ModalityResponse"] = JsonConvert.SerializeObject(modalityResponse);
+            _telemetryService.LogTrace<ModalityController>("Returning modality response", logProperties);
             return Ok(modalityResponse);
         }
 
@@ -325,68 +345,138 @@ namespace CRM.ICon.Modality.Controllers
         [Route("getWidgetDetails")]
         public async Task<ActionResult<WidgetDetails>> GetWidgetDetails([FromBody] WidgetRequest widgetRequest)
         {
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["WidgetRequest"] = JsonConvert.SerializeObject(widgetRequest);
+
+            _telemetryService.LogTrace<ModalityController>("Received GetWidgetDetails request", logProperties);
+
             if (widgetRequest == null)
             {
-                return BadRequest();
+                return BadRequest("Request body is missing.");
+            }
+
+            if (string.IsNullOrWhiteSpace(widgetRequest.Source))
+            {
+                return BadRequest("Source is required in the request body.");
             }
 
             var source = widgetRequest.Source.ToLowerInvariant();
-
             string locale = widgetRequest.Locale.ToLowerInvariant();
-            string languageCode = "en";
+
+            string languageCode;
             try
             {
-                CultureInfo cultureInfo = new CultureInfo(locale);
-                languageCode = cultureInfo.TwoLetterISOLanguageName;
-                if (string.IsNullOrEmpty(languageCode))
-                {
-                    languageCode = "en";
-                }
-                else
-                {
-                    languageCode = languageCode.ToLowerInvariant();
-                }
+                var cultureInfo = new CultureInfo(locale);
+                languageCode = string.IsNullOrWhiteSpace(cultureInfo.TwoLetterISOLanguageName)
+                    ? "en"
+                    : cultureInfo.TwoLetterISOLanguageName.ToLowerInvariant();
             }
-            catch (Exception exception)
+            catch (Exception ex)
             {
-                // fallback locale is always en-us
-                locale = "en-us";
+                logProperties["LocaleParseError"] = ex.ToString();
+                _telemetryService.LogTrace<ModalityController>("Locale parsing failed, defaulting to 'en'.", logProperties);
+                languageCode = "en";
             }
 
-            var userType = widgetRequest.UserType;
-
-            if (string.IsNullOrEmpty(userType))
-            {
-                userType = "commercial"; //default value is commercial
-            }
-
-            userType = userType.ToLowerInvariant();
+            // Default to "commercial" if user type is not provided, and normalize to lowercase
+            var userType = string.IsNullOrWhiteSpace(widgetRequest.UserType)
+                ? "commercial"
+                : widgetRequest.UserType.ToLowerInvariant();
 
             var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
 
-            string ring = widgetRequest.Ring ?? "Ring4";
+            var ring = widgetRequest.Ring ?? "Ring4";
 
             // GetWidgetDetails for MCS
-            WidgetDetails widgetDetailsMCS = omnichannelService.GetWidgetDetails(languageCode, source, userType, true, ring);
+            WidgetDetails widgetDetailsMCS = await omnichannelService.GetWidgetDetails(languageCode, source, userType, true, ring);
 
             // GetWidgetDetails for Non MCS
-            WidgetDetails widgetDetailsNonMCS = omnichannelService.GetWidgetDetails(languageCode, source, userType, false, ring);
+            WidgetDetails widgetDetailsNonMCS = await omnichannelService.GetWidgetDetails(languageCode, source, userType, false, ring);
 
-            List<WidgetDetails> widgetDetailsList = new List<WidgetDetails>();
-            if (widgetDetailsMCS != null && widgetDetailsMCS.WidgetId != null)
+            List<WidgetDetails> widgetDetailsList = new();
+
+            void AddIfValid(WidgetDetails widgetDetails)
             {
-                widgetDetailsMCS.Theme = widgetRequest.Theme;
-                widgetDetailsMCS.IsMCS = true;
-                widgetDetailsList.Add(widgetDetailsMCS);
+                if (widgetDetails?.WidgetId != null)
+                {
+                    widgetDetailsList.Add(widgetDetails);
+                }
             }
 
-            if (widgetDetailsNonMCS != null && widgetDetailsNonMCS.WidgetId != null)
-            {
-                widgetDetailsNonMCS.Theme = widgetRequest.Theme;
-                widgetDetailsList.Add(widgetDetailsNonMCS);
-            }
+            AddIfValid(widgetDetailsMCS);
+            AddIfValid(widgetDetailsNonMCS);
 
+            logProperties["WidgetDetailsList"] = JsonConvert.SerializeObject(widgetDetailsList);
+            _telemetryService.LogTrace<ModalityController>("Returning widget details list", logProperties);
             return Ok(widgetDetailsList);
+        }
+
+        [Authorize]
+        [HttpPost]
+        [Route("getPredictedSkill")]
+        public async Task<ActionResult<VDMResponse>> GetSkillPrediction([FromBody] ModalityRequest modalityRequest)
+        {
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["RequestBody"] = JsonConvert.SerializeObject(modalityRequest);
+            _telemetryService.LogTrace<ModalityController>("Received GetSkillPrediction request", logProperties);
+
+            var supportTicketAttribute = modalityRequest.SupportTicketAttributes;
+            var validationErrors = new List<string>();
+
+            if (supportTicketAttribute == null)
+            {
+                validationErrors.Add("Support ticket attribute is missing.");
+                logProperties["ValidationErrors"] = JsonConvert.SerializeObject(validationErrors);
+                _telemetryService.LogTrace<ModalityController>("Validation failed", logProperties);
+                return BadRequest(new { Errors = validationErrors });
+            }
+
+            if (string.IsNullOrWhiteSpace(supportTicketAttribute.Title))
+            {
+                validationErrors.Add("Title is missing or empty.");
+            }
+            if (string.IsNullOrWhiteSpace(supportTicketAttribute.Description))
+                validationErrors.Add("Description is missing or empty.");
+
+            if (string.IsNullOrWhiteSpace(supportTicketAttribute.SapId))
+                validationErrors.Add("Sap Id is missing or empty.");
+
+            if (validationErrors.Count != 0)
+            {
+                logProperties["ValidationErrors"] = JsonConvert.SerializeObject(validationErrors);
+                _telemetryService.LogTrace<ModalityController>("Validation failed", logProperties);
+                return BadRequest(new { Errors = validationErrors });
+            }
+
+            logProperties.Add("RequestId", modalityRequest.RequestId);
+            logProperties.Add("Source", modalityRequest.Source);
+            _telemetryService.LogTrace<ModalityController>("Calling VDMService.GetVDMSkill", logProperties);
+
+            var vdmResponse = await vdmService.GetVDMSkill(
+                new VDMRequest
+                {
+                    Text = supportTicketAttribute.Description,
+                    Boundary = "public",
+                    SapId = supportTicketAttribute.SapId,
+                    PredictionPurposes = "crmee_ml_skill_model"
+                },
+                modalityRequest.RequestId
+            );
+
+            logProperties["VDMResponse"] = JsonConvert.SerializeObject(vdmResponse);
+
+            if (vdmResponse?.SkillValue == null)
+            {
+                _telemetryService.LogTrace<ModalityController>("No skill prediction was returned by the VDM service for the provided support ticket.", logProperties);
+                return NotFound(new
+                {
+                    ErrorCode = "SkillNotFound",
+                    Message = "No skill prediction was returned by the VDM service for the provided support ticket."
+                });
+            }
+
+            _telemetryService.LogTrace<ModalityController>("Returning VDM response", logProperties);
+            return Ok(vdmResponse);
         }
 
         [Authorize]
@@ -414,7 +504,7 @@ namespace CRM.ICon.Modality.Controllers
                 themeSubjectMappingResponse.isC2C = themeMappingRequest.isC2C;
                 themeSubjectMappingResponse.isChat = themeMappingRequest.isChat;
 
-                response = this.cosmosDbClient.UpsertItemAsync<ThemeSubjectMappingResponse>(themeSubjectMappingResponse).Result;
+                response = await this.cosmosDbClient.UpsertItemAsync<ThemeSubjectMappingResponse>(themeSubjectMappingResponse);
             }
 
             if (response != null)
@@ -452,26 +542,20 @@ namespace CRM.ICon.Modality.Controllers
             }
 
             var source = widgetRequest.Source.ToLowerInvariant();
-
             string locale = widgetRequest.Locale.ToLowerInvariant();
+
             string languageCode = "en";
             try
             {
                 CultureInfo cultureInfo = new CultureInfo(locale);
-                languageCode = cultureInfo.TwoLetterISOLanguageName;
-                if (string.IsNullOrEmpty(languageCode))
-                {
-                    languageCode = "en";
-                }
-                else
-                {
-                    languageCode = languageCode.ToLowerInvariant();
-                }
+                languageCode = cultureInfo.TwoLetterISOLanguageName.ToLowerInvariant();
+
             }
             catch (Exception exception)
             {
-                // fallback locale is always en-us
-                locale = "en-us";
+                // fallback to en-us
+                languageCode = "en";
+                widgetRequest.Locale = "en-us";
             }
 
             var userType = widgetRequest.UserType;
@@ -485,93 +569,11 @@ namespace CRM.ICon.Modality.Controllers
 
             var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
 
-            WidgetMappingResponse widgetMappingResponse = omnichannelService.CreateWidgetDetails(widgetRequest, languageCode, source, userType);
+            WidgetMappingResponse widgetMappingResponse = await omnichannelService.CreateWidgetDetails(widgetRequest, languageCode, source, userType);
 
             return Ok(widgetMappingResponse);
         }
 
-        private ModalityResponse GetModalityResponse(ModalityResponse modalityResponse, string languageCode, string userType, SupportTicketAttribute supportTicketAttribute, string country, string source)
-        {
-            if (string.IsNullOrEmpty(userType))
-            {
-                userType = "commercial"; //default value is commercial
-            }
-            userType = userType.ToLowerInvariant();
-
-            var omnichannelService = userType.Equals("eu") ? this.omnichannelEUService : this.omnichannelService;
-
-            //language characteristic 
-            string languageCharacteristicId = omnichannelService.GetSkillCharacteristicId(languageCode);
-            SkillObject languageSkillObject = new SkillObject();
-            languageSkillObject.characteristicid = languageCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("en"); ;
-            //languageSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
-            //region characteristic 
-            string region = CountryToRegionMapping.CountryToRegionData[country];
-            string regionCharacteristicId = omnichannelService.GetSkillCharacteristicId(region ?? "Americas");
-            SkillObject regionSkillObject = new SkillObject();
-            regionSkillObject.characteristicid = regionCharacteristicId ?? omnichannelService.GetSkillCharacteristicId("Americas");
-            //regionSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
-            //vdm characteristic
-            SkillObject vdmSkillObject = new SkillObject();
-            vdmSkillObject.characteristicid = "5f0f0540-ed5d-ee11-8143-000d3af8897c";
-            //vdmSkillObject.ratingvalueid = "144b5d8f-8014-ed11-b83d-000d3a3bb008";
-
-            List<SkillObject> skillObjects = new List<SkillObject>();
-            skillObjects.Add(vdmSkillObject);
-            skillObjects.Add(languageSkillObject);
-            skillObjects.Add(regionSkillObject);
-
-            Skills skills = new Skills();
-
-            skills.skills = skillObjects;
-
-            CustomContext customContext = new CustomContext();
-            customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills), isDisplayable = true };
-            customContext.ServiceLevel = new ServiceLevel { value = supportTicketAttribute.EntitlementInformation?.ServiceLevel, isDisplayable = true };
-            customContext.Skill = new Skill { value = "Cust Eng: CIJ Provisioning", isDisplayable = true };
-            customContext.ACE = new ACE { value = "False", isDisplayable = true };
-            OmnichannelRequest omnichannelRequest = new OmnichannelRequest();
-
-            omnichannelRequest.CustomContext = customContext;
-
-            SkillInfo vdmSkill = new SkillInfo();
-            vdmSkill.SkillValue = "5f0f0540-ed5d-ee11-8143-000d3af8897c";
-            vdmSkill.SkillLabel = "Cust Eng: CIJ Provisioning";
-            vdmSkill.SkillType = "Skill";
-
-            SkillInfo languageSkill = new SkillInfo();
-            languageSkill.SkillValue = languageSkillObject.characteristicid;
-            languageSkill.SkillLabel = languageCode;
-            languageSkill.SkillType = "Language";
-
-            SkillInfo regionSkill = new SkillInfo();
-            regionSkill.SkillValue = regionSkillObject.characteristicid;
-            regionSkill.SkillLabel = region ?? "Americas";
-            regionSkill.SkillType = "Region";
-
-            (modalityResponse.Skills ??= new List<SkillInfo>()).Add(languageSkill);
-            modalityResponse.Skills.Add(vdmSkill);
-            modalityResponse.Skills.Add(regionSkill);
-
-            WidgetDetails widgetDetails = omnichannelService.GetWidgetDetails(languageCode, source, userType, IsMCS, Ring);
-
-            widgetDetails.Theme = "Light";
-
-            ModalityInfo modalityInfo = new ModalityInfo();
-            modalityInfo.Modality = 4;
-            modalityInfo.WaitTime = "0";
-            modalityInfo.IsAgentAvailable = true;
-            modalityInfo.InHoops = true;
-
-            modalityInfo.WidgetDetails = widgetDetails;
-
-            //Adding queue id to enrich routing context
-            //customContext.EnrichRoutingContext = new EnrichRoutingContext { value = JsonConvert.SerializeObject(skills), isDisplayable = true };
-            modalityInfo.CustomContext = customContext;
-
-            (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfo);
-            return modalityResponse;
-        }
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
         {
             if (modalityRequest.ExtensionAttributes != null && modalityRequest.ExtensionAttributes.ContainsKey("Theme"))
@@ -639,7 +641,7 @@ namespace CRM.ICon.Modality.Controllers
                 cultureInfo = new CultureInfo(userLcid);
             }
             catch (Exception ex)
-            {           
+            {
                 return LanguageSkillData.Default;
             }
 
@@ -649,7 +651,7 @@ namespace CRM.ICon.Modality.Controllers
             }
             catch (Exception ex)
             {
-                
+
             }
 
             string language = cultureInfo.ThreeLetterISOLanguageName;

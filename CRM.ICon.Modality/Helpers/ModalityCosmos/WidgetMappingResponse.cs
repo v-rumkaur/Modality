@@ -8,7 +8,6 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         public string Id { get; set; }
 
         public WidgetData Primary { get; set; }
-        public WidgetData Secondary { get; set; }
         public WidgetData Backup { get; set; }
 
         public string Source { get; set; }
@@ -22,6 +21,8 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         public string Region { get; set; }
 
         public bool IsMCS { get; set; }
+
+        public bool IsBackUp { get; set; }
 
     }
 }

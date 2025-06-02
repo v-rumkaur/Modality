@@ -4,5 +4,7 @@
     {
         public string WidgetId { get; set; }
         public string WorkstreamId { get; set; }
+
+        public string BotId { get; set; }
     }
 }

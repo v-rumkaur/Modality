@@ -30,35 +30,63 @@ namespace CRM.ICon.Modality.Services.VDM
         public async Task<VDMResponse> GetVDMSkill(VDMRequest request, string requestId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties.AddObjectAsString("RequestId", requestId);
+            logProperties["RequestId"] = requestId;
+            logProperties["VDMRequest"] = JsonConvert.SerializeObject(request);
+            _telemetryService.LogTrace<VDMService>("Received GetVDMSkill request", logProperties);
+
             try
             {
-                var vdmKey = (request.SapId + "-" + request
-                    .Text ).ToLowerInvariant();
+                var vdmKey = (request.SapId + "-" + request.Text).ToLowerInvariant();
 
-                if (!this.memoryCache.TryGetValue(vdmKey, out VDMResponse vdmResponse))
+                if (this.memoryCache.TryGetValue(vdmKey, out VDMResponse cachedResponse))
                 {
-                    var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, request);
-                    response.EnsureSuccessStatusCode();
-                    var stringresponse = await response.Content.ReadAsStringAsync();
-                    var deserializedResponse = JsonConvert.DeserializeObject<VDMResult>(stringresponse);
-                    vdmResponse = deserializedResponse.purposefulResults.FirstOrDefault();
-                    if (vdmResponse != null)
-                    {
-                        this.AddInMemoryCacheEntry(vdmKey, vdmResponse);
-                    }
-                    return vdmResponse;
+                    logProperties["CacheHit"] = "true";
+                    _telemetryService.LogTrace<VDMService>("Returning cached VDM response", logProperties);
+                    return cachedResponse;
                 }
+
+                logProperties["CacheHit"] = "false";
+                _telemetryService.LogTrace<VDMService>("Calling VDM endpoint", logProperties);
+
+                var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, request);
+
+                logProperties["StatusCode"] = response.StatusCode.ToString();
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    var message = await response.Content.ReadAsStringAsync();
+                    logProperties.Add("ErrorDetails", message);
+                    this._telemetryService.LogTrace<VDMService>("BadRequest from VDM service", logProperties);
+                    return null;
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                var stringResponse = await response.Content.ReadAsStringAsync();
+                var deserializedResponse = JsonConvert.DeserializeObject<VDMResult>(stringResponse);
+                var vdmResponse = deserializedResponse?.purposefulResults?.FirstOrDefault();
+
+                if (vdmResponse != null)
+                {
+                    AddInMemoryCacheEntry(vdmKey, vdmResponse);
+                    logProperties["VDMResponse"] = JsonConvert.SerializeObject(vdmResponse);
+                    _telemetryService.LogTrace<VDMService>("Returning VDM response", logProperties);
+                }
+                else
+                {
+                    _telemetryService.LogTrace<VDMService>("No VDM response found in results", logProperties);
+                }
+
                 return vdmResponse;
             }
-            catch (TaskCanceledException exception)
+            catch (TaskCanceledException ex)
             {
-                this._telemetryService.LogException<VDMService>(exception, logProperties, "VDM Service Time out");
+                this._telemetryService.LogException<VDMService>(ex, logProperties, "VDM Service timeout");
                 return null;
             }
             catch (Exception ex)
             {
-                this._telemetryService.LogException<VDMService>(ex, logProperties, "GetVDMSkill Failure");
+                this._telemetryService.LogException<VDMService>(ex, logProperties, "GetVDMSkill failure");
                 return null;
             }
         }

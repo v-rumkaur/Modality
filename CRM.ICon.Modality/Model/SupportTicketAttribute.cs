@@ -8,5 +8,8 @@
         public string? Severity { get; set; }
         public EntitlementInformation? EntitlementInformation { get; set; }
         public string? SupportAreaName { get; set; }
+        public string? SkillName {  get; set; }
+
+        public string? SkillValue { get; set; }
     }
 }
