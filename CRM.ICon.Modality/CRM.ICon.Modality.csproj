@@ -12,8 +12,8 @@
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.46.0" />
     <PackageReference Include="Microsoft.Identity.ServerAuthorization" Version="4.13.4" />
-    <PackageReference Include="Microsoft.Identity.ServiceEssentials.AspNetCore" Version="1.35.0" />
-    <PackageReference Include="Microsoft.Identity.Web" Version="3.9.2" />
+    <PackageReference Include="Microsoft.Identity.ServiceEssentials.AspNetCore" Version="1.36.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.9.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
