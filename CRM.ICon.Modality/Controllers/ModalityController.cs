@@ -238,7 +238,7 @@ namespace CRM.ICon.Modality.Controllers
 
             VDMResponse vdmResponse = null;
 
-            if (supportTicketAttribute?.SkillName != null && supportTicketAttribute?.SkillValue != null)
+            if (!String.IsNullOrEmpty(supportTicketAttribute?.SkillName) && !String.IsNullOrEmpty(supportTicketAttribute?.SkillValue))
             {
                 vdmResponse = new VDMResponse();
                 vdmResponse.SkillValue = supportTicketAttribute.SkillValue;
