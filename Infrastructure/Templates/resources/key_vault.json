@@ -240,7 +240,7 @@
             }
           ]
         },
-        "enabled": true,
+        "enabled": false,
         "description": "An administative action has been performed against OCC Key Vault"
       }
     }

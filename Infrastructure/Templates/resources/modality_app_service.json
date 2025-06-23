@@ -157,6 +157,18 @@
         "name": "SAW2404:f801:b080::/64"
       },
       {
+        "ipAddress": "MSaaSCasePPE",
+        "action": "Allow",
+        "priority": 1014,
+        "name": "MSaaSCasePPE"
+      },
+      {
+        "ipAddress": "MSaaSCasePROD",
+        "action": "Allow",
+        "priority": 1015,
+        "name": "MSaaSCasePROD"
+      },
+      {
         "ipAddress": "Any",
         "action": "Deny",
         "priority": 2147483647,
