@@ -14,7 +14,7 @@
                 "matchVariable": "SocketAddr",
                 "operator": "IPMatch",
                 "negateCondition": false,
-                "matchValues": [
+                "matchValue": [
                   "25.4.0.0/16",
                   "25.5.0.0/16",
                   "25.6.0.0/16",
@@ -33,7 +33,7 @@
                 "matchVariable": "SocketAddr",
                 "operator": "IPMatch",
                 "negateCondition": false,
-                "matchValues": [
+                "matchValue": [
                   "167.220.226.0/24",
                   "167.220.227.0/24",
                   "167.220.148.0/22",
@@ -108,7 +108,7 @@
                 "matchVariable": "SocketAddr",
                 "operator": "IPMatch",
                 "negateCondition": false,
-                "matchValues": [
+                "matchValue": [
                   "102.133.177.48/32",
                   "102.133.178.191/32",
                   "102.133.179.13/32",
@@ -225,7 +225,7 @@
                 "matchVariable": "SocketAddr",
                 "operator": "IPMatch",
                 "negateCondition": false,
-                "matchValues": [
+                "matchValue": [
                   "207.68.190.32/27",
                   "157.58.216.64/26",
                   "13.106.78.32/27",
@@ -250,7 +250,7 @@
                 "matchVariable": "RemoteAddr",
                 "operator": "IPMatch",
                 "negateCondition": false,
-                "matchValues": [
+                "matchValue": [
                   "13.93.149.227",
                   "52.138.177.17",
                   "13.90.137.26",
@@ -274,7 +274,7 @@
                 "matchVariable": "SocketAddr",
                 "operator": "IPMatch",
                 "negateCondition": false,
-                "matchValues": [
+                "matchValue": [
                   "0.0.0.0/0",
                   "::/0"
                 ]
@@ -291,7 +291,7 @@
                 "matchVariable": "SocketAddr",
                 "operator": "IPMatch",
                 "negateCondition": true,
-                "matchValues": [
+                "matchValue": [
                   "25.4.0.0/16"
                 ]
               }
