@@ -475,7 +475,7 @@ namespace CRM.ICon.Modality.Controllers
                 });
             }
 
-            _telemetryService.LogTrace<ModalityController>("Returning VDM response", logProperties);
+            _telemetryService.LogTrace<ModalityController>("GetSkillPrediction Succeeded: returning VDMResponse", logProperties);
             return Ok(vdmResponse);
         }
 
@@ -484,27 +484,45 @@ namespace CRM.ICon.Modality.Controllers
         [Route("createThemeSubjectMapping")]
         public async Task<ActionResult<ThemeSubjectMappingResponse>> CreateThemeSubjectMapping([FromBody] ThemeMappingRequest themeMappingRequest)
         {
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["ThemeMappingRequest"] = JsonConvert.SerializeObject(themeMappingRequest);
+
+            _telemetryService.LogTrace<ModalityController>("Received CreateThemeSubjectMapping request", logProperties);
+
+            // TODO: insert request null check
 
             ThemeSubjectMappingResponse response = null;
 
             foreach (var mapping in themeMappingRequest.ThemeRuleData)
             {
-                var array = mapping.Split('_');
-                ThemeSubjectMappingResponse themeSubjectMappingResponse = new ThemeSubjectMappingResponse();
+                try
+                {
+                    //TODO: insert mapping format validation
 
-                themeSubjectMappingResponse.id = mapping.ToLowerInvariant();
-                themeSubjectMappingResponse.theme = array[0];
-                themeSubjectMappingResponse.themeL1 = array[1];
-                themeSubjectMappingResponse.themeL2 = array[2];
-                themeSubjectMappingResponse.themeL3 = array[3];
-                themeSubjectMappingResponse.entitlement = array[4];
-                themeSubjectMappingResponse.languageName = array[5];
-                themeSubjectMappingResponse.countryName = array[6];
-                themeSubjectMappingResponse.subjectId = themeMappingRequest.subjectId;
-                themeSubjectMappingResponse.isC2C = themeMappingRequest.isC2C;
-                themeSubjectMappingResponse.isChat = themeMappingRequest.isChat;
+                    var array = mapping.Split('_');
+                    ThemeSubjectMappingResponse themeSubjectMappingResponse = new ThemeSubjectMappingResponse();
 
-                response = await this.cosmosDbClient.UpsertItemAsync<ThemeSubjectMappingResponse>(themeSubjectMappingResponse);
+                    themeSubjectMappingResponse.id = mapping.ToLowerInvariant();
+                    themeSubjectMappingResponse.theme = array[0];
+                    themeSubjectMappingResponse.themeL1 = array[1];
+                    themeSubjectMappingResponse.themeL2 = array[2];
+                    themeSubjectMappingResponse.themeL3 = array[3];
+                    themeSubjectMappingResponse.entitlement = array[4];
+                    themeSubjectMappingResponse.languageName = array[5];
+                    themeSubjectMappingResponse.countryName = array[6];
+                    themeSubjectMappingResponse.subjectId = themeMappingRequest.subjectId;
+                    themeSubjectMappingResponse.isC2C = themeMappingRequest.isC2C;
+                    themeSubjectMappingResponse.isChat = themeMappingRequest.isChat;
+
+                    logProperties["FormattedThemeMappingRequest"] = JsonConvert.SerializeObject(themeSubjectMappingResponse);
+
+                    response = await this.cosmosDbClient.UpsertItemAsync<ThemeSubjectMappingResponse>(themeSubjectMappingResponse);
+                } catch (Exception ex)
+                {
+                    logProperties["Error"] = ex.ToString();
+                    _telemetryService.LogError<ModalityController>("Error while processing createThemeSubjectMapping", logProperties);
+                    return null;
+                }   
             }
 
             if (response != null)
@@ -524,9 +542,14 @@ namespace CRM.ICon.Modality.Controllers
                 { "Entitlement", response.entitlement },
             };
 
+                logProperties["ThemeSubjectMappingResponse"] = JsonConvert.SerializeObject(themesubjectmapping);
+                _telemetryService.LogTrace<ModalityController>("CreateThemeSubjectMapping Succeeded: returning ThemeSubjectMappingResponse", logProperties);
+
+
                 return Ok(themesubjectmapping);
             }
-
+            _telemetryService.LogTrace<ModalityController>("CreateThemeSubjectMapping Failed: response is null", logProperties);
+            // return StatusCode(500, "CreateThemeSubjectMapping failed.");
             return null;
         }
 
