@@ -247,7 +247,7 @@
             "ruleType": "MatchRule",
             "matchConditions": [
               {
-                "matchVariable": "RemoteAddr",
+                "matchVariable": "SocketAddr",
                 "operator": "IPMatch",
                 "negateCondition": false,
                 "matchValue": [
