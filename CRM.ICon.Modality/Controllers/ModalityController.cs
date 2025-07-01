@@ -517,12 +517,12 @@ namespace CRM.ICon.Modality.Controllers
                     logProperties["FormattedThemeMappingRequest"] = JsonConvert.SerializeObject(themeSubjectMappingResponse);
 
                     response = await this.cosmosDbClient.UpsertItemAsync<ThemeSubjectMappingResponse>(themeSubjectMappingResponse);
-                } catch (Exception ex)
-                {
-                    logProperties["Error"] = ex.ToString();
-                    _telemetryService.LogError<ModalityController>("Error while processing createThemeSubjectMapping", logProperties);
-                    return null;
-                }   
+                    } catch (Exception ex)
+                    {
+                        logProperties["Error"] = ex.ToString();
+                        _telemetryService.LogError<ModalityController>("Error while processing createThemeSubjectMapping", logProperties);
+                        return StatusCode(500, "An error occurred while processing the theme subject mapping.");
+                    }   
             }
 
             if (response != null)
