@@ -517,30 +517,31 @@ namespace CRM.ICon.Modality.Controllers
                     logProperties["FormattedThemeMappingRequest"] = JsonConvert.SerializeObject(themeSubjectMappingResponse);
 
                     response = await this.cosmosDbClient.UpsertItemAsync<ThemeSubjectMappingResponse>(themeSubjectMappingResponse);
-                    } catch (Exception ex)
-                    {
-                        logProperties["Error"] = ex.ToString();
-                        _telemetryService.LogError<ModalityController>("Error while processing createThemeSubjectMapping", logProperties);
-                        return StatusCode(500, "CreateThemeSubjectMapping Failed: error occurred while processing the theme subject mapping.");
-                    }   
+                }
+                catch (Exception ex)
+                {
+                    logProperties["Error"] = ex.ToString();
+                    _telemetryService.LogError<ModalityController>("Error while processing createThemeSubjectMapping", logProperties);
+                    return StatusCode(500, "CreateThemeSubjectMapping Failed: error occurred while processing the theme subject mapping.");
+                }
             }
 
             if (response != null)
             {
                 var themesubjectmapping = new JObject
-            {
-                { "id", response.id },
-                { "isC2C", response.isC2C },
-                { "isChat", response.isChat },
-                { "SubjectId", response.subjectId },
-                { "Theme", response.theme },
-                { "ThemeL1", response.themeL1 },
-                { "ThemeL2", response.themeL2 },
-                { "ThemeL3", response.themeL3 },
-                { "LanguageName", response.languageName },
-                { "CountryName", response.countryName },
-                { "Entitlement", response.entitlement },
-            };
+                {
+                    { "id", response.id },
+                    { "isC2C", response.isC2C },
+                    { "isChat", response.isChat },
+                    { "SubjectId", response.subjectId },
+                    { "Theme", response.theme },
+                    { "ThemeL1", response.themeL1 },
+                    { "ThemeL2", response.themeL2 },
+                    { "ThemeL3", response.themeL3 },
+                    { "LanguageName", response.languageName },
+                    { "CountryName", response.countryName },
+                    { "Entitlement", response.entitlement },
+                };
 
                 logProperties["ThemeSubjectMappingResponse"] = JsonConvert.SerializeObject(themesubjectmapping);
                 _telemetryService.LogTrace<ModalityController>("CreateThemeSubjectMapping Succeeded: returning ThemeSubjectMappingResponse", logProperties);
