@@ -15,7 +15,6 @@
                 "operator": "IPMatch",
                 "negateCondition": false,
                 "matchValue": [
-                  // List client IP addresses here that should be allowed to bypass WAF
                   "25.4.0.0/16",
                   "25.5.0.0/16",
                   "25.6.0.0/16",
@@ -35,7 +34,6 @@
                 "operator": "IPMatch",
                 "negateCondition": false,
                 "matchValue": [
-                  // List client IP addresses here that should be allowed to bypass WAF
                   "167.220.226.0/24",
                   "167.220.227.0/24",
                   "167.220.148.0/22",
@@ -111,7 +109,6 @@
                 "operator": "IPMatch",
                 "negateCondition": false,
                 "matchValue": [
-                  // List client IP addresses here that should be allowed to bypass WAF
                   "102.133.177.48/32",
                   "102.133.178.191/32",
                   "102.133.179.13/32",
@@ -229,7 +226,6 @@
                 "operator": "IPMatch",
                 "negateCondition": false,
                 "matchValue": [
-                  // List client IP addresses here that should be allowed to bypass WAF
                   "207.68.190.32/27",
                   "157.58.216.64/26",
                   "13.106.78.32/27",
@@ -255,7 +251,6 @@
                 "operator": "IPMatch",
                 "negateCondition": false,
                 "matchValue": [
-                  // List client IP addresses here that should be allowed to bypass WAF
                   "13.93.149.227",
                   "52.138.177.17",
                   "13.90.137.26",
@@ -295,8 +290,7 @@
                 "operator": "IPMatch",
                 "negateCondition": true,
                 "matchValue": [
-                  // List client IP addresses here that should be allowed to bypass WAF
-                  "25.4.0.0/16" // Need to have at least 1 IP rule to allow the rule to be created
+                  "25.4.0.0/16"
                 ]
               }
             ],
