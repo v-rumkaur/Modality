@@ -521,7 +521,7 @@ namespace CRM.ICon.Modality.Controllers
                     {
                         logProperties["Error"] = ex.ToString();
                         _telemetryService.LogError<ModalityController>("Error while processing createThemeSubjectMapping", logProperties);
-                        return StatusCode(500, "An error occurred while processing the theme subject mapping.");
+                        return StatusCode(500, "CreateThemeSubjectMapping Failed: error occurred while processing the theme subject mapping.");
                     }   
             }
 
@@ -549,8 +549,7 @@ namespace CRM.ICon.Modality.Controllers
                 return Ok(themesubjectmapping);
             }
             _telemetryService.LogTrace<ModalityController>("CreateThemeSubjectMapping Failed: response is null", logProperties);
-            // return StatusCode(500, "CreateThemeSubjectMapping failed.");
-            return null;
+            return StatusCode(500, "CreateThemeSubjectMapping failed: response is null");
         }
 
         [Authorize]
