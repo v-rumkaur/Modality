@@ -16,6 +16,8 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
     using Azure.Core;
     using Azure.Identity;
     using CRM.ICon.Modality;
+    using CRM.ICon.Modality.Helpers.Telemetry;
+    using Microsoft.ApplicationInsights.Channel;
     using Microsoft.Azure.Cosmos;
     using Microsoft.Azure.Cosmos.Linq;
     using Microsoft.Extensions.Options;
@@ -28,15 +30,16 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         private readonly ModalityCosmosDbConfiguration cosmosDbConfiguration;
         private readonly CosmosClient cosmosClient;
         private readonly AzureAdConfiguration azureAdConfiguration;
-
+        private readonly ITelemetryService telemetryService;
         /// <summary>
         /// Initializes a new instance of the <see cref="ModalityCosmosDbClient"/> class.
         /// </summary>
         /// <param name="cosmosDbConfiguration">Cosmos db configuration</param>
-        public ModalityCosmosDbClient(IOptions<ModalityCosmosDbConfiguration> cosmosDbConfiguration, IOptions<AzureAdConfiguration> azureAdConfiguration)
+        public ModalityCosmosDbClient(IOptions<ModalityCosmosDbConfiguration> cosmosDbConfiguration, IOptions<AzureAdConfiguration> azureAdConfiguration, ITelemetryService telemetryService)
         {
             this.cosmosDbConfiguration = cosmosDbConfiguration?.Value ?? throw new ArgumentNullException(nameof(cosmosDbConfiguration));
             this.azureAdConfiguration = azureAdConfiguration.Value;
+            this.telemetryService = telemetryService ?? throw new ArgumentNullException(nameof(telemetryService));
             var cosmosRequestTimeout = this.cosmosDbConfiguration.RequestTimeout > 0 ? this.cosmosDbConfiguration.RequestTimeout : 2;
             var cosmosClientOptions = new CosmosClientOptions
             {
@@ -49,7 +52,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
                     PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
                 }
             };
-            this.cosmosClient = new CosmosClient(this.cosmosDbConfiguration.CosmosDbEndpoint, new DefaultAzureCredential(new DefaultAzureCredentialOptions {ManagedIdentityClientId = this.azureAdConfiguration.ManagedIdentityClientId }), cosmosClientOptions);
+            this.cosmosClient = new CosmosClient(this.cosmosDbConfiguration.CosmosDbEndpoint, new DefaultAzureCredential(new DefaultAzureCredentialOptions { ManagedIdentityClientId = this.azureAdConfiguration.ManagedIdentityClientId }), cosmosClientOptions);
         }
 
         public async Task<T> UpsertItemAsync<T>(T item)
@@ -90,7 +93,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         private async Task<Container> GetContainerAsync()
         {
             var database = await this.cosmosClient.CreateDatabaseIfNotExistsAsync(this.cosmosDbConfiguration.DatabaseId);
-            return await database.Database.CreateContainerIfNotExistsAsync(this.cosmosDbConfiguration.ContainerId, "/id");
+            return await database.Database.CreateContainerIfNotExistsAsync(this.cosmosDbConfiguration.ContainerIds.WidgetMapping, "/id");
         }
     }
 }
