@@ -16,19 +16,24 @@ namespace CRM.ICon.Modality.Services.Omnichannel
     public class OmnichannelService : IOmnichannelService
     {
         private readonly HttpClient httpClient;
+        private readonly ModalityCosmosDbConfiguration cosmosDbConfiguration;
         private readonly OmnichannelConfiguration omnichannelConfiguration;
         private readonly Dictionary<string, WidgetDetails> widgetConfiguration;
         private readonly Dictionary<string, string> skillcharacteristicConfiguration;
         private readonly ITelemetryService _telemetryService;
         private readonly Dictionary<string, WorkstreamDetails> workstreamConfiguration;
         private readonly IModalityCosmosDbClient modalityCosmosDbClient;
+        private readonly string cosmosDbContainerId;
 
         public OmnichannelService(HttpClient httpClient, IOptions<OmnichannelConfiguration> options, 
+        IOptions<ModalityCosmosDbConfiguration> cosmosDbConfiguration,
             IOptions<Dictionary<string, WidgetDetails>> widgetConfiguration, 
             IOptions<Dictionary<string, string>> skillcharacteristicConfiguration,
-            ITelemetryService telemetryService, IOptions<Dictionary<string, WorkstreamDetails>> workstreamConfiguration, IModalityCosmosDbClient modalityCosmosDbClient)
+            ITelemetryService telemetryService, IOptions<Dictionary<string, WorkstreamDetails>> workstreamConfiguration,
+            IModalityCosmosDbClient modalityCosmosDbClient)
         {
             this.httpClient = httpClient;
+            this.cosmosDbConfiguration = cosmosDbConfiguration?.Value ?? throw new ArgumentNullException(nameof(cosmosDbConfiguration));
             this.omnichannelConfiguration = options.Value;
             this.widgetConfiguration = widgetConfiguration.Value;
             this.skillcharacteristicConfiguration = skillcharacteristicConfiguration.Value;
@@ -90,7 +95,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
 
                 string widgetkey = (source + "-" + language + "-" + userType + "-" + region).ToLowerInvariant();
 
-                var response = await modalityCosmosDbClient.GetItemAsync<WidgetMappingResponse>(widgetkey);
+                var response = await modalityCosmosDbClient.GetItemAsync<WidgetMappingResponse>(cosmosDbContainerId, widgetkey);
 
                 if (response != null)
                 {
@@ -153,7 +158,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                 : $"{source}-{language}-{userType}".ToLowerInvariant();
 
             // Save to Cosmos DB
-            return await modalityCosmosDbClient.UpsertItemAsync<WidgetMappingResponse>(widgetMappingResponse);
+            return await modalityCosmosDbClient.UpsertItemAsync<WidgetMappingResponse>(cosmosDbContainerId, widgetMappingResponse);
         }
 
         public string GetSkillCharacteristicId(string skill)

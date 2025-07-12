@@ -22,7 +22,7 @@ namespace CRM.ICon.Modality.Helpers.Telemetry
         /// <param name="message">Trace message</param>
         /// <param name="properties">Trace properties</param>
         /// <param name="severityLevel">Trace severity level</param>
-        void LogTrace<T>(string message, IDictionary<string, string> properties, SeverityLevel severityLevel = SeverityLevel.Information);
+        void LogTrace<T>(string message, IDictionary<string, string> properties = null, SeverityLevel severityLevel = SeverityLevel.Information);
 
         /// <summary>
         /// Logs custom errors

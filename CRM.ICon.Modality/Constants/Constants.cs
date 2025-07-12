@@ -8,6 +8,9 @@ namespace CRM.ICon.Modality
         public const string KeyVaultConfiguration = "KeyVaultConfiguration";
         public const string ApplicationInsightsConnectionString = "ApplicationInsightsConnectionString";
         public const double VDMCacheTimeInMinutes = 30;
+
+        // Cosmos DB
+        public const string LiveChatPartitionKey = "LiveChat";
  
         //Headers
         public const string Target = "x-msaas-target";
