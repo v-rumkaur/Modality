@@ -3,8 +3,6 @@ using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model.LiveChatSettings.Requests;
 using CRM.ICon.Modality.Model.LiveChatSettings.Responses;
 using CRM.ICon.Modality.Services.LiveChatSettings;
-using CRM.ICon.Modality.Services.Omnichannel;
-using CRM.ICon.Modality.Services.VDM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,7 +15,7 @@ namespace CRM.ICon.Modality.Controllers
         private readonly ITelemetryService telemetryService;
         private readonly ILiveChatSettingsService liveChatSettingsService;
 
-        public LiveChatSettingsController(LiveChatSettingsService service, ITelemetryService telemetryService)
+        public LiveChatSettingsController(ILiveChatSettingsService service, ITelemetryService telemetryService)
         {
             liveChatSettingsService = service ?? throw new ArgumentNullException(nameof(service));
             this.telemetryService = telemetryService ?? throw new ArgumentNullException(nameof(telemetryService));
