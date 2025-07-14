@@ -603,77 +603,32 @@ namespace CRM.ICon.Modality.Controllers
         }
 
         [Authorize]
-        [HttpPost("isChatEligible")]
+        [HttpPost]
+        [Route("isChatEligible")]
         public async Task<IActionResult> IsChatEligible([FromBody] MatchRuleRequest user)
         {
+            _telemetryService.LogTrace<ModalityController>("Received IsChatEligible request");
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["MatchRuleRequest"] = JsonConvert.SerializeObject(user);
+
+            _telemetryService.LogTrace<ModalityController>("Received IsChatEligible request", logProperties);
+
             var match = await liveChatSettingsService.MatchUserAsync(user);
             return match != null
                 ? Ok(LiveChatRuleResponse.FromDomainModel(match))
                 : NotFound("No matching rule found.");
         }
-
-        [Authorize]
-        [HttpPost("createLiveChatRule")]
-        public async Task<IActionResult> CreateLiveChatRule([FromBody] CreateRuleRequest request)
+        
+        [HttpPost]
+        [Route("isChatEligible2")]
+        public async Task<IActionResult> IsChatEligible2([FromBody] MatchRuleRequest user)
         {
-            // TODO: Get the current user from context/token if available
-            var currentUser = "example@domain.com";
-
-            var fallbackEvalOrder =
-                (await liveChatSettingsService.GetMaxEvaluationOrderAsync()) + 1;
-            var rule = request.ToDomainModel(fallbackEvalOrder);
-            await liveChatSettingsService.CreateRuleAsync(rule, currentUser);
-
-            return Ok("Rule created successfully.");
+            _telemetryService.LogTrace<ModalityController>("Received IsChatEligible2 request");
+            var match = await liveChatSettingsService.MatchUserAsync(user);
+            return match != null
+                ? Ok(LiveChatRuleResponse.FromDomainModel(match))
+                : NotFound("No matching rule found.");
         }
-
-        [Authorize]
-        [HttpPatch("updateLiveChatRule")]
-        public async Task<IActionResult> UpdateLiveChatRule([FromBody] UpdateRuleRequest request)
-        {
-            var currentUser = "example@domain.com"; // TODO: Replace with real auth context
-
-            var existingRule = await liveChatSettingsService.GetRuleByNameAsync(request.Name);
-            if (existingRule == null)
-                return NotFound($"No rule found with name '{request.Name}'.");
-
-            request.ApplyUpdatesTo(existingRule);
-            await liveChatSettingsService.UpdateRuleAsync(existingRule, currentUser);
-
-            return Ok("Rule updated successfully.");
-        }
-
-        [Authorize]
-        [HttpGet("getLiveChatRuleByName")]
-        public async Task<IActionResult> GetLiveChatRuleByName(string name)
-        {
-            var rule = await liveChatSettingsService.GetRuleByNameAsync(name);
-            return rule != null
-                ? Ok(LiveChatRuleResponse.FromDomainModel(rule))
-                : NotFound($"No rule found with name '{name}'.");
-        }
-
-        [Authorize]
-        [HttpGet("getAllLiveChatRules")]
-        public async Task<IActionResult> GetAll()
-        {
-            var rules = await liveChatSettingsService.GetAllAsync();
-            var responses = rules.Select(LiveChatRuleResponse.FromDomainModel);
-            return Ok(responses);
-        }
-
-        [Authorize]
-        [HttpDelete("deleteLiveChatRule")]
-        public async Task<IActionResult> DeleteRuleByName(string name)
-        {
-            var rule = await liveChatSettingsService.GetRuleByNameAsync(name);
-            if (rule == null)
-                return NotFound($"No rule found with name '{name}'.");
-
-            await liveChatSettingsService.DeleteRuleAsync(rule);
-            return Ok("Rule deleted successfully.");
-        }
-
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
         {
             if (modalityRequest.ExtensionAttributes != null && modalityRequest.ExtensionAttributes.ContainsKey("Theme"))

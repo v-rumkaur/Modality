@@ -56,9 +56,10 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             cosmosClient = new CosmosClient(this.cosmosDbConfiguration.CosmosDbEndpoint, new DefaultAzureCredential(new DefaultAzureCredentialOptions { ManagedIdentityClientId = this.azureAdConfiguration.ManagedIdentityClientId }), cosmosClientOptions);
         }
 
-        public async Task<T> UpsertItemAsync<T>(string ContainerId, T item)
+        public async Task<T> UpsertItemAsync<T>(string containerId, T item)
         {
-            var container = await GetContainerAsync(ContainerId);
+            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting UpsertItemAsync on container: {containerId}");
+            var container = await GetContainerAsync(containerId);
             var response = await container.UpsertItemAsync<T>(item).ConfigureAwait(false);
             var resource = response.Resource;
             if (resource != null)
@@ -70,6 +71,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         public async Task<T> GetItemAsync<T>(string containerId, string id)
         {
+            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetItemAsync on container: {containerId}, id: {id}");
             try
             {
                 var container = await GetContainerAsync(containerId);
@@ -93,14 +95,13 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         private async Task<Container> GetContainerAsync(string containerId)
         {
+            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetContainerAsync on {containerId}");
             try
             {
-                telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetContainerAsync on {containerId}");
-
                 if (string.IsNullOrEmpty(containerId))
                 {
                     containerId = cosmosDbConfiguration.ContainerIds.WidgetMapping;
-                    telemetryService.LogTrace<ModalityCosmosDbClient>($"Using default container: {containerId}");
+                    telemetryService.LogTrace<ModalityCosmosDbClient>($"Container was null or empty: {containerId}");
                 }
 
                 telemetryService.LogTrace<ModalityCosmosDbClient>($"Attempting to get/create database: {cosmosDbConfiguration.DatabaseId}");
@@ -182,6 +183,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         public async Task<T> GetItemByIdAsync<T>(string containerId, string id, string partitionKey)
         {
+            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetItemByIdAsync on container: {containerId}, id: {id}, partitionKey: {partitionKey}");
             try
             {
                 var container = await GetContainerAsync(containerId);
@@ -196,6 +198,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         public async Task<T> DeleteItemAsync<T>(string containerId, string id, string partitionKey)
         {
+            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting DeleteItemAsync on container: {containerId}, id: {id}, partitionKey: {partitionKey}");
             try
             {
                 var container = await GetContainerAsync(containerId);

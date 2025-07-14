@@ -22,7 +22,8 @@ namespace CRM.ICon.Modality.Controllers
         }
 
         [Authorize]
-        [HttpPost("isChatEligible")]
+        [HttpPost]
+        [Route("isChatEligible")]
         public async Task<IActionResult> IsChatEligible([FromBody] MatchRuleRequest user)
         {
             var match = await liveChatSettingsService.MatchUserAsync(user);
@@ -32,7 +33,8 @@ namespace CRM.ICon.Modality.Controllers
         }
 
         [Authorize]
-        [HttpPost("createLiveChatRule")]
+        [HttpPost]
+        [Route("createLiveChatRule")]
         public async Task<IActionResult> CreateLiveChatRule([FromBody] CreateRuleRequest request)
         {
             // TODO: Get the current user from context/token if available
@@ -47,7 +49,8 @@ namespace CRM.ICon.Modality.Controllers
         }
 
         [Authorize]
-        [HttpPatch("updateLiveChatRule")]
+        [HttpPatch]
+        [Route("updateLiveChatRule")]
         public async Task<IActionResult> UpdateLiveChatRule([FromBody] UpdateRuleRequest request)
         {
             var currentUser = "example@domain.com"; // TODO: Replace with real auth context
@@ -63,7 +66,8 @@ namespace CRM.ICon.Modality.Controllers
         }
 
         [Authorize]
-        [HttpGet("getLiveChatRuleByName")]
+        [HttpPatch]
+        [Route("getLiveChatRuleByName")]
         public async Task<IActionResult> GetLiveChatRuleByName(string name)
         {
             var rule = await liveChatSettingsService.GetRuleByNameAsync(name);
@@ -73,7 +77,8 @@ namespace CRM.ICon.Modality.Controllers
         }
 
         [Authorize]
-        [HttpGet("getAllLiveChatRules")]
+        [HttpPatch]
+        [Route("getAllLiveChatRules")]
         public async Task<IActionResult> GetAll()
         {
             var rules = await liveChatSettingsService.GetAllAsync();
@@ -82,7 +87,8 @@ namespace CRM.ICon.Modality.Controllers
         }
 
         [Authorize]
-        [HttpDelete("deleteLiveChatRule")]
+        [HttpPatch]
+        [Route("deleteLiveChatRule")]
         public async Task<IActionResult> DeleteRuleByName(string name)
         {
             var rule = await liveChatSettingsService.GetRuleByNameAsync(name);
