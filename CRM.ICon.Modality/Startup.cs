@@ -29,7 +29,6 @@ namespace CRM.ICon.Modality
         public IConfiguration Configuration { get; }
         public Startup(IWebHostEnvironment env)
         {
-
             var builder = new ConfigurationBuilder()
           .SetBasePath(Directory.GetCurrentDirectory())
           .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
@@ -52,28 +51,35 @@ namespace CRM.ICon.Modality
             if (env.IsDevelopment() || env.IsEnvironment("ppe"))
             {
                 app.UseDeveloperExceptionPage();
-                app.UseSwagger();
                 app.UseSwaggerUI();
+                app.UseSwagger();
             }
             else
             {
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection()
-                .UseDefaultFiles()
-                .UseStaticFiles()
-                .UseRouting()
-                .UseAuthentication()
-                .UseAuthorization()
-                .UseMise()
-                .UseEndpoints(endpoints =>
-                {
-                    endpoints.MapControllers();
-                    // Add endpoint for checking the health of this application.
-                    // Returns 200 (OK) if the app is healthy, 503 (Service Unavailable) otherwise.
-                    endpoints.MapHealthChecks("/health");
-                });
+            app.UseDefaultFiles()
+              .UseStaticFiles()
+              .UseRouting()
+              .UseAuthentication()
+              .UseAuthorization()
+              .UseMise()
+              .UseEndpoints(endpoints =>
+              {
+                  endpoints.MapControllers();
+              })
+              .UseHttpsRedirection()
+              ;
+
+            app.UseEndpoints(endpoints => {
+                endpoints.MapControllers();
+
+                // Add endpoint for checking the health of this application.
+                // Returns 200 (OK) if the app is healthy, 503 (Service Unavailable) otherwise.
+                endpoints.MapHealthChecks("/health");
+            });
+
         }
 
         /// <summary>
@@ -120,18 +126,18 @@ namespace CRM.ICon.Modality
                     .AddMiseWithDefaultModules(Configuration, authenticationSectionName: "AzureAdConfiguration");
 
             services.AddSingleton<AuthTokenClient>();
-
+       
 
             services.AddHttpClient<IVDMService, VDMService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(30);
             })
                 .ConfigureServiceAuthHandler<VDMConfiguration>((options) => new ServiceAuthHandlerParams
-                {
-                    Resource = options.Resource,
-                    TenantId = options.TenantId,
-
-                });
+            {
+                Resource = options.Resource,
+                TenantId = options.TenantId,
+                
+            });
 
             services.AddHttpClient<IOmnichannelService, OmnichannelService>().ConfigureServiceAuthHandler<OmnichannelConfiguration>((options) => new ServiceAuthHandlerParams
             {
@@ -157,7 +163,6 @@ namespace CRM.ICon.Modality
             services.AddSingleton<ICosmosDbClient, CosmosDbClient>();
             services.AddSingleton<IModalityCosmosDbClient, ModalityCosmosDbClient>();
             services.AddScoped<ILiveChatSettingsService, LiveChatSettingsService>();
-
         }
     }
 }
