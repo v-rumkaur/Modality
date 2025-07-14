@@ -2,7 +2,6 @@ using CRM.ICon.Modality.Controllers;
 using CRM.ICon.Modality.Helpers.Cosmos;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
-using CRM.ICon.Modality.Services.LiveChatSettings;
 using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
 using Microsoft.AspNetCore.Authorization;
@@ -21,9 +20,8 @@ namespace CRM.ICon.Modality.Tests.Controllers
             var omnichannelService = Substitute.For<IOmnichannelService>();
             var telemetryService = Substitute.For<ITelemetryService>();
             var omniChannelEUService = Substitute.For<IOmnichannelEUService>();
-            var liveChatSettingsService = Substitute.For<ILiveChatSettingsService>();
             var cosmosDbClient = Substitute.For<ICosmosDbClient>();
-            return new ModalityController(vdmService, omnichannelService, liveChatSettingsService, telemetryService, omniChannelEUService, cosmosDbClient);
+            return new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient);
         }
 
         [Theory]
