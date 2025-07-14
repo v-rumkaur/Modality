@@ -17,5 +17,6 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         Task<T> ReplaceItemAsync<T>(string containerId, string id, T item);
         Task<FeedIterator<T>> QueryItemsIteratorAsync<T>(string containerId, QueryDefinition query);
         Task<T> GetItemByIdAsync<T>(string containerId, string id, string partitionKey);
+        Task<T> DeleteItemAsync<T>(string containerId, string id, string partitionKey);
     }
 }

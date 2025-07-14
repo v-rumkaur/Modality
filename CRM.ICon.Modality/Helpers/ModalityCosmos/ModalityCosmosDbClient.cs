@@ -193,5 +193,24 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
                 return default;
             }
         }
+
+        public async Task<T> DeleteItemAsync<T>(string containerId, string id, string partitionKey)
+        {
+            try
+            {
+                var container = await GetContainerAsync(containerId);
+                var response = await container.DeleteItemAsync<T>(id, new PartitionKey(partitionKey));
+                return response.Resource;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                return default;
+            }
+            catch (Exception ex)
+            {
+                telemetryService.LogTrace<ModalityCosmosDbClient>($"Error deleting item with id '{id}' from container '{containerId}': {ex.Message}", ex.ToDictionary());
+                throw;
+            }
+        }
     }
 }

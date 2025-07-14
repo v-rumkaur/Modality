@@ -11,6 +11,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
         Task<List<LiveChatRule>> GetAllAsync();
         Task<int> GetMaxEvaluationOrderAsync();
         Task<LiveChatRule> GetRuleByNameAsync(string name);
+        Task DeleteRuleAsync(LiveChatRule rule);
     }
 
 }

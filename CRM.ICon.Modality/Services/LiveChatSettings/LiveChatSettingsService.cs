@@ -5,35 +5,23 @@ using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model.LiveChatSettings;
 using CRM.ICon.Modality.Model.LiveChatSettings.Requests;
 using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace CRM.ICon.Modality.Services.LiveChatSettings
 {
     public class LiveChatSettingsService : ILiveChatSettingsService
     {
-        private readonly HttpClient httpClient;
-
         private readonly IModalityCosmosDbClient cosmosDbClient;
         private readonly string containerId;
         private readonly ITelemetryService _telemetryService;
 
         private readonly string partitionKey = Constants.LiveChatPartitionKey;
 
-        public LiveChatSettingsService(
-            IOptions<ModalityCosmosDbConfiguration> cosmosDbOptions,
-            IModalityCosmosDbClient cosmosDbClient,
-            HttpClient httpClient,
-            ITelemetryService telemetryService
-        )
+        public LiveChatSettingsService(IModalityCosmosDbClient cosmosDbClient, ITelemetryService telemetryService)
         {
-            var cosmosConfig = cosmosDbOptions.Value;
-            containerId = cosmosConfig.ContainerIds.LiveChatSettings;
-            this.httpClient = httpClient;
-
-            _telemetryService = telemetryService;
             this.cosmosDbClient =
                 cosmosDbClient ?? throw new ArgumentNullException(nameof(cosmosDbClient));
+            _telemetryService = telemetryService;
         }
 
         public async Task<LiveChatRule> CreateRuleAsync(LiveChatRule newRule, string user)
@@ -71,12 +59,18 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
 
             // 3. Set audit metadata and insert the rule
             newRule.SetAudit(user, true);
+            _telemetryService.LogTrace<LiveChatSettingsService>("Creating new LiveChatRule", newRule.ToDictionary());
             await cosmosDbClient.UpsertItemAsync(containerId, newRule);
             return newRule;
         }
 
         public async Task<LiveChatRule> UpdateRuleAsync(LiveChatRule request, string user)
         {
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["UpdateRuleRequest"] = JsonConvert.SerializeObject(request);
+            logProperties["User"] = user;
+            _telemetryService.LogTrace<LiveChatSettingsService>("Received UpdateRuleAsync request", logProperties);
+
             // Evaluation order conflict resolution
             if (request.EvaluationOrder is int newOrder)
             {
@@ -94,11 +88,11 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             }
 
             request.SetAudit(user, isNew: false);
-
+            _telemetryService.LogTrace<LiveChatSettingsService>("Updating LiveChatRule", request.ToDictionary());
             await cosmosDbClient.ReplaceItemAsync(containerId, request.Id, request);
             return request;
         }
-        
+
         // TODO: Consider making param LiveChatRule
         public async Task<LiveChatRule?> MatchUserAsync(MatchRuleRequest user)
         {
@@ -201,15 +195,31 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                return null;
+                _telemetryService.LogTrace<LiveChatSettingsService>($"Rule '{name}' not found.");
+                throw;
             }
             catch (Exception ex)
             {
-                _telemetryService.LogException<LiveChatSettingsService>(
-                    ex,
-                    new Dictionary<string, string> { { "RuleName", name } },
-                    "Error getting rule by name"
-                );
+                _telemetryService.LogTrace<LiveChatSettingsService>($"Error getting rule '{name}'", ex.ToDictionary());
+                throw;
+            }
+        }
+
+        public async Task DeleteRuleAsync(LiveChatRule rule)
+        {
+            try
+            {
+                await cosmosDbClient.DeleteItemAsync<LiveChatRule>(containerId, rule.Id, partitionKey);
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Item not found, nothing to delete
+                _telemetryService.LogTrace<LiveChatSettingsService>($"Rule '{rule.Name}' with ID '{rule.Id}' not found for deletion.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _telemetryService.LogTrace<LiveChatSettingsService>($"Error deleting rule '{rule.Name}' with ID '{rule.Id}'", ex.ToDictionary());
                 throw;
             }
         }
