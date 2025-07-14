@@ -5,23 +5,26 @@ using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model.LiveChatSettings;
 using CRM.ICon.Modality.Model.LiveChatSettings.Requests;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 
 namespace CRM.ICon.Modality.Services.LiveChatSettings
 {
     public class LiveChatSettingsService : ILiveChatSettingsService
     {
+        private readonly ModalityCosmosDbConfiguration cosmosDbConfiguration;
         private readonly IModalityCosmosDbClient cosmosDbClient;
         private readonly string containerId;
         private readonly ITelemetryService _telemetryService;
-
         private readonly string partitionKey = Constants.LiveChatPartitionKey;
 
-        public LiveChatSettingsService(IModalityCosmosDbClient cosmosDbClient, ITelemetryService telemetryService)
+        public LiveChatSettingsService(IOptions<ModalityCosmosDbConfiguration> cosmosDbConfiguration, IModalityCosmosDbClient cosmosDbClient, ITelemetryService telemetryService)
         {
+            this.cosmosDbConfiguration = cosmosDbConfiguration?.Value ?? throw new ArgumentNullException(nameof(cosmosDbConfiguration));
             this.cosmosDbClient =
                 cosmosDbClient ?? throw new ArgumentNullException(nameof(cosmosDbClient));
             _telemetryService = telemetryService;
+            this.containerId = this.cosmosDbConfiguration.ContainerIds.LiveChatSettings;
         }
 
         public async Task<LiveChatRule> CreateRuleAsync(LiveChatRule newRule, string user)
@@ -92,36 +95,6 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             await cosmosDbClient.ReplaceItemAsync(containerId, request.Id, request);
             return request;
         }
-
-        // TODO: Consider making param LiveChatRule
-        // public async Task<LiveChatRule?> MatchUserAsync(MatchRuleRequest user)
-        // {
-        //     _telemetryService.LogTrace<LiveChatSettingsService>("Received MatchUserAsync request", user.ToDictionary());
-        //     var query = new QueryDefinition(
-        //         @"
-        //         SELECT * FROM c
-        //         WHERE c.partitionKey = @partitionKey
-        //           AND ARRAY_CONTAINS(c.allowedServiceLevels, @serviceLevel)
-        //           AND c.allowRestricted = @isRestricted
-        //           AND ARRAY_CONTAINS(c.allowedSaps, @sapId)
-        //           AND (NOT ARRAY_CONTAINS(c.excludedServiceIds, @serviceId))
-        //         ORDER BY c.evaluationOrder ASC
-        //     "
-        //     ).WithParameter("@partitionKey", partitionKey).WithParameter("@serviceLevel", user.ServiceLevel).WithParameter("@isRestricted", user.IsRestricted).WithParameter("@sapId", user.SapId).WithParameter("@serviceId", user.ServiceId);
-
-        //     var iterator = await cosmosDbClient.QueryItemsIteratorAsync<LiveChatRule>(
-        //         containerId,
-        //         query
-        //     );
-        //     while (iterator.HasMoreResults)
-        //     {
-        //         var response = await iterator.ReadNextAsync();
-        //         if (response.Resource.FirstOrDefault() is { } matched)
-        //             return matched;
-        //     }
-
-        //     return null;
-        // }
 
         // TODO: Consider making param LiveChatRule
         public async Task<LiveChatRule?> MatchUserAsync(MatchRuleRequest user)

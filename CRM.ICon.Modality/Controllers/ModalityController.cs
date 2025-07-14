@@ -602,33 +602,6 @@ namespace CRM.ICon.Modality.Controllers
             return Ok(widgetMappingResponse);
         }
 
-        [Authorize]
-        [HttpPost]
-        [Route("isChatEligible")]
-        public async Task<IActionResult> IsChatEligible([FromBody] MatchRuleRequest user)
-        {
-            _telemetryService.LogTrace<ModalityController>("Received IsChatEligible request");
-            var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties["MatchRuleRequest"] = JsonConvert.SerializeObject(user);
-
-            _telemetryService.LogTrace<ModalityController>("Received IsChatEligible request", logProperties);
-
-            var match = await liveChatSettingsService.MatchUserAsync(user);
-            return match != null
-                ? Ok(LiveChatRuleResponse.FromDomainModel(match))
-                : NotFound("No matching rule found.");
-        }
-        
-        [HttpPost]
-        [Route("isChatEligible2")]
-        public async Task<IActionResult> IsChatEligible2([FromBody] MatchRuleRequest user)
-        {
-            _telemetryService.LogTrace<ModalityController>("Received IsChatEligible2 request");
-            var match = await liveChatSettingsService.MatchUserAsync(user);
-            return match != null
-                ? Ok(LiveChatRuleResponse.FromDomainModel(match))
-                : NotFound("No matching rule found.");
-        }
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
         {
             if (modalityRequest.ExtensionAttributes != null && modalityRequest.ExtensionAttributes.ContainsKey("Theme"))

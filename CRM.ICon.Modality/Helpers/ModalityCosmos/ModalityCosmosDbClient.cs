@@ -177,6 +177,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         public async Task<FeedIterator<T>> QueryItemsIteratorAsync<T>(string containerId, QueryDefinition query)
         {
+            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting QueryItemsIteratorAsync on container: {containerId} with query: {query.QueryText}");
             var container = await GetContainerAsync(containerId);
             return container.GetItemQueryIterator<T>(query);
         }
@@ -192,6 +193,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
+                telemetryService.LogTrace<ModalityCosmosDbClient>($"Item with id '{id}' not found in container '{containerId}' with partition key '{partitionKey}'");
                 return default;
             }
         }
@@ -207,6 +209,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
+                telemetryService.LogTrace<ModalityCosmosDbClient>($"Item with id '{id}' not found in container '{containerId}' with partition key '{partitionKey}'");
                 return default;
             }
             catch (Exception ex)
