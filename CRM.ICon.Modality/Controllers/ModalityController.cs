@@ -597,6 +597,15 @@ namespace CRM.ICon.Modality.Controllers
             return Ok(widgetMappingResponse);
         }
 
+        [Authorize]
+        [HttpPost]
+        [Route("IsChatEligible")]
+        public async Task<IActionResult> IsChatEligible([FromBody] LiveChatUserContext user)
+        {
+            var mockResponse = new { isChatEligible = true, isChatForced = false };
+            return Ok(mockResponse);
+        }
+
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
         {
             if (modalityRequest.ExtensionAttributes != null && modalityRequest.ExtensionAttributes.ContainsKey("Theme"))
@@ -871,5 +880,13 @@ namespace CRM.ICon.Modality.Controllers
 
             return languageCode;
         }
+    }
+
+    public class LiveChatUserContext
+    {
+        public required string ServiceLevel { get; set; }
+        public required bool IsRestricted { get; set; }
+        public required string SapId { get; set; }
+        public required int ServiceId { get; set; }
     }
 }
