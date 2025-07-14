@@ -14,6 +14,7 @@ using CRM.ICon.Modality.Helpers.KeyvaultClient;
 using Microsoft.Identity.ServiceEssentials.Extensions.AspNetCoreMiddleware;
 using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Cosmos;
+using CRM.ICon.Modality.Services.LiveChatSettings;
 
 namespace CRM.ICon.Modality
 {
@@ -162,7 +163,7 @@ namespace CRM.ICon.Modality
             services.AddSingleton<IKeyVaultClient, KeyVaultClient>();
             services.AddSingleton<ICosmosDbClient, CosmosDbClient>();
             services.AddSingleton<IModalityCosmosDbClient, ModalityCosmosDbClient>();
-
+            services.AddScoped<ILiveChatSettingsService, LiveChatSettingsService>();
         }
     }
 }
