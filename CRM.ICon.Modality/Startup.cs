@@ -14,7 +14,6 @@ using CRM.ICon.Modality.Helpers.KeyvaultClient;
 using Microsoft.Identity.ServiceEssentials.Extensions.AspNetCoreMiddleware;
 using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Cosmos;
-using CRM.ICon.Modality.Services.LiveChatSettings;
 
 namespace CRM.ICon.Modality
 {
@@ -29,6 +28,7 @@ namespace CRM.ICon.Modality
         public IConfiguration Configuration { get; }
         public Startup(IWebHostEnvironment env)
         {
+            
             var builder = new ConfigurationBuilder()
           .SetBasePath(Directory.GetCurrentDirectory())
           .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
@@ -48,7 +48,7 @@ namespace CRM.ICon.Modality
         /// <param name="env">Hosting environment object</param>
         public static void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            if (env.IsDevelopment() || env.IsEnvironment("ppe"))
+            if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
                 app.UseSwaggerUI();
@@ -162,7 +162,7 @@ namespace CRM.ICon.Modality
             services.AddSingleton<IKeyVaultClient, KeyVaultClient>();
             services.AddSingleton<ICosmosDbClient, CosmosDbClient>();
             services.AddSingleton<IModalityCosmosDbClient, ModalityCosmosDbClient>();
-            services.AddScoped<ILiveChatSettingsService, LiveChatSettingsService>();
+
         }
     }
 }

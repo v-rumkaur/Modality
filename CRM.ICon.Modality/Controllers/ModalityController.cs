@@ -4,9 +4,6 @@ using CRM.ICon.Modality.Helpers.Cosmos;
 using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
-using CRM.ICon.Modality.Model.LiveChatSettings.Requests;
-using CRM.ICon.Modality.Model.LiveChatSettings.Responses;
-using CRM.ICon.Modality.Services.LiveChatSettings;
 using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
 using Microsoft.AspNetCore.Authorization;
@@ -30,16 +27,14 @@ namespace CRM.ICon.Modality.Controllers
         private readonly ITelemetryService _telemetryService;
         private readonly IOmnichannelEUService omnichannelEUService;
         private readonly ICosmosDbClient cosmosDbClient;
-        private readonly ILiveChatSettingsService liveChatSettingsService;
 
         private readonly bool IsMCS = false;
         private readonly string Ring = "Ring4";
-        public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService, ILiveChatSettingsService liveChatSettingsService, ITelemetryService telemetryService, IOmnichannelEUService omnichannelEUService, ICosmosDbClient cosmosDbClient)
+        public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService, ITelemetryService telemetryService, IOmnichannelEUService omnichannelEUService, ICosmosDbClient cosmosDbClient)
         {
             this.vdmService = vdmService;
             this.omnichannelService = omnichannelService;
             this.omnichannelEUService = omnichannelEUService;
-            this.liveChatSettingsService = liveChatSettingsService ?? throw new ArgumentNullException(nameof(liveChatSettingsService));
             this._telemetryService = telemetryService ?? throw new ArgumentNullException(nameof(telemetryService));
             this.cosmosDbClient = cosmosDbClient;
         }
