@@ -77,7 +77,18 @@ namespace CRM.ICon.Modality.Helpers
             return telemetryProviders.FirstOrDefault(x => x.GetType() == type);
         }
 
+        public static Dictionary<string, string> ToDictionary(this object obj)
+        {
+            if (obj == null) return new Dictionary<string, string>();
 
+            return obj.GetType()
+                .GetProperties()
+                .Where(p => p.GetValue(obj) != null)
+                .ToDictionary(
+                    p => p.Name,
+                    p => p.GetValue(obj)?.ToString() ?? string.Empty
+                );
+        }
     }
 }
 
