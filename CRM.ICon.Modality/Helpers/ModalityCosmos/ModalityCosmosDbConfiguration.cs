@@ -20,7 +20,7 @@
         /// <summary>
         /// Gets or sets ContainerId
         /// </summary>
-        public string ContainerId { get; set; }
+        public ContainerIds ContainerIds { get; set; }
 
         /// <summary>
         /// Gets or sets PartitionKeyPath
@@ -32,5 +32,18 @@
         /// </summary>
         public int RequestTimeout { get; set; }
         public string UserManagedIdentityId { get; set; }
+    }
+
+    public class ContainerIds
+    {
+        /// <summary>
+        /// Gets or sets WidgetMapping container id
+        /// </summary>
+        public required string WidgetMapping { get; set; }
+
+        /// <summary>
+        /// Gets or sets LiveChatSettings container id
+        /// </summary>
+        public required string LiveChatSettings { get; set; }
     }
 }

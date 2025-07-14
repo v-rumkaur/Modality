@@ -602,15 +602,8 @@ namespace CRM.ICon.Modality.Controllers
         [Route("IsChatEligible")]
         public async Task<IActionResult> IsChatEligible([FromBody] LiveChatUserContext user)
         {
-            return NotFound("No matching rule found 1.");
-        }
-
-        [Authorize]
-        [HttpPost]
-        [Route("IsChatEligible2")]
-        public async Task<IActionResult> IsChatEligible2([FromBody] LiveChatUserContext user)
-        {
-            return NotFound("No matching rule found 2.");
+            var mockResponse = new { isChatEligible = true, isChatForced = false };
+            return Ok(mockResponse);
         }
 
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
