@@ -43,6 +43,6 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings
 
         // rule evaluation (lower = higher priority)
         [JsonProperty("evaluationOrder")]
-        public required int EvaluationOrder { get; set; }
+        public int? EvaluationOrder { get; set; }
     }
 }

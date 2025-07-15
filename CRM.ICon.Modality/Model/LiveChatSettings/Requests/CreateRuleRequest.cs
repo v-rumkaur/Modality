@@ -22,11 +22,14 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
         [Required]
         public bool IsChatForced { get; set; }
 
+        [Required, MinLength(1)]
+        public string CreatedBy { get; set; } = string.Empty;
+
         //[Range(0, int.MaxValue, ErrorMessage = "EvaluationOrder must be >= 0")]
         //[System.ComponentModel.DefaultValue(null)]
         public int? EvaluationOrder { get; set; }
 
-        public LiveChatRule ToDomainModel(int fallbackEvalOrder) => new LiveChatRule
+        public LiveChatRule ToDomainModel() => new LiveChatRule
         {
             Name = this.Name,
             AllowedServiceLevels = this.AllowedServiceLevels,
@@ -34,9 +37,7 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
             AllowedSaps = this.AllowedSaps,
             ExcludedServiceIds = this.ExcludedServiceIds,
             IsChatForced = this.IsChatForced,
-            EvaluationOrder = (this.EvaluationOrder.HasValue && this.EvaluationOrder.Value >= 0)
-                ? this.EvaluationOrder.Value
-                : fallbackEvalOrder
+            EvaluationOrder = this.EvaluationOrder
         };
     }
 }

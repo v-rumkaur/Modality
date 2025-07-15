@@ -12,11 +12,9 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         /// <param name="container"></param>
         /// <returns></returns>
         Task<T> UpsertItemAsync<T>(string containerId, T item);
-
         Task<T> GetItemAsync<T>(string containerId, string id);
-        Task<T> ReplaceItemAsync<T>(string containerId, string id, T item);
-        Task<FeedIterator<T>> QueryItemsIteratorAsync<T>(string containerId, QueryDefinition query);
-        Task<T> GetItemByIdAsync<T>(string containerId, string id, string partitionKey);
-        Task<T> DeleteItemAsync<T>(string containerId, string id, string partitionKey);
+        Task<IEnumerable<T>> QueryItemsAsync<T>(string containerId, QueryDefinition query);
+        Task<T?> GetScalarValueAsync<T>(string containerId, QueryDefinition query);
+        Task CreateItemAsync<T>(string containerId, T item, string partitionKey);
     }
 }

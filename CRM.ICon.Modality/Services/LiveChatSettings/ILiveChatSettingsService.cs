@@ -5,13 +5,8 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
 {
     public interface ILiveChatSettingsService
     {
-        Task<LiveChatRule> CreateRuleAsync(LiveChatRule newRule, string user);
-        Task<LiveChatRule> UpdateRuleAsync(LiveChatRule request, string user);
-        Task<LiveChatRule?> MatchUserAsync(MatchRuleRequest user);
-        Task<List<LiveChatRule>> GetAllAsync();
-        Task<int> GetMaxEvaluationOrderAsync();
-        Task<LiveChatRule> GetRuleByNameAsync(string name);
-        Task DeleteRuleAsync(LiveChatRule rule);
+        Task<IEnumerable<LiveChatRule>> GetAllRulesAsync();
+        Task CreateRuleAsync(LiveChatRule newRule, string user);
+        Task<LiveChatRule?> MatchRuleAsync(MatchRuleRequest request);
     }
-
 }

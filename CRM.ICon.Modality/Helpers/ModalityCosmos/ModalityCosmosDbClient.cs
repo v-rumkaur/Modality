@@ -17,6 +17,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
     using Azure.Identity;
     using CRM.ICon.Modality;
     using CRM.ICon.Modality.Helpers.Telemetry;
+    using CRM.ICon.Modality.Model.LiveChatSettings;
     using Microsoft.ApplicationInsights.Channel;
     using Microsoft.Azure.Cosmos;
     using Microsoft.Azure.Cosmos.Linq;
@@ -69,9 +70,8 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             return default(T);
         }
 
-        public async Task<T> GetItemAsync<T>(string containerId, string id)
+        public async Task<T> GetItemAsync<T>(string id, string containerId)
         {
-            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetItemAsync on container: {containerId}, id: {id}");
             try
             {
                 var container = await GetContainerAsync(containerId);
@@ -95,128 +95,53 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         private async Task<Container> GetContainerAsync(string containerId)
         {
-            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetContainerAsync on {containerId}");
+            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetContainerAsync on {containerId} of database {cosmosDbConfiguration.DatabaseId}");
             try
             {
-                if (string.IsNullOrEmpty(containerId))
-                {
-                    containerId = cosmosDbConfiguration.ContainerIds.WidgetMapping;
-                    telemetryService.LogTrace<ModalityCosmosDbClient>($"Container was null or empty: {containerId}");
-                }
-
-                telemetryService.LogTrace<ModalityCosmosDbClient>($"Attempting to get/create database: {cosmosDbConfiguration.DatabaseId}");
-
                 var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(cosmosDbConfiguration.DatabaseId);
-
-                // Log database creation result
-                if (databaseResponse.StatusCode == HttpStatusCode.Created)
-                {
-                    telemetryService.LogTrace<ModalityCosmosDbClient>($"Database '{cosmosDbConfiguration.DatabaseId}' was created successfully");
-                }
-                else if (databaseResponse.StatusCode == HttpStatusCode.OK)
-                {
-                    telemetryService.LogTrace<ModalityCosmosDbClient>($"Database '{cosmosDbConfiguration.DatabaseId}' exists");
-                }
-                else
-                {
-                    telemetryService.LogTrace<ModalityCosmosDbClient>($"Unexpected status code when creating/getting database: {databaseResponse.StatusCode}");
-                }
-
-                telemetryService.LogTrace<ModalityCosmosDbClient>($"Attempting to get/create container: {containerId}");
-
                 var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(containerId, "/id");
-
-                // Log container creation result
-                if (containerResponse.StatusCode == HttpStatusCode.Created)
-                {
-                    telemetryService.LogTrace<ModalityCosmosDbClient>($"Container '{containerId}' was created successfully");
-                }
-                else if (containerResponse.StatusCode == HttpStatusCode.OK)
-                {
-                    telemetryService.LogTrace<ModalityCosmosDbClient>($"Container '{containerId}' exists");
-                }
-                else
-                {
-                    telemetryService.LogTrace<ModalityCosmosDbClient>($"Unexpected status code when creating/getting container: {containerResponse.StatusCode}");
-                }
                 return containerResponse.Container;
             }
-            catch (CosmosException cosmosEx)
-            {
-                telemetryService.LogTrace<ModalityCosmosDbClient>($"Cosmos DB error when getting/creating container '{containerId}': {cosmosEx.Message}", cosmosEx.ToDictionary());
-                throw;
-            }
             catch (Exception ex)
             {
-                telemetryService.LogTrace<ModalityCosmosDbClient>($"General error when getting/creating container '{containerId}': {ex.Message}", ex.ToDictionary());
+                telemetryService.LogTrace<ModalityCosmosDbClient>($"Error when getting/creating container '{containerId}'!", ex.ToDictionary());
                 throw;
             }
         }
 
-        public async Task<T> ReplaceItemAsync<T>(string containerId, string id, T item)
+        public async Task<IEnumerable<T>> QueryItemsAsync<T>(string containerId, QueryDefinition query)
         {
-            try
-            {
-                var container = await GetContainerAsync(containerId);
-                var response = await container
-                    .ReplaceItemAsync<T>(item, id, new PartitionKey(id))
-                    .ConfigureAwait(false);
-                return response.Resource != null ? (T)(dynamic)response.Resource : default(T);
-            }
-            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-                // Item to replace was not found
-                return default(T);
-            }
-            catch (Exception ex)
-            {
-                // Optionally log or wrap the exception
-                throw;
-            }
-        }
-
-        public async Task<FeedIterator<T>> QueryItemsIteratorAsync<T>(string containerId, QueryDefinition query)
-        {
-            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting QueryItemsIteratorAsync on container: {containerId} with query: {query.QueryText}");
             var container = await GetContainerAsync(containerId);
-            return container.GetItemQueryIterator<T>(query);
+            var results = new List<T>();
+            var iterator = container.GetItemQueryIterator<T>(query);
+
+            while (iterator.HasMoreResults)
+            {
+                var response = await iterator.ReadNextAsync();
+                results.AddRange(response);
+            }
+
+            return results;
         }
 
-        public async Task<T> GetItemByIdAsync<T>(string containerId, string id, string partitionKey)
+        public async Task<T?> GetScalarValueAsync<T>(string containerId, QueryDefinition query)
         {
-            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetItemByIdAsync on container: {containerId}, id: {id}, partitionKey: {partitionKey}");
-            try
+            var container = await GetContainerAsync(containerId);
+            var iterator = container.GetItemQueryIterator<T>(query);
+
+            while (iterator.HasMoreResults)
             {
-                var container = await GetContainerAsync(containerId);
-                var response = await container.ReadItemAsync<T>(id, new PartitionKey(partitionKey));
-                return response.Resource;
+                var response = await iterator.ReadNextAsync();
+                return response.FirstOrDefault();
             }
-            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-                telemetryService.LogTrace<ModalityCosmosDbClient>($"Item with id '{id}' not found in container '{containerId}' with partition key '{partitionKey}'");
-                return default;
-            }
+
+            return default;
         }
 
-        public async Task<T> DeleteItemAsync<T>(string containerId, string id, string partitionKey)
+        public async Task CreateItemAsync<T>(string containerId, T item, string partitionKey)
         {
-            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting DeleteItemAsync on container: {containerId}, id: {id}, partitionKey: {partitionKey}");
-            try
-            {
-                var container = await GetContainerAsync(containerId);
-                var response = await container.DeleteItemAsync<T>(id, new PartitionKey(partitionKey));
-                return response.Resource;
-            }
-            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-                telemetryService.LogTrace<ModalityCosmosDbClient>($"Item with id '{id}' not found in container '{containerId}' with partition key '{partitionKey}'");
-                return default;
-            }
-            catch (Exception ex)
-            {
-                telemetryService.LogTrace<ModalityCosmosDbClient>($"Error deleting item with id '{id}' from container '{containerId}': {ex.Message}", ex.ToDictionary());
-                throw;
-            }
+            var container = await GetContainerAsync(containerId);
+            await container.CreateItemAsync(item, new PartitionKey(partitionKey));
         }
     }
 }
