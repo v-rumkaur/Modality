@@ -75,7 +75,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         {
             try
             {
-                var container = await GetContainerAsync2(containerId);
+                var container = await GetContainerAsync(containerId);
                 var response = await container.ReadItemAsync<T>(id, new PartitionKey()).ConfigureAwait(false);
                 var resource = response.Resource;
                 if (resource != null)
@@ -99,29 +99,13 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetContainerAsync on {containerId} of database {cosmosDbConfiguration.DatabaseId}");
             try
             {
-                var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(cosmosDbConfiguration.DatabaseId);
-                var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(containerId, "/livechat");
-                return containerResponse.Container;
+                return cosmosClient.GetContainer(cosmosDbConfiguration.DatabaseId, containerId);
             }
             catch (Exception ex)
             {
                 telemetryService.LogTrace<ModalityCosmosDbClient>($"Error when getting/creating container '{containerId}'!", ex.ToDictionary());
-                throw;
-            }
-        }
-
-        private async Task<Container> GetContainerAsync2(string containerId)
-        {
-            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetContainerAsync on {containerId} of database {cosmosDbConfiguration.DatabaseId}");
-            try
-            {
                 var containerResponse = cosmosClient.GetContainer(cosmosDbConfiguration.DatabaseId, containerId);
                 return containerResponse;
-            }
-            catch (Exception ex)
-            {
-                telemetryService.LogTrace<ModalityCosmosDbClient>($"Error when getting/creating container '{containerId}'!", ex.ToDictionary());
-                throw;
             }
         }
 
