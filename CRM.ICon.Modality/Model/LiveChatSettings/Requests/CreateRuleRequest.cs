@@ -29,15 +29,20 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
         //[System.ComponentModel.DefaultValue(null)]
         public int? EvaluationOrder { get; set; }
 
-        public LiveChatRule ToDomainModel() => new LiveChatRule
+        public LiveChatRule ToDomainModel()
         {
-            Name = this.Name,
-            AllowedServiceLevels = this.AllowedServiceLevels,
-            AllowRestricted = this.AllowRestricted,
-            AllowedSaps = this.AllowedSaps,
-            ExcludedServiceIds = this.ExcludedServiceIds,
-            IsChatForced = this.IsChatForced,
-            EvaluationOrder = this.EvaluationOrder
-        };
+            return new LiveChatRule
+            {
+                Name = Name.Trim().ToLowerInvariant(),
+                AllowedServiceLevels = AllowedServiceLevels
+                    .Select(s => s.Trim().ToLowerInvariant())
+                    .ToList(),
+                AllowRestricted = AllowRestricted,
+                AllowedSaps = AllowedSaps.Select(s => s.Trim().ToLowerInvariant()).ToList(),
+                ExcludedServiceIds = ExcludedServiceIds,
+                IsChatForced = IsChatForced,
+                EvaluationOrder = EvaluationOrder,
+            };
+        }
     }
 }

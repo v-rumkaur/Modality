@@ -32,12 +32,12 @@ namespace CRM.ICon.Modality.Controllers
         [HttpPost("createRule")]
         public async Task<IActionResult> CreateItem([FromBody] CreateRuleRequest rule)
         {
-            if (string.IsNullOrWhiteSpace(rule.Name))
-                return BadRequest("Name is required.");
-
             try
             {
-                await liveChatSettingsService.CreateRuleAsync(rule.ToDomainModel(), rule.CreatedBy);
+                await liveChatSettingsService.CreateRuleAsync(
+                    rule.ToDomainModel(),
+                    rule.CreatedBy.ToLowerInvariant()
+                );
                 return CreatedAtAction(nameof(GetAllItems), new { id = rule.Name }, rule);
             }
             catch (InvalidOperationException ex)
@@ -47,9 +47,11 @@ namespace CRM.ICon.Modality.Controllers
         }
 
         [HttpGet("isChatEligible")]
-        public async Task<IActionResult> MatchRuleAsync([FromQuery] MatchRuleRequest userContext)
+        public async Task<IActionResult> MatchRuleAsync([FromQuery] MatchRuleRequest request)
         {
-            var match = await liveChatSettingsService.MatchRuleAsync(userContext);
+            request.SapId = request.SapId.ToLowerInvariant();
+            request.ServiceLevel = request.ServiceLevel.ToLowerInvariant();
+            var match = await liveChatSettingsService.MatchRuleAsync(request);
 
             if (match == null)
                 return NotFound("No matching rule found.");

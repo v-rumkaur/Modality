@@ -18,7 +18,7 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings
 
         public LiveChatRule()
         {
-            PartitionKey = "livechat"; // Set your logical partition group
+            PartitionKey = Constants.LiveChat.PartitionKey;
         }
 
         // Allowed service levels (e.g., "Professional", "Premier")
