@@ -87,7 +87,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             logger.LogTrace<LiveChatSettingsService>(
                 $"Creating rule: {rule.Name}", rule.ToDictionary()
             );
-            await cosmosDbClient.CreateItemAsync(containerId, rule, partitionKey);
+            await cosmosDbClient.CreateItemAsync(containerId, rule, rule.PartitionKey);
         }
 
         public async Task<LiveChatRule?> MatchRuleAsync(MatchRuleRequest request)

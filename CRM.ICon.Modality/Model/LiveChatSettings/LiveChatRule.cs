@@ -5,13 +5,13 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings
 {
     public class LiveChatRule : CosmosEntity
     {
+        public LiveChatRule()
+        {
+            PartitionKey = Constants.LiveChat.PartitionKey; // Match the service partition key
+        }
         // Cosmos DB ID (same as Name)
         [JsonProperty("id")]
         public string Id => Name;
-
-        // Partition key for Cosmos DB
-        [JsonProperty("livechat")]
-        public string LiveChat { get; private set; } = "liveChat";
 
         // Unique rule name
         [JsonProperty("name")]
