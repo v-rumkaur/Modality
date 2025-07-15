@@ -104,8 +104,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             catch (Exception ex)
             {
                 telemetryService.LogTrace<ModalityCosmosDbClient>($"Error when getting/creating container '{containerId}'!", ex.ToDictionary());
-                var containerResponse = cosmosClient.GetContainer(cosmosDbConfiguration.DatabaseId, containerId);
-                return containerResponse;
+                throw;
             }
         }
 
