@@ -22,7 +22,7 @@ namespace CRM.ICon.Modality.Controllers
                 telemetryService ?? throw new ArgumentNullException(nameof(telemetryService));
         }
 
-        [HttpGet("getAll")]
+        [HttpGet("getAllRules")]
         public async Task<IActionResult> GetAllItems()
         {
             var rules = await liveChatSettingsService.GetAllRulesAsync();
