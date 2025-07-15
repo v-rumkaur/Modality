@@ -1,6 +1,5 @@
-using CRM.ICon.Modality.Helpers.Cosmos;
-using Newtonsoft.Json;
 using CRM.ICon.Modality.Helpers.ModalityCosmos;
+using Newtonsoft.Json;
 
 namespace CRM.ICon.Modality.Model.LiveChatSettings
 {
@@ -10,16 +9,15 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings
         [JsonProperty("id")]
         public string Id => Name;
 
+        // Partition key for Cosmos DB
+        [JsonProperty("livechat")]
+        public string LiveChat { get; private set; } = "liveChat";
+
         // Unique rule name
         [JsonProperty("name")]
         public required string Name { get; set; }
 
         public override string ToString() => $"Rule {Name}, Order {EvaluationOrder}";
-
-        public LiveChatRule()
-        {
-            PartitionKey = Constants.LiveChat.PartitionKey;
-        }
 
         // Allowed service levels (e.g., "Professional", "Premier")
         [JsonProperty("allowedServiceLevels")]

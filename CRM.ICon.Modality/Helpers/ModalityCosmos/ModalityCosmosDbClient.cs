@@ -70,12 +70,13 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             return default(T);
         }
 
+        // used for widgetmapping, partition key will break livechat settings
         public async Task<T> GetItemAsync<T>(string id, string containerId)
         {
             try
             {
                 var container = await GetContainerAsync(containerId);
-                var response = await container.ReadItemAsync<T>(id, new PartitionKey(id)).ConfigureAwait(false);
+                var response = await container.ReadItemAsync<T>(id, new PartitionKey()).ConfigureAwait(false);
                 var resource = response.Resource;
                 if (resource != null)
                 {

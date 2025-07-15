@@ -6,7 +6,8 @@ namespace CRM.ICon.Modality
     {
         public const string TelemetryConfiguration = "TelemetryConfiguration";
         public const string KeyVaultConfiguration = "KeyVaultConfiguration";
-        public const string ApplicationInsightsConnectionString = "ApplicationInsightsConnectionString";
+        public const string ApplicationInsightsConnectionString =
+            "ApplicationInsightsConnectionString";
         public const double VDMCacheTimeInMinutes = 30;
 
         //Headers
@@ -26,7 +27,8 @@ namespace CRM.ICon.Modality
             /// Cosmos DB queries for LiveChat rules
             /// </summary>
             public static class Queries
-            { // TODO: move livechat queries to a separate file
+            {
+                // TODO: move livechat queries to a separate file
             }
         }
     }
