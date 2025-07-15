@@ -12,6 +12,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
     using System.Linq;
     using System.Linq.Expressions;
     using System.Net;
+    using System.Reflection.Metadata;
     using System.Threading.Tasks;
     using Azure.Core;
     using Azure.Identity;
@@ -99,9 +100,8 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetContainerAsync on {containerId} of database {cosmosDbConfiguration.DatabaseId}");
             try
             {
-                var databaseResponse = await cosmosClient.CreateDatabaseIfNotExistsAsync(cosmosDbConfiguration.DatabaseId);
-                var containerResponse = await databaseResponse.Database.CreateContainerIfNotExistsAsync(containerId, "/id");
-                return containerResponse.Container;
+                var container = cosmosClient.GetContainer(cosmosDbConfiguration.DatabaseId, containerId);
+                return container;
             }
             catch (Exception ex)
             {
