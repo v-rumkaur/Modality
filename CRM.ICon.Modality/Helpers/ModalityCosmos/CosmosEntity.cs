@@ -4,7 +4,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 {
     public abstract class CosmosEntity
     {
-        [JsonProperty("partitionKey")]
+        [JsonProperty("livechat")]
         public string PartitionKey { get; protected set; } = string.Empty;
 
         [JsonProperty("createdAt")]

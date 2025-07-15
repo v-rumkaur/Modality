@@ -141,6 +141,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         public async Task CreateItemAsync<T>(string containerId, T item, string partitionKey)
         {
             var container = await GetContainerAsync(containerId);
+            telemetryService.LogTrace<ModalityCosmosDbClient>($"Creating item in container: {containerId} with partition key: {partitionKey}");
             await container.CreateItemAsync(item, new PartitionKey(partitionKey));
         }
     }
