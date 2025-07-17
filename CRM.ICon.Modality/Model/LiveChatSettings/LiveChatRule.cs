@@ -5,10 +5,6 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings
 {
     public class LiveChatRule : CosmosEntity
     {
-        public LiveChatRule()
-        {
-            PartitionKey = Constants.LiveChat.PartitionKey; // Match the service partition key
-        }
         // Cosmos DB ID (same as Name)
         [JsonProperty("id")]
         public string Id => Name;
@@ -16,8 +12,6 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings
         // Unique rule name
         [JsonProperty("name")]
         public required string Name { get; set; }
-
-        public override string ToString() => $"Rule {Name}, Order {EvaluationOrder}";
 
         // Allowed service levels (e.g., "Professional", "Premier")
         [JsonProperty("allowedServiceLevels")]
@@ -42,5 +36,12 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings
         // rule evaluation (lower = higher priority)
         [JsonProperty("evaluationOrder")]
         public int? EvaluationOrder { get; set; }
+
+        public override string ToString() => $"Rule {Name}, Order {EvaluationOrder}";
+
+        public LiveChatRule()
+        {
+            PartitionKey = Constants.LiveChat.PartitionKeyValue; // Match the service partition key
+        }
     }
 }

@@ -21,7 +21,8 @@ namespace CRM.ICon.Modality
         /// </summary>
         public static class LiveChat
         {
-            public const string PartitionKey = "livechat";
+            public const string PartitionKeyValue = "livechat";
+            public const string PartitionKeyPath = "partitionKey";
 
             /// <summary>
             /// Cosmos DB queries for LiveChat rules

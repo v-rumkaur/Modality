@@ -6,7 +6,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
     {
         [JsonProperty("partitionKey")]
         public string PartitionKey { get; protected set; } = string.Empty;
-        
+
         [JsonProperty("createdAt")]
         public DateTime CreatedAt { get; private set; }
 

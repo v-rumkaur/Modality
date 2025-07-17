@@ -16,7 +16,8 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
         private readonly IModalityCosmosDbClient cosmosDbClient;
         private readonly string containerId;
         private readonly ITelemetryService logger;
-        private readonly string partitionKey = Constants.LiveChat.PartitionKey;
+        private readonly string partitionKey = Constants.LiveChat.PartitionKeyValue;
+        private readonly string partitionPath = Constants.LiveChat.PartitionKeyPath;
 
         public LiveChatSettingsService(
             IOptions<ModalityCosmosDbConfiguration> cosmosDbConfiguration,
@@ -35,9 +36,11 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
 
         public async Task<IEnumerable<LiveChatRule>> GetAllRulesAsync()
         {
-            logger.LogTrace<LiveChatSettingsService>("Starting GetAllRulesAsync");
             var query = new QueryDefinition(
-                "SELECT * FROM c WHERE c.partitionKey = @partitionKey ORDER BY c.evaluationOrder"
+                $@"
+                SELECT * FROM c 
+                WHERE c.{partitionPath} = @partitionKey 
+                ORDER BY c.evaluationOrder"
             ).WithParameter("@partitionKey", partitionKey);
 
             return await cosmosDbClient.QueryItemsAsync<LiveChatRule>(containerId, query);
@@ -46,18 +49,21 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
         public async Task CreateRuleAsync(LiveChatRule rule, string createdBy)
         {
             logger.LogTrace<LiveChatSettingsService>(
-                $"Starting CreateRuleAsync for rule: {rule.Name}", rule.ToDictionary()
+                $"Starting CreateRuleAsync for rule: {rule.Name}",
+                rule.ToDictionary()
             );
+
+            // 1. Check name uniqueness
             var nameQuery = new QueryDefinition(
                 "SELECT VALUE c.id FROM c WHERE c.name = @name"
             ).WithParameter("@name", rule.Name);
-
             var existing = await cosmosDbClient.QueryItemsAsync<string>(containerId, nameQuery);
             if (existing.Any())
                 throw new InvalidOperationException(
                     $"A rule with name '{rule.Name}' already exists."
                 );
 
+            // 2. Handle evaluation order conflicts
             var conflictQuery = new QueryDefinition(
                 "SELECT VALUE c.id FROM c WHERE c.evaluationOrder = @eval"
             ).WithParameter("@eval", rule.EvaluationOrder ?? -1);
@@ -65,16 +71,20 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                 containerId,
                 conflictQuery
             );
+
             logger.LogTrace<LiveChatSettingsService>(
-                $"Found {conflicts.Count()} conflicts with evaluation order: {rule.EvaluationOrder}", rule.ToDictionary()
+                $"Found {conflicts.Count()} conflicts with evaluation order: {rule.EvaluationOrder}",
+                rule.ToDictionary()
             );
+
             if (!rule.EvaluationOrder.HasValue || conflicts.Any())
             {
                 logger.LogTrace<LiveChatSettingsService>(
-                    $"Setting evaluation order for rule: {rule.Name} to next available value", rule.ToDictionary()
+                    $"Setting evaluation order for rule: {rule.Name} to next available value",
+                    rule.ToDictionary()
                 );
                 var maxEvalQuery = new QueryDefinition(
-                    "SELECT VALUE MAX(c.evaluationOrder) FROM c WHERE c.partitionKey = @partitionKey AND IS_DEFINED(c.evaluationOrder)"
+                    $"SELECT VALUE MAX(c.evaluationOrder) FROM c WHERE c.{partitionPath} = @partitionKey AND IS_DEFINED(c.evaluationOrder)"
                 ).WithParameter("@partitionKey", partitionKey);
                 var maxEval = await cosmosDbClient.GetScalarValueAsync<int?>(
                     containerId,
@@ -85,7 +95,8 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
 
             rule.SetAudit(createdBy ?? "createdBy", isNew: true);
             logger.LogTrace<LiveChatSettingsService>(
-                $"Creating rule: {rule.Name}", rule.ToDictionary()
+                $"Creating rule: {rule.Name}",
+                rule.ToDictionary()
             );
             await cosmosDbClient.CreateItemAsync(containerId, rule, rule.PartitionKey);
         }
@@ -93,16 +104,18 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
         public async Task<LiveChatRule?> MatchRuleAsync(MatchRuleRequest request)
         {
             var query = new QueryDefinition(
-                @"
-            SELECT * FROM c
-            WHERE c.partitionKey = @partitionKey
-            AND ARRAY_CONTAINS(c.allowedServiceLevels, @serviceLevel)
-            AND c.allowRestricted = @isRestricted
-            AND ARRAY_CONTAINS(c.allowedSaps, @sapId)
-            AND (NOT ARRAY_CONTAINS(c.excludedServiceIds, @serviceId))
-            ORDER BY c.evaluationOrder ASC
-        "
-            ).WithParameter("@partitionKey", partitionKey).WithParameter("@serviceLevel", request.ServiceLevel).WithParameter("@isRestricted", request.IsRestricted).WithParameter("@sapId", request.SapId).WithParameter("@serviceId", request.ServiceId);
+                $@"
+                SELECT * FROM c
+                WHERE c.{partitionPath} = @partitionKey
+                AND ARRAY_CONTAINS(c.allowedServiceLevels, @serviceLevel)
+                AND c.allowRestricted = @isRestricted
+                AND ARRAY_CONTAINS(c.allowedSaps, @sapId)
+                AND (NOT ARRAY_CONTAINS(c.excludedServiceIds, @serviceId))
+                ORDER BY c.evaluationOrder ASC"
+            ).WithParameter(
+                "@partitionKey",
+                partitionKey
+            ).WithParameter("@serviceLevel", request.ServiceLevel).WithParameter("@isRestricted", request.IsRestricted).WithParameter("@sapId", request.SapId).WithParameter("@serviceId", request.ServiceId);
 
             var matches = await cosmosDbClient.QueryItemsAsync<LiveChatRule>(containerId, query);
             return matches.FirstOrDefault();
