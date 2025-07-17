@@ -53,7 +53,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         public async Task<T> UpsertItemAsync<T>(string containerId, T item)
         {
             telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting UpsertItemAsync on container: {containerId}");
-            var container = await GetContainerAsync(containerId, "/id");
+            var container = await GetContainerAsync(containerId);
             var response = await container.UpsertItemAsync<T>(item).ConfigureAwait(false);
             var resource = response.Resource;
             if (resource != null)
@@ -68,7 +68,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         {
             try
             {
-                var container = await GetContainerAsync(containerId, "/id");
+                var container = await GetContainerAsync(containerId);
                 var response = await container.ReadItemAsync<T>(id, new PartitionKey()).ConfigureAwait(false);
                 var resource = response.Resource;
                 if (resource != null)
@@ -87,15 +87,12 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             return default(T);
         }
 
-        private async Task<Container> GetContainerAsync(string containerId, string partitionKey)
+        private async Task<Container> GetContainerAsync(string containerId)
         {
-            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetContainerAsync on {containerId} of database {cosmosDbConfiguration.DatabaseId} with partition key {partitionKey}");
+            telemetryService.LogTrace<ModalityCosmosDbClient>($"Starting GetContainerAsync on {containerId} of database {cosmosDbConfiguration.DatabaseId}");
             try
             {
-                {
-                    var database = await this.cosmosClient.CreateDatabaseIfNotExistsAsync(this.cosmosDbConfiguration.DatabaseId);
-                    return await database.Database.CreateContainerIfNotExistsAsync(containerId, partitionKey);
-                }
+                return cosmosClient.GetContainer(cosmosDbConfiguration.DatabaseId, containerId);
             }
             catch (Exception ex)
             {
@@ -106,7 +103,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         public async Task<IEnumerable<T>> QueryItemsAsync<T>(string containerId, QueryDefinition query)
         {
-            var container = await GetContainerAsync(containerId, Constants.LiveChat.PartitionKey);
+            var container = await GetContainerAsync(containerId);
             var results = new List<T>();
             var iterator = container.GetItemQueryIterator<T>(query);
 
@@ -121,7 +118,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         public async Task<T?> GetScalarValueAsync<T>(string containerId, QueryDefinition query)
         {
-            var container = await GetContainerAsync(containerId, Constants.LiveChat.PartitionKey);
+            var container = await GetContainerAsync(containerId);
             var iterator = container.GetItemQueryIterator<T>(query);
 
             while (iterator.HasMoreResults)
@@ -135,8 +132,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         public async Task CreateItemAsync<T>(string containerId, T item, string partitionKey)
         {
-            var container = await GetContainerAsync(containerId, Constants.LiveChat.PartitionKey);
-            telemetryService.LogTrace<ModalityCosmosDbClient>($"Creating item in container: {containerId} with partition key: {partitionKey}");
+            var container = await GetContainerAsync(containerId);
             await container.CreateItemAsync(item, new PartitionKey(partitionKey));
         }
     }
