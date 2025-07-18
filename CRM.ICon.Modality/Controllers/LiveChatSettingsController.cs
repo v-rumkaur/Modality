@@ -50,6 +50,7 @@ namespace CRM.ICon.Modality.Controllers
         [HttpGet("isChatEligible")]
         public async Task<IActionResult> MatchRuleAsync([FromQuery] MatchRuleRequest request)
         {
+            request.Normalize();
             var match = await liveChatSettingsService.MatchRuleAsync(request);
 
             if (match == null)

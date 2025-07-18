@@ -33,7 +33,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             this.logger = telemetryService ?? throw new ArgumentNullException(nameof(telemetryService));
             this.containerId = this.cosmosDbConfiguration.ContainerIds.LiveChatSettings;
 
-            logger.LogTrace<LiveChatSettingsService>($"LiveChatSettingsService initialized with containerId: {containerId}, partitionKey: {partitionKey}");
+            logger.LogTrace<LiveChatSettingsService>($"LiveChatSettingsService initialized with containerId: {containerId}, partitionKey: {partitionKey}, and partitionPath: {partitionPath}");
         }
 
         public async Task<LiveChatRule?> MatchRuleAsync(MatchRuleRequest user)
@@ -43,10 +43,10 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             var queryText = $@"
                 SELECT * FROM c
                 WHERE c.{partitionPath} = @partitionKey
-                  AND ARRAY_CONTAINS(c.AllowedServiceLevels, @serviceLevel)
-                  AND c.AllowRestricted = @isRestricted
-                  AND ARRAY_CONTAINS(c.AllowedSaps, @sapId)
-                  AND (NOT ARRAY_CONTAINS(c.ExcludedServiceIds, @serviceId))
+                  AND ARRAY_CONTAINS(c.allowedServiceLevels, @serviceLevel)
+                  AND c.allowRestricted = @isRestricted
+                  AND ARRAY_CONTAINS(c.allowedSaps, @sapId)
+                  AND (NOT ARRAY_CONTAINS(c.excludedServiceIds, @serviceId))
                 ORDER BY c.evaluationOrder ASC
             ";
 

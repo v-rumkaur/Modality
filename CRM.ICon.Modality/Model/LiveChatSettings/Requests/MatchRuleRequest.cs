@@ -10,5 +10,14 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
         public required bool IsRestricted { get; set; }
         public required string SapId { get; set; }
         public required int ServiceId { get; set; }
+
+        /// <summary>
+        /// Normalizes ServiceLevel and SapId properties to lowercase for consistent matching
+        /// </summary>
+        public void Normalize()
+        {
+            ServiceLevel = ServiceLevel?.ToLowerInvariant() ?? string.Empty;
+            SapId = SapId?.ToLowerInvariant() ?? string.Empty;
+        }
     }
 }
