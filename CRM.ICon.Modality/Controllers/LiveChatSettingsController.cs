@@ -1,6 +1,7 @@
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model.LiveChatSettings.Requests;
 using CRM.ICon.Modality.Services.LiveChatSettings;
+using CRM.ICon.Modality.Services.LiveChatSettings.Responses;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CRM.ICon.Modality.Controllers
@@ -30,15 +31,15 @@ namespace CRM.ICon.Modality.Controllers
         }
 
         [HttpPost("createRule")]
-        public async Task<IActionResult> CreateItem([FromBody] CreateRuleRequest rule)
+        public async Task<IActionResult> CreateItem([FromBody] CreateRuleRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Name))
+                return BadRequest("Name is required.");
+
             try
             {
-                await liveChatSettingsService.CreateRuleAsync(
-                    rule.ToDomainModel(),
-                    rule.CreatedBy.ToLowerInvariant()
-                );
-                return CreatedAtAction(nameof(GetAllItems), new { id = rule.Name }, rule);
+                await liveChatSettingsService.CreateRuleAsync(request.ToDomainModel(), request.CreatedBy);
+                return CreatedAtAction(nameof(GetAllItems), new { name = request.Name }, request);
             }
             catch (InvalidOperationException ex)
             {
@@ -49,14 +50,42 @@ namespace CRM.ICon.Modality.Controllers
         [HttpGet("isChatEligible")]
         public async Task<IActionResult> MatchRuleAsync([FromQuery] MatchRuleRequest request)
         {
-            request.SapId = request.SapId.ToLowerInvariant();
-            request.ServiceLevel = request.ServiceLevel.ToLowerInvariant();
             var match = await liveChatSettingsService.MatchRuleAsync(request);
 
             if (match == null)
+            {
                 return NotFound("No matching rule found.");
+            }
+            else
+            {
+                var isChatEligible = new IsChatEligibleResponse
+                {
+                    IsChatEligible = true,
+                    IsChatForced = match.IsChatForced
+                };
+                return Ok(isChatEligible);
+            }
+        }
 
-            return Ok(match);
+        [HttpPut("updateRule")]
+        public async Task<IActionResult> UpdateRule([FromBody] UpdateRuleRequest request)
+        {
+            await liveChatSettingsService.UpdateRuleAsync(request, "system");
+            return Ok("Rule updated successfully.");
+        }
+
+        [HttpDelete("deleteRule")]
+        public async Task<IActionResult> DeleteRule([FromQuery] string name)
+        {
+            await liveChatSettingsService.DeleteRuleByNameAsync(name);
+            return NoContent();
+        }
+
+        [HttpGet("getRuleByName")]
+        public async Task<IActionResult> GetRuleByName([FromQuery] string name)
+        {
+            var rule = await liveChatSettingsService.GetRuleByNameAsync(name);
+            return rule == null ? NotFound("Rule not found.") : Ok(rule);
         }
     }
 }

@@ -34,91 +34,237 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             this.containerId = this.cosmosDbConfiguration.ContainerIds.LiveChatSettings;
         }
 
-        public async Task<IEnumerable<LiveChatRule>> GetAllRulesAsync()
-        {
-            var query = new QueryDefinition(
-                $@"
-                SELECT * FROM c 
-                WHERE c.{partitionPath} = @partitionKey 
-                ORDER BY c.evaluationOrder"
-            ).WithParameter("@partitionKey", partitionKey);
-
-            return await cosmosDbClient.QueryItemsAsync<LiveChatRule>(containerId, query);
-        }
-
-        public async Task CreateRuleAsync(LiveChatRule rule, string createdBy)
-        {
-            logger.LogTrace<LiveChatSettingsService>(
-                $"Starting CreateRuleAsync for rule: {rule.Name}",
-                rule.ToDictionary()
-            );
-
-            // 1. Check name uniqueness
-            var nameQuery = new QueryDefinition(
-                "SELECT VALUE c.id FROM c WHERE c.name = @name"
-            ).WithParameter("@name", rule.Name);
-            var existing = await cosmosDbClient.QueryItemsAsync<string>(containerId, nameQuery);
-            if (existing.Any())
-                throw new InvalidOperationException(
-                    $"A rule with name '{rule.Name}' already exists."
-                );
-
-            // 2. Handle evaluation order conflicts
-            var conflictQuery = new QueryDefinition(
-                "SELECT VALUE c.id FROM c WHERE c.evaluationOrder = @eval"
-            ).WithParameter("@eval", rule.EvaluationOrder ?? -1);
-            var conflicts = await cosmosDbClient.QueryItemsAsync<string>(
-                containerId,
-                conflictQuery
-            );
-
-            logger.LogTrace<LiveChatSettingsService>(
-                $"Found {conflicts.Count()} conflicts with evaluation order: {rule.EvaluationOrder}",
-                rule.ToDictionary()
-            );
-
-            if (!rule.EvaluationOrder.HasValue || conflicts.Any())
-            {
-                logger.LogTrace<LiveChatSettingsService>(
-                    $"Setting evaluation order for rule: {rule.Name} to next available value",
-                    rule.ToDictionary()
-                );
-                var maxEvalQuery = new QueryDefinition(
-                    $"SELECT VALUE MAX(c.evaluationOrder) FROM c WHERE c.{partitionPath} = @partitionKey AND IS_DEFINED(c.evaluationOrder)"
-                ).WithParameter("@partitionKey", partitionKey);
-                var maxEval = await cosmosDbClient.GetScalarValueAsync<int?>(
-                    containerId,
-                    maxEvalQuery
-                );
-                rule.EvaluationOrder = (maxEval ?? 0) + 1;
-            }
-
-            rule.SetAudit(createdBy ?? "createdBy", isNew: true);
-            logger.LogTrace<LiveChatSettingsService>(
-                $"Creating rule: {rule.Name}",
-                rule.ToDictionary()
-            );
-            await cosmosDbClient.CreateItemAsync(containerId, rule, rule.PartitionKey);
-        }
-
-        public async Task<LiveChatRule?> MatchRuleAsync(MatchRuleRequest request)
+        public async Task<LiveChatRule?> MatchRuleAsync(MatchRuleRequest user)
         {
             var query = new QueryDefinition(
                 $@"
                 SELECT * FROM c
                 WHERE c.{partitionPath} = @partitionKey
-                AND ARRAY_CONTAINS(c.allowedServiceLevels, @serviceLevel)
-                AND c.allowRestricted = @isRestricted
-                AND ARRAY_CONTAINS(c.allowedSaps, @sapId)
-                AND (NOT ARRAY_CONTAINS(c.excludedServiceIds, @serviceId))
-                ORDER BY c.evaluationOrder ASC"
+                  AND ARRAY_CONTAINS(c.AllowedServiceLevels, @serviceLevel)
+                  AND c.AllowRestricted = @isRestricted
+                  AND ARRAY_CONTAINS(c.AllowedSaps, @sapId)
+                  AND (NOT ARRAY_CONTAINS(c.ExcludedServiceIds, @serviceId))
+                ORDER BY c.evaluationOrder ASC
+            "
             ).WithParameter(
                 "@partitionKey",
                 partitionKey
-            ).WithParameter("@serviceLevel", request.ServiceLevel).WithParameter("@isRestricted", request.IsRestricted).WithParameter("@sapId", request.SapId).WithParameter("@serviceId", request.ServiceId);
+            ).WithParameter("@serviceLevel", user.ServiceLevel).WithParameter("@isRestricted", user.IsRestricted).WithParameter("@sapId", user.SapId).WithParameter("@serviceId", user.ServiceId);
 
-            var matches = await cosmosDbClient.QueryItemsAsync<LiveChatRule>(containerId, query);
-            return matches.FirstOrDefault();
+            var iterator = await cosmosDbClient.QueryItemsIteratorAsync<LiveChatRule>(containerId, query);
+            while (iterator.HasMoreResults)
+            {
+                var response = await iterator.ReadNextAsync();
+                if (response.Resource.FirstOrDefault() is { } matched)
+                    return matched;
+            }
+            return null;
         }
+
+        public async Task<IEnumerable<LiveChatRule>> GetAllRulesAsync()
+        {
+            var query = new QueryDefinition(
+                $"SELECT * FROM c WHERE c.{partitionPath} = @partitionKey ORDER BY c.EvaluationOrder"
+            ).WithParameter("@partitionKey", partitionKey);
+
+            return await cosmosDbClient.QueryItemsAsync<LiveChatRule>(containerId, query);
+        }
+
+        public async Task<LiveChatRule?> GetRuleByNameAsync(string name)
+        {
+            try
+            {
+                var response = await cosmosDbClient.GetItemByIdAsync<LiveChatRule>(
+                    containerId,
+                    name,
+                    partitionKey
+                );
+                return response ?? null;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        public async Task DeleteRuleByNameAsync(string name)
+        {
+            await cosmosDbClient.DeleteItemAsync(containerId, name, partitionKey);
+        }
+
+        public async Task<LiveChatRule> CreateRuleAsync(LiveChatRule newRule, string user)
+        {
+            // 1. Ensure the rule name (ID) is unique
+            var existing = await GetRuleByNameAsync(newRule.Name);
+            if (existing != null)
+                throw new InvalidOperationException(
+                    $"A rule with name '{newRule.Name}' already exists."
+                );
+
+            // 2. Determine evaluation order
+            if (newRule.EvaluationOrder is int evalOrder)
+            {
+                if (evalOrder < 0)
+                    throw new ArgumentOutOfRangeException(
+                        nameof(newRule.EvaluationOrder),
+                        "EvaluationOrder must be ≥ 0."
+                    );
+
+                await CascadingShiftEfficientAsync(evalOrder, user);
+                newRule.EvaluationOrder = evalOrder;
+            }
+            else
+            {
+                var max = await GetMaxEvaluationOrderAsync();
+                newRule.EvaluationOrder = max + 1;
+            }
+
+            // 3. Set audit metadata and insert the rule
+            newRule.SetAudit(user, true);
+            await cosmosDbClient.UpsertItemAsync(containerId, newRule);
+            return newRule;
+        }
+
+        private async Task CascadingShiftEfficientAsync(
+            int startOrder,
+            string user,
+            string? excludeName = null
+        )
+        {
+            var candidates = (await GetRulesAtOrAfterOrderAsync(startOrder))
+                .Where(r => r.Name != excludeName)
+                .OrderBy(r => r.EvaluationOrder)
+                .ToList();
+
+            if (!candidates.Any())
+                return;
+
+            // Build a map for fast lookups
+            var occupied = new Dictionary<int, LiveChatRule>();
+            foreach (var r in candidates)
+            {
+                if (r.EvaluationOrder.HasValue)
+                    occupied[r.EvaluationOrder.Value] = r;
+                else
+                    throw new InvalidOperationException($"Rule '{r.Name}' has null EvaluationOrder.");
+            }
+
+            var shifts = new List<LiveChatRule>();
+            int current = startOrder;
+
+            while (occupied.ContainsKey(current))
+            {
+                var rule = occupied[current];
+
+                int next = current + 1;
+
+                // If someone is already at the next slot, we'll have to shift them too
+                if (!occupied.ContainsKey(next))
+                {
+                    // Assign new order and add to shifts
+                    rule.EvaluationOrder = next;
+                    rule.SetAudit(user, isNew: false);
+
+                    shifts.Add(rule);
+
+                    // Move it in the map
+                    occupied.Remove(current);
+                    occupied[next] = rule;
+
+                    // Done! No more cascading conflict
+                    break;
+                }
+                else
+                {
+                    // Shift this rule, and keep cascading
+                    rule.EvaluationOrder = next;
+                    rule.SetAudit(user, isNew: false);
+
+                    shifts.Add(rule);
+
+                    // Move it in the map
+                    occupied.Remove(current);
+                    occupied[next] = rule;
+
+                    current = next; // Continue shifting forward
+                }
+            }
+
+            if (shifts.Count > 0)
+                await Task.WhenAll(
+                    shifts.Select(r => cosmosDbClient.UpsertItemAsync(containerId, r))
+                );
+        }
+
+
+
+        private async Task<List<LiveChatRule>> GetRulesAtOrAfterOrderAsync(int order)
+        {
+            var query = new QueryDefinition(
+                $"SELECT * FROM c WHERE c.{partitionPath} = @partitionKey AND c.EvaluationOrder >= @order            "
+            )
+                .WithParameter("@partitionKey", partitionKey)
+                .WithParameter("@order", order);
+
+            var iterator = await cosmosDbClient.QueryItemsIteratorAsync<LiveChatRule>(
+                containerId,
+                query
+            );
+            var results = new List<LiveChatRule>();
+            while (iterator.HasMoreResults)
+            {
+                results.AddRange((await iterator.ReadNextAsync()).Resource);
+            }
+            return results;
+        }
+
+        public async Task<int> GetMaxEvaluationOrderAsync()
+        {
+            var query = new QueryDefinition(
+                $"SELECT VALUE MAX(c.EvaluationOrder) FROM c WHERE c.{partitionPath} = @partitionKey"
+            ).WithParameter("@partitionKey", partitionKey);
+
+            var iterator = await cosmosDbClient.QueryItemsIteratorAsync<int>(containerId, query);
+
+            var response = await iterator.ReadNextAsync();
+            return response.Resource.FirstOrDefault();
+        }
+
+        public async Task UpdateRuleAsync(UpdateRuleRequest request, string updatedBy)
+        {
+            // 1. Retrieve existing rule by name
+            var existing = await GetRuleByNameAsync(request.Name);
+            if (existing == null)
+                throw new InvalidOperationException($"Rule '{request.Name}' not found.");
+
+            // 2. Keep track of the original evaluation order
+            int? originalOrder = existing.EvaluationOrder;
+
+            // 3. Apply patch values from the request
+            request.PatchToDomainModel(existing);
+
+            // 4. Resolve evaluation order conflicts if the value changed
+            if (existing.EvaluationOrder is int newOrder &&
+                originalOrder is int oldOrder &&
+                newOrder != oldOrder)
+            {
+                if (newOrder < 0)
+                    throw new ArgumentOutOfRangeException(nameof(existing.EvaluationOrder), "EvaluationOrder must be ≥ 0.");
+
+                await CascadingShiftEfficientAsync(newOrder, updatedBy, excludeName: existing.Name);
+            }
+
+            // 5. Set audit fields
+            existing.SetAudit(updatedBy, isNew: false);
+
+            // 6. Save the updated rule
+            await cosmosDbClient.UpsertItemAsync(containerId, existing);
+        }
+
+
     }
 }

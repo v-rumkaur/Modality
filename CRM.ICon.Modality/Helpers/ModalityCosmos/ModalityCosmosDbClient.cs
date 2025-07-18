@@ -14,6 +14,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
     using Azure.Identity;
     using CRM.ICon.Modality;
     using CRM.ICon.Modality.Helpers.Telemetry;
+    using CRM.ICon.Modality.Model.LiveChatSettings;
     using Microsoft.Azure.Cosmos;
     using Microsoft.Extensions.Options;
 
@@ -101,6 +102,43 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             }
         }
 
+        public async Task CreateItemAsync<T>(string containerId, T item, string partitionKey)
+        {
+            var container = await GetContainerAsync(containerId);
+            await container.CreateItemAsync(item, new PartitionKey(partitionKey));
+        }
+
+        public async Task<T?> GetItemByIdAsync<T>(
+            string containerId,
+            string name,
+            string partitionKey
+        )
+        {
+            try
+            {
+            var container = await GetContainerAsync(containerId);
+                var response = await container.ReadItemAsync<T>(name, new PartitionKey(partitionKey));
+                return response.Resource;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return default(T); // Don't throw, just return null for not found
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Error retrieving item with name '{name}' from container '{containerId}'.", ex);
+            }
+        }
+
+        public async Task DeleteItemAsync(string containerId, string id, string partitionKey)
+        {
+            var container = await GetContainerAsync(containerId);
+            await container.DeleteItemAsync<LiveChatRule>(id, new PartitionKey(partitionKey));
+        }
+
+        public Container GetContainer(string databaseId, string containerId) =>
+            cosmosClient.GetContainer(databaseId, containerId);
+
         public async Task<IEnumerable<T>> QueryItemsAsync<T>(string containerId, QueryDefinition query)
         {
             var container = await GetContainerAsync(containerId);
@@ -130,10 +168,13 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             return default;
         }
 
-        public async Task CreateItemAsync<T>(string containerId, T item, string partitionKey)
+        public async Task<FeedIterator<T>> QueryItemsIteratorAsync<T>(
+            string containerId,
+            QueryDefinition query
+        )
         {
             var container = await GetContainerAsync(containerId);
-            await container.CreateItemAsync(item, new PartitionKey(partitionKey));
+            return container.GetItemQueryIterator<T>(query);
         }
     }
 }
