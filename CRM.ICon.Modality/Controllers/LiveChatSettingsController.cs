@@ -4,6 +4,7 @@
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
+using CRM.ICon.Modality.Helpers;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model.LiveChatSettings;
 using CRM.ICon.Modality.Model.LiveChatSettings.Requests;
