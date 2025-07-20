@@ -33,7 +33,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             this.containerId = this.cosmosDbConfiguration.ContainerIds.LiveChatSettings;
 
             logger.LogTrace<LiveChatSettingsService>(
-                $"LiveChatSettingsService initialized with containerId: {containerId}, PartitionKeyValue: {PartitionKeyValue}, and partitionPath: {PartitionKeyPath}"
+                $"LiveChatSettingsService initialized with containerId: {containerId}, partitionKey: {PartitionKeyValue}, and partitionPath: {PartitionKeyPath}"
             );
         }
 
@@ -43,12 +43,12 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             logger.LogTrace<LiveChatSettingsService>("Starting GetAllRulesAsync");
 
             var query = new QueryDefinition(Queries.GetAllRules).WithParameter(
-                "@PartitionKeyValue",
+                "@partitionKey",
                 PartitionKeyValue
             );
 
             logger.LogTrace<LiveChatSettingsService>(
-                $"GetAllRulesAsync query: {query.QueryText}, parameters: PartitionKeyValue={PartitionKeyValue}"
+                $"GetAllRulesAsync query: {query.QueryText}, parameters: partitionKey={PartitionKeyValue}"
             );
 
             try
@@ -83,7 +83,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                 $"Starting GetRuleByNameAsync for rule name: {name}"
             );
             logger.LogTrace<LiveChatSettingsService>(
-                $"Using containerId: {containerId}, PartitionKeyValue: {PartitionKeyValue}"
+                $"Using containerId: {containerId}, partitionKey: {PartitionKeyValue}"
             );
 
             try
@@ -135,7 +135,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             );
 
             var query = new QueryDefinition(Queries.MatchRule)
-                .WithParameter("@PartitionKeyValue", PartitionKeyValue)
+                .WithParameter("@partitionKey", PartitionKeyValue)
                 .WithParameter("@serviceLevel", user.ServiceLevel)
                 .WithParameter("@isRestricted", user.IsRestricted)
                 .WithParameter("@sapId", user.SapId)
@@ -143,7 +143,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
 
             // make into obj for easier parsing..?
             logger.LogTrace<LiveChatSettingsService>(
-                $"MatchRuleAsync query: {query.QueryText}, parameters: PartitionKeyValue={PartitionKeyValue}, serviceLevel={user.ServiceLevel}, isRestricted={user.IsRestricted}, sapId={user.SapId}, serviceId={user.ServiceId}"
+                $"MatchRuleAsync query: {query.QueryText}, parameters: partitionKey={PartitionKeyValue}, serviceLevel={user.ServiceLevel}, isRestricted={user.IsRestricted}, sapId={user.SapId}, serviceId={user.ServiceId}"
             );
 
             try
@@ -199,7 +199,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
 
             try
             {
-                // 1. Ensure the rule name (ID) is unique
+                // Ensure the rule name (ID) does not already exist
                 logger.LogTrace<LiveChatSettingsService>(
                     $"Checking if rule with name '{newRule.Name}' already exists"
                 );
@@ -214,7 +214,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                     );
                 }
 
-                // 2. Determine evaluation order
+                // Determine evaluation order
                 if (newRule.EvaluationOrder is int evalOrder)
                 {
                     logger.LogTrace<LiveChatSettingsService>(
@@ -400,12 +400,12 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             logger.LogTrace<LiveChatSettingsService>("Starting GetMaxEvaluationOrderAsync");
 
             var query = new QueryDefinition(Queries.GetMaxEvaluationOrder).WithParameter(
-                "@PartitionKeyValue",
+                "@partitionKey",
                 PartitionKeyValue
             );
 
             logger.LogTrace<LiveChatSettingsService>(
-                $"GetMaxEvaluationOrderAsync query: {query.QueryText}, parameters: PartitionKeyValue={PartitionKeyValue}"
+                $"GetMaxEvaluationOrderAsync query: {query.QueryText}, parameters: partitionKey={PartitionKeyValue}"
             );
 
             try
@@ -578,11 +578,11 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             );
 
             var query = new QueryDefinition(Queries.GetRulesByEvaluationOrder)
-                .WithParameter("@PartitionKeyValue", PartitionKeyValue)
+                .WithParameter("@partitionKey", PartitionKeyValue)
                 .WithParameter("@evaluationOrder", evaluationOrder);
 
             logger.LogTrace<LiveChatSettingsService>(
-                $"GetRulesAtOrAfterOrderAsync query: {query.QueryText}, parameters: PartitionKeyValue={PartitionKeyValue}, evaluationOrder={evaluationOrder}"
+                $"GetRulesAtOrAfterOrderAsync query: {query.QueryText}, parameters: partitionKey={PartitionKeyValue}, evaluationOrder={evaluationOrder}"
             );
             try
             {
