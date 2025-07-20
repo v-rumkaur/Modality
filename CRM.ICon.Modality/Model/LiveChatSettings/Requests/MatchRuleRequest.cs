@@ -1,8 +1,12 @@
+// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="MatchRuleRequest.cs" company="Microsoft Corporation">
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// </copyright>
+// --------------------------------------------------------------------------------------------------------------------
 namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
 {
     /// <summary>
-    /// Represents a request to match a user's live chat context to a rule in live chat settings.
-    /// Determines if user can see the Chat modality if the rule matches and IsChatEligible is true.
+    /// Represents a request to find the first matching live chat rule for a user's context.
     /// </summary>
     public class MatchRuleRequest
     {
@@ -10,14 +14,5 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
         public required bool IsRestricted { get; set; }
         public required string SapId { get; set; }
         public required int ServiceId { get; set; }
-
-        /// <summary>
-        /// Normalizes ServiceLevel and SapId properties to lowercase for consistent matching
-        /// </summary>
-        public void Normalize()
-        {
-            ServiceLevel = ServiceLevel?.ToLowerInvariant() ?? string.Empty;
-            SapId = SapId?.ToLowerInvariant() ?? string.Empty;
-        }
     }
 }

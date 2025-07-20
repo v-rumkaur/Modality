@@ -95,15 +95,15 @@ namespace CRM.ICon.Modality
             services.Configure<OmnichannelEUConfiguration>(this.Configuration.GetSection("OmnichannelEUConfiguration"));
             services.Configure<Dictionary<string, WidgetDetails>>(this.Configuration.GetSection("WidgetDetails"));
             services.Configure<Dictionary<string, string>>(this.Configuration.GetSection("SkillCharacteristicConfiguration"));
-            services.Configure<Configuration.TelemetryConfiguration>(Configuration.GetSection(Constants.TelemetryConfiguration));
-            services.Configure<Configuration.KeyVaultConfiguration>(Configuration.GetSection(Constants.KeyVaultConfiguration));
+            services.Configure<Configuration.TelemetryConfiguration>(Configuration.GetSection(ModalityConstants.TelemetryConfiguration));
+            services.Configure<Configuration.KeyVaultConfiguration>(Configuration.GetSection(ModalityConstants.KeyVaultConfiguration));
             services.Configure<Dictionary<string, WorkstreamDetails>>(this.Configuration.GetSection("WorkstreamConfiguration"));
             services.Configure<CosmosDbConfiguration>(this.Configuration.GetSection("CosmosDbConfiguration"));
             services.Configure<ModalityCosmosDbConfiguration>(this.Configuration.GetSection("ModalityCosmosDbConfiguration"));
 
             // Initialize Telemetry
             var applicationInsightsServiceOptions = new Microsoft.ApplicationInsights.AspNetCore.Extensions.ApplicationInsightsServiceOptions();
-            applicationInsightsServiceOptions.ConnectionString = Configuration.GetSection(Constants.TelemetryConfiguration).GetValue<string>(Constants.ApplicationInsightsConnectionString);
+            applicationInsightsServiceOptions.ConnectionString = Configuration.GetSection(ModalityConstants.TelemetryConfiguration).GetValue<string>(ModalityConstants.ApplicationInsightsConnectionString);
             services.AddApplicationInsightsTelemetry(applicationInsightsServiceOptions);
             services.AddHealthChecks();
 

@@ -8,79 +8,90 @@ using Microsoft.Azure.Cosmos;
 
 namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 {
+    /// <summary>
+    /// Provides abstraction layer for Cosmos DB operations with error handling and async support.
+    /// </summary>
     public interface IModalityCosmosDbClient
     {
         /// <summary>
-        /// Add/Update list of documents for doc db
+        /// Creates or updates an item in the specified container.
         /// </summary>
-        /// <param name="containerId">Container identifier</param>
-        /// <param name="item">Item to upsert</param>
-        /// <returns>The upserted item</returns>
+        /// <typeparam name="T">The type of item to upsert.</typeparam>
+        /// <param name="containerId">The container identifier.</param>
+        /// <param name="item">The item to create or update.</param>
+        /// <returns>The upserted item.</returns>
         Task<T> UpsertItemAsync<T>(string containerId, T item);
 
         /// <summary>
-        /// Get item by id from container
+        /// Retrieves an item by ID without partition key (for legacy containers).
+        /// Used for widget mapping where partition key breaks live chat settings.
         /// </summary>
-        /// <param name="id">Item identifier</param>
-        /// <param name="containerId">Container identifier</param>
-        /// <returns>The item if found, otherwise default</returns>
-        Task<T> GetItemAsync<T>(string id, string containerId);
+        /// <typeparam name="T">The type of item to retrieve.</typeparam>
+        /// <param name="id">The item identifier.</param>
+        /// <param name="containerId">The container identifier.</param>
+        /// <returns>The item if found, otherwise null.</returns>
+        Task<T?> GetItemAsync<T>(string id, string containerId);
 
         /// <summary>
-        /// Query items from container
+        /// Creates a new item in the specified container with partition key.
         /// </summary>
-        /// <param name="containerId">Container identifier</param>
-        /// <param name="query">Query definition</param>
-        /// <returns>Collection of items</returns>
-        Task<IEnumerable<T>> QueryItemsAsync<T>(string containerId, QueryDefinition query);
-
-        /// <summary>
-        /// Get scalar value from query
-        /// </summary>
-        /// <param name="containerId">Container identifier</param>
-        /// <param name="query">Query definition</param>
-        /// <returns>Scalar value</returns>
-        Task<T?> GetScalarValueAsync<T>(string containerId, QueryDefinition query);
-
-        /// <summary>
-        /// Create item in container
-        /// </summary>
-        /// <param name="containerId">Container identifier</param>
-        /// <param name="item">Item to create</param>
-        /// <param name="partitionKey">Partition key value</param>
+        /// <typeparam name="T">The type of item to create.</typeparam>
+        /// <param name="containerId">The container identifier.</param>
+        /// <param name="item">The item to create.</param>
+        /// <param name="partitionKey">The partition key value.</param>
         Task CreateItemAsync<T>(string containerId, T item, string partitionKey);
 
         /// <summary>
-        /// Get item by id and partition key
+        /// Retrieves an item by ID and partition key.
         /// </summary>
-        /// <param name="containerId">Container identifier</param>
-        /// <param name="name">Item name/id</param>
-        /// <param name="partitionKey">Partition key value</param>
-        /// <returns>The item if found, otherwise default</returns>
-        Task<T?> GetItemByIdAsync<T>(string containerId, string name, string partitionKey);
+        /// <typeparam name="T">The type of item to retrieve.</typeparam>
+        /// <param name="containerId">The container identifier.</param>
+        /// <param name="id">The item identifier.</param>
+        /// <param name="partitionKey">The partition key value.</param>
+        /// <returns>The item if found, otherwise null.</returns>
+        Task<T?> GetItemByIdAsync<T>(string containerId, string id, string partitionKey);
 
         /// <summary>
-        /// Delete item from container
+        /// Deletes an item by ID and partition key.
         /// </summary>
-        /// <param name="containerId">Container identifier</param>
-        /// <param name="id">Item identifier</param>
-        /// <param name="partitionKey">Partition key value</param>
+        /// <param name="containerId">The container identifier.</param>
+        /// <param name="id">The item identifier.</param>
+        /// <param name="partitionKey">The partition key value.</param>
         Task DeleteItemAsync(string containerId, string id, string partitionKey);
 
         /// <summary>
-        /// Get container reference
+        /// Executes a query and returns all matching items.
         /// </summary>
-        /// <param name="databaseId">Database identifier</param>
-        /// <param name="containerId">Container identifier</param>
-        /// <returns>Container reference</returns>
-        Container GetContainer(string databaseId, string containerId);
+        /// <typeparam name="T">The type of items to return.</typeparam>
+        /// <param name="containerId">The container identifier.</param>
+        /// <param name="query">The query definition to execute.</param>
+        /// <returns>Collection of matching items.</returns>
+        Task<IEnumerable<T>> QueryItemsAsync<T>(string containerId, QueryDefinition query);
 
         /// <summary>
-        /// Query items with iterator
+        /// Executes a query and returns the first scalar value (useful for COUNT, MAX, etc.).
         /// </summary>
-        /// <param name="containerId">Container identifier</param>
-        /// <param name="query">Query definition</param>
-        /// <returns>Feed iterator for items</returns>
-        Task<FeedIterator<T>> QueryItemsIteratorAsync<T>(string containerId, QueryDefinition query);
+        /// <typeparam name="T">The type of scalar value to return.</typeparam>
+        /// <param name="containerId">The container identifier.</param>
+        /// <param name="query">The query definition to execute.</param>
+        /// <returns>The first scalar value or default if no results.</returns>
+        Task<T?> GetScalarValueAsync<T>(string containerId, QueryDefinition query);
+
+        /// <summary>
+        /// Creates a query iterator for streaming large result sets.
+        /// </summary>
+        /// <typeparam name="T">The type of items to iterate over.</typeparam>
+        /// <param name="containerId">The container identifier.</param>
+        /// <param name="query">The query definition to execute.</param>
+        /// <returns>A feed iterator for processing results in batches.</returns>
+        FeedIterator<T> QueryItemsIterator<T>(string containerId, QueryDefinition query);
+
+        /// <summary>
+        /// Gets a container reference (synchronous helper method).
+        /// </summary>
+        /// <param name="databaseId">The database identifier.</param>
+        /// <param name="containerId">The container identifier.</param>
+        /// <returns>Container reference.</returns>
+        Container GetContainer(string databaseId, string containerId);
     }
 }

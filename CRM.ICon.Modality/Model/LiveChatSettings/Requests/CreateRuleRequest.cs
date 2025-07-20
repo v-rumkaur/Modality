@@ -1,19 +1,27 @@
+// --------------------------------------------------------------------------------------------------------------------
+// <copyright file="CreateRuleRequest.cs" company="Microsoft Corporation">
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// </copyright>
+// --------------------------------------------------------------------------------------------------------------------
 using System.ComponentModel.DataAnnotations;
 
 namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
 {
+    /// <summary>
+    /// Represents a request to create a new live chat rule.
+    /// </summary>
     public class CreateRuleRequest
     {
         [Required, MinLength(1)]
         public string Name { get; set; } = string.Empty;
 
-        [Required, MinLength(1)]
+        [Required]
         public List<string> AllowedServiceLevels { get; set; } = new();
 
         [Required]
         public bool AllowRestricted { get; set; }
 
-        [Required, MinLength(1)]
+        [Required]
         public List<string> AllowedSaps { get; set; } = new();
 
         [Required]
@@ -25,24 +33,26 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
         [Required, MinLength(1)]
         public string CreatedBy { get; set; } = string.Empty;
 
-        //[Range(0, int.MaxValue, ErrorMessage = "EvaluationOrder must be >= 0")]
-        //[System.ComponentModel.DefaultValue(null)]
+        [Range(0, int.MaxValue, ErrorMessage = "EvaluationOrder must be >= 0")]
         public int? EvaluationOrder { get; set; }
 
+        /// <summary>
+        /// Converts this request to a domain model with normalized string values.
+        /// </summary>
+        /// <returns> A new LiveChatRule instance with normalized string values. </returns>
         public LiveChatRule ToDomainModel()
         {
-            return new LiveChatRule
+            var rule = new LiveChatRule
             {
-                Name = Name.Trim().ToLowerInvariant(),
-                AllowedServiceLevels = AllowedServiceLevels
-                    .Select(s => s.Trim().ToLowerInvariant())
-                    .ToList(),
+                Name = Name,
+                AllowedServiceLevels = AllowedServiceLevels,
                 AllowRestricted = AllowRestricted,
-                AllowedSaps = AllowedSaps.Select(s => s.Trim().ToLowerInvariant()).ToList(),
+                AllowedSaps = AllowedSaps,
                 ExcludedServiceIds = ExcludedServiceIds,
                 IsChatForced = IsChatForced,
                 EvaluationOrder = EvaluationOrder,
             };
+            return rule;
         }
     }
 }

@@ -44,7 +44,7 @@ namespace CRM.ICon.Modality.Controllers
         [Route("getAvailableModalities")]
         public async Task<ActionResult<ModalityResponse>> GetAvailableModalities([FromBody] ModalityRequest modalityRequest, [FromHeader] HeaderDictionary headers)
         {
-            headers.TryGetValue(Constants.Target, out var target);// Determines whether its a dfm/dfc request
+            headers.TryGetValue(ModalityConstants.Target, out var target);// Determines whether its a dfm/dfc request
 
             var logProperties = ModalityExtensions.GetRequestProperties();
             logProperties["RequestBody"] = JsonConvert.SerializeObject(modalityRequest);
