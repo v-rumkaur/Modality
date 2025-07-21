@@ -50,7 +50,10 @@ namespace CRM.ICon.Modality.Controllers
             }
             catch (Exception ex)
             {
-                telemetryService.LogError<LiveChatSettingsController>($"Unexpected error getting all rules: {ex.Message}", ex.ToDictionary());
+                telemetryService.LogError<LiveChatSettingsController>(
+                    $"Unexpected error getting all rules: {ex.Message}",
+                    ex.ToDictionary()
+                );
                 return StatusCode(500, "An unexpected error occurred while retrieving rules.");
             }
         }
@@ -82,15 +85,18 @@ namespace CRM.ICon.Modality.Controllers
             }
             catch (Exception ex)
             {
-                telemetryService.LogError<LiveChatSettingsController>($"Unexpected error getting rule by name: {ex.Message}", ex.ToDictionary());
+                telemetryService.LogError<LiveChatSettingsController>(
+                    $"Unexpected error getting rule by name: {ex.Message}",
+                    ex.ToDictionary()
+                );
                 return StatusCode(500, "An unexpected error occurred while retrieving the rule.");
             }
         }
-
         /// <summary>
-        /// Checks if a user is eligible for live chat based on the provided user context.
+        /// Determines if a user is eligible for live chat support by evaluating their attributes against configured rules.
         /// </summary>
-        /// <param name="request">The match criteria for determining chat eligibility.</param>
+        /// <param name="request">The user context and criteria to evaluate against live chat rules. Includes service level, SAP ID, service ID, and restriction status.</param>
+        /// <returns>
         /// <returns>Chat eligibility response indicating availability and forced status.</returns>
         /// <response code="200">Returns chat eligibility status.</response>
         /// <response code="400">If the request is invalid.</response>
@@ -121,8 +127,14 @@ namespace CRM.ICon.Modality.Controllers
             }
             catch (Exception ex)
             {
-                telemetryService.LogError<LiveChatSettingsController>($"Unexpected error checking chat eligibility: {ex.Message}", ex.ToDictionary());
-                return StatusCode(500, "An unexpected error occurred while checking chat eligibility.");
+                telemetryService.LogError<LiveChatSettingsController>(
+                    $"Unexpected error checking chat eligibility: {ex.Message}",
+                    ex.ToDictionary()
+                );
+                return StatusCode(
+                    500,
+                    "An unexpected error occurred while checking chat eligibility."
+                );
             }
         }
 
@@ -151,7 +163,10 @@ namespace CRM.ICon.Modality.Controllers
             try
             {
                 NormalizeObject(request);
-                await liveChatSettingsService.CreateRuleAsync(request.ToDomainModel(), request.CreatedBy);
+                await liveChatSettingsService.CreateRuleAsync(
+                    request.ToDomainModel(),
+                    request.CreatedBy
+                );
                 return Ok($"Rule '{request.Name}' created successfully.");
             }
             catch (InvalidOperationException ex)
@@ -160,7 +175,10 @@ namespace CRM.ICon.Modality.Controllers
             }
             catch (Exception ex)
             {
-                telemetryService.LogError<LiveChatSettingsController>($"Unexpected error creating rule: {ex.Message}", ex.ToDictionary());
+                telemetryService.LogError<LiveChatSettingsController>(
+                    $"Unexpected error creating rule: {ex.Message}",
+                    ex.ToDictionary()
+                );
                 return StatusCode(500, "An unexpected error occurred while creating the rule.");
             }
         }
@@ -199,7 +217,10 @@ namespace CRM.ICon.Modality.Controllers
             }
             catch (Exception ex)
             {
-                telemetryService.LogError<LiveChatSettingsController>($"Unexpected error updating rule: {ex.Message}", ex.ToDictionary());
+                telemetryService.LogError<LiveChatSettingsController>(
+                    $"Unexpected error updating rule: {ex.Message}",
+                    ex.ToDictionary()
+                );
                 return StatusCode(500, "An unexpected error occurred while updating the rule.");
             }
         }
@@ -235,7 +256,10 @@ namespace CRM.ICon.Modality.Controllers
             }
             catch (Exception ex)
             {
-                telemetryService.LogError<LiveChatSettingsController>($"Unexpected error deleting rule: {ex.Message}", ex.ToDictionary());
+                telemetryService.LogError<LiveChatSettingsController>(
+                    $"Unexpected error deleting rule: {ex.Message}",
+                    ex.ToDictionary()
+                );
                 return StatusCode(500, "An unexpected error occurred while deleting the rule.");
             }
         }

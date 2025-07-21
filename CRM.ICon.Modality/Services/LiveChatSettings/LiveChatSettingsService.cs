@@ -8,6 +8,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using static CRM.ICon.Modality.LiveChatConstants;
+
 namespace CRM.ICon.Modality.Services.LiveChatSettings
 {
     public class LiveChatSettingsService : ILiveChatSettingsService
@@ -468,74 +469,27 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                     return;
                 }
 
-                // Build a map for fast lookups
-                var occupied = new Dictionary<int, LiveChatRule>();
+                // Calculate shifts for all rules that need to move
+                var shifts = new List<LiveChatRule>();
+                int nextAvailableOrder = startOrder;
+
                 foreach (var rule in candidates)
                 {
-                    if (rule.EvaluationOrder.HasValue)
+                    if (
+                        rule.EvaluationOrder.HasValue
+                        && rule.EvaluationOrder.Value >= nextAvailableOrder
+                    )
                     {
-                        occupied[rule.EvaluationOrder.Value] = rule;
+                        // This rule needs to be shifted
+                        nextAvailableOrder = rule.EvaluationOrder.Value + 1;
+
                         logger.LogTrace<LiveChatSettingsService>(
-                            $"Added rule '{rule.Name}' with order {rule.EvaluationOrder.Value} to occupied map"
+                            $"Shifting rule '{rule.Name}' from order {rule.EvaluationOrder.Value} to {nextAvailableOrder}"
                         );
-                    }
-                    else
-                        throw new InvalidOperationException(
-                            $"Rule '{rule.Name}' has null EvaluationOrder."
-                        );
-                }
 
-                var shifts = new List<LiveChatRule>();
-                int current = startOrder;
-
-                logger.LogTrace<LiveChatSettingsService>(
-                    $"Starting shift loop from order: {current}"
-                );
-
-                while (occupied.ContainsKey(current))
-                {
-                    var rule = occupied[current];
-                    logger.LogTrace<LiveChatSettingsService>(
-                        $"Processing rule '{rule.Name}' at order {current}"
-                    );
-
-                    int next = current + 1;
-
-                    // If someone is already at the next slot, we'll have to shift them too
-                    if (!occupied.ContainsKey(next))
-                    {
-                        logger.LogTrace<LiveChatSettingsService>(
-                            $"Next slot {next} is free, moving rule '{rule.Name}' to order {next}"
-                        );
-                        // Assign new order and add to shifts
-                        rule.EvaluationOrder = next;
+                        rule.EvaluationOrder = nextAvailableOrder;
                         rule.SetAudit(user, isNew: false);
-
                         shifts.Add(rule);
-
-                        // Move it in the map
-                        occupied.Remove(current);
-                        occupied[next] = rule;
-
-                        // Done! No more cascading conflict
-                        break;
-                    }
-                    else
-                    {
-                        logger.LogTrace<LiveChatSettingsService>(
-                            $"Next slot {next} is occupied, cascading shift for rule '{rule.Name}'"
-                        );
-                        // Shift this rule, and keep cascading
-                        rule.EvaluationOrder = next;
-                        rule.SetAudit(user, isNew: false);
-
-                        shifts.Add(rule);
-
-                        // Move it in the map
-                        occupied.Remove(current);
-                        occupied[next] = rule;
-
-                        current = next; // Continue shifting forward
                     }
                 }
 

@@ -24,7 +24,7 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
 
         [Required]
         public required Guid SapId { get; set; }
-        
+
         [Required]
         public required int ServiceId { get; set; }
     }
