@@ -76,7 +76,7 @@ namespace CRM.ICon.Modality.Controllers
 
             try
             {
-                StringToLower(ref name);
+                NormalizeString(ref name!);
                 var rule = await liveChatSettingsService.GetRuleByNameAsync(name);
                 return rule == null ? NotFound($"Rule '{name}' not found.") : Ok(rule);
             }
@@ -109,7 +109,7 @@ namespace CRM.ICon.Modality.Controllers
 
             try
             {
-                ObjectToLower(request);
+                NormalizeObject(request);
                 var match = await liveChatSettingsService.MatchRuleAsync(request);
 
                 var isChatEligible = new IsChatEligibleResponse
@@ -150,7 +150,7 @@ namespace CRM.ICon.Modality.Controllers
 
             try
             {
-                ObjectToLower(request);
+                NormalizeObject(request);
                 await liveChatSettingsService.CreateRuleAsync(request.ToDomainModel(), request.CreatedBy);
                 return Ok($"Rule '{request.Name}' created successfully.");
             }
@@ -189,7 +189,7 @@ namespace CRM.ICon.Modality.Controllers
 
             try
             {
-                ObjectToLower(request);
+                NormalizeObject(request);
                 await liveChatSettingsService.UpdateRuleAsync(request, request.UpdatedBy);
                 return Ok($"Rule '{request.Name}' updated successfully.");
             }
@@ -225,7 +225,7 @@ namespace CRM.ICon.Modality.Controllers
 
             try
             {
-                StringToLower(ref name);
+                NormalizeString(ref name!);
                 await liveChatSettingsService.DeleteRuleByNameAsync(name);
                 return Ok($"Rule '{name}' deleted successfully.");
             }

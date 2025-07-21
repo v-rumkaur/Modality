@@ -13,6 +13,10 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
     public class CreateRuleRequest
     {
         [Required, MinLength(1)]
+        [RegularExpression(
+            @"^[a-zA-Z0-9_-]+$",
+            ErrorMessage = "Rule name can only contain letters, numbers, hyphens, and underscores (no spaces)."
+        )]
         public string Name { get; set; } = string.Empty;
 
         [Required]
@@ -22,7 +26,7 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
         public bool AllowRestricted { get; set; }
 
         [Required]
-        public List<string> AllowedSaps { get; set; } = new();
+        public List<Guid> AllowedSaps { get; set; } = new();
 
         [Required]
         public List<int> ExcludedServiceIds { get; set; } = new();

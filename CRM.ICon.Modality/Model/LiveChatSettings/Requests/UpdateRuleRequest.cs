@@ -14,14 +14,20 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
     public class UpdateRuleRequest
     {
         [Required, MinLength(1)]
+        [RegularExpression(
+            @"^[a-zA-Z0-9_-]+$",
+            ErrorMessage = "Rule name can only contain letters, numbers, underscores, and hyphens (no spaces)."
+        )]
         public string Name { get; set; } = string.Empty;
 
         public List<string>? AllowedServiceLevels { get; set; }
 
         public bool? AllowRestricted { get; set; }
-        public List<string>? AllowedSaps { get; set; }
+
+        public List<Guid>? AllowedSaps { get; set; }
 
         public List<int>? ExcludedServiceIds { get; set; }
+
         public bool? IsChatForced { get; set; }
 
         [Range(0, int.MaxValue, ErrorMessage = "EvaluationOrder must be ≥ 0 if provided.")]
@@ -42,7 +48,7 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
                     .Select(s => s.ToLowerInvariant())
                     .ToList();
             if (AllowedSaps?.Any() == true)
-                existing.AllowedSaps = AllowedSaps.Select(s => s.ToLowerInvariant()).ToList();
+                existing.AllowedSaps = AllowedSaps.ToList();
             if (ExcludedServiceIds?.Any() == true)
                 existing.ExcludedServiceIds = ExcludedServiceIds;
             if (AllowRestricted.HasValue)

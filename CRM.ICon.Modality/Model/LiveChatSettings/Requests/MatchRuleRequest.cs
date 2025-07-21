@@ -3,6 +3,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
+using System.ComponentModel.DataAnnotations;
+
 namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
 {
     /// <summary>
@@ -10,9 +12,20 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
     /// </summary>
     public class MatchRuleRequest
     {
+        [Required]
+        [RegularExpression(
+            @"^[a-zA-Z0-9_-]+$",
+            ErrorMessage = "Service level can only contain letters, numbers, underscores, and hyphens."
+        )]
         public required string ServiceLevel { get; set; }
+
+        [Required]
         public required bool IsRestricted { get; set; }
-        public required string SapId { get; set; }
+
+        [Required]
+        public required Guid SapId { get; set; }
+        
+        [Required]
         public required int ServiceId { get; set; }
     }
 }

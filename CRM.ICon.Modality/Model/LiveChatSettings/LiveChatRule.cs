@@ -3,6 +3,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
+using System.ComponentModel.DataAnnotations;
 using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using Newtonsoft.Json;
 
@@ -18,6 +19,9 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings
         /// Unique rule name that also serves as the Cosmos DB document ID.
         /// </summary>
         [JsonProperty("name")]
+        [RegularExpression(@"^[a-zA-Z0-9_-]+$",
+            ErrorMessage = "Rule name can only contain letters, numbers, underscores, and hyphens.")]
+
         public required string Name { get; set; } = string.Empty;
 
         /// <summary>
@@ -48,7 +52,7 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings
         /// Allowed Support Area Path IDs (SAPs).
         /// </summary>
         [JsonProperty("allowedSaps")]
-        public required List<string> AllowedSaps { get; set; }
+        public required List<Guid> AllowedSaps { get; set; }
 
         /// <summary>
         /// Service IDs to exclude from chat eligibility.
