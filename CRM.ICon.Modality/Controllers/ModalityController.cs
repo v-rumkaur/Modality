@@ -44,7 +44,7 @@ namespace CRM.ICon.Modality.Controllers
         [Route("getAvailableModalities")]
         public async Task<ActionResult<ModalityResponse>> GetAvailableModalities([FromBody] ModalityRequest modalityRequest, [FromHeader] HeaderDictionary headers)
         {
-            headers.TryGetValue(Constants.Target, out var target);// Determines whether its a dfm/dfc request
+            headers.TryGetValue(ModalityConstants.Target, out var target);// Determines whether its a dfm/dfc request
 
             var logProperties = ModalityExtensions.GetRequestProperties();
             logProperties["RequestBody"] = JsonConvert.SerializeObject(modalityRequest);
@@ -597,15 +597,6 @@ namespace CRM.ICon.Modality.Controllers
             return Ok(widgetMappingResponse);
         }
 
-        [Authorize]
-        [HttpPost]
-        [Route("IsChatEligible")]
-        public async Task<IActionResult> IsChatEligible([FromBody] LiveChatUserContext user)
-        {
-            var mockResponse = new { isChatEligible = true, isChatForced = false };
-            return Ok(mockResponse);
-        }
-
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
         {
             if (modalityRequest.ExtensionAttributes != null && modalityRequest.ExtensionAttributes.ContainsKey("Theme"))
@@ -880,13 +871,5 @@ namespace CRM.ICon.Modality.Controllers
 
             return languageCode;
         }
-    }
-
-    public class LiveChatUserContext
-    {
-        public required string ServiceLevel { get; set; }
-        public required bool IsRestricted { get; set; }
-        public required string SapId { get; set; }
-        public required int ServiceId { get; set; }
     }
 }

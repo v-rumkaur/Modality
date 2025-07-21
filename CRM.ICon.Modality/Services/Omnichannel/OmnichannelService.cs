@@ -17,7 +17,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
         private readonly ITelemetryService _telemetryService;
         private readonly Dictionary<string, WorkstreamDetails> workstreamConfiguration;
         private readonly IModalityCosmosDbClient modalityCosmosDbClient;
-        private readonly string cosmosDbContainerId;
+        private readonly string containerId;
 
         public OmnichannelService(HttpClient httpClient, IOptions<OmnichannelConfiguration> options,
         IOptions<ModalityCosmosDbConfiguration> cosmosDbConfiguration,
@@ -34,6 +34,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             this._telemetryService = telemetryService;
             this.workstreamConfiguration = workstreamConfiguration.Value;
             this.modalityCosmosDbClient = modalityCosmosDbClient;
+            this.containerId = this.cosmosDbConfiguration.ContainerIds.WidgetMapping;
         }
 
         public async Task<OmnichannelResponse> GetAgentAvailability(OmnichannelRequest request, string source, string userType, string requestId)
@@ -87,7 +88,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
 
                 string widgetkey = (source + "-" + language + "-" + userType + "-" + region).ToLowerInvariant();
 
-                var response = await modalityCosmosDbClient.GetItemAsync<WidgetMappingResponse>(cosmosDbContainerId, widgetkey);
+                var response = await modalityCosmosDbClient.GetItemAsync<WidgetMappingResponse>(containerId, widgetkey);
 
                 if (response != null)
                 {
@@ -150,7 +151,7 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                 : $"{source}-{language}-{userType}".ToLowerInvariant();
 
             // Save to Cosmos DB
-            return await modalityCosmosDbClient.UpsertItemAsync<WidgetMappingResponse>(cosmosDbContainerId, widgetMappingResponse);
+            return await modalityCosmosDbClient.UpsertItemAsync<WidgetMappingResponse>(containerId, widgetMappingResponse);
         }
 
         public string GetSkillCharacteristicId(string skill)

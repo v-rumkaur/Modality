@@ -100,7 +100,7 @@ namespace CRM.ICon.Modality.Services.VDM
         private void AddInMemoryCacheEntry<T>(string vdmKey, T vdmValue)
         {
             this.memoryCache.CreateEntry(vdmKey);
-            this.memoryCache.Set(vdmKey, vdmValue, new MemoryCacheEntryOptions() { AbsoluteExpiration = DateTime.UtcNow.AddMinutes(Constants.VDMCacheTimeInMinutes) });
+            this.memoryCache.Set(vdmKey, vdmValue, new MemoryCacheEntryOptions() { AbsoluteExpiration = DateTime.UtcNow.AddMinutes(ModalityConstants.VDMCacheTimeInMinutes) });
         }
     }
 }

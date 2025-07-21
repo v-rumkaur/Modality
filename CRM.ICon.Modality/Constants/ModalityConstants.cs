@@ -2,13 +2,14 @@
 
 namespace CRM.ICon.Modality
 {
-    public static class Constants
+    public static class ModalityConstants
     {
         public const string TelemetryConfiguration = "TelemetryConfiguration";
         public const string KeyVaultConfiguration = "KeyVaultConfiguration";
-        public const string ApplicationInsightsConnectionString = "ApplicationInsightsConnectionString";
+        public const string ApplicationInsightsConnectionString =
+            "ApplicationInsightsConnectionString";
         public const double VDMCacheTimeInMinutes = 30;
- 
+
         //Headers
         public const string Target = "x-msaas-target";
 
