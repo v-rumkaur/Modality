@@ -84,14 +84,6 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         /// <param name="containerId">The container identifier.</param>
         /// <param name="query">The query definition to execute.</param>
         /// <returns>A feed iterator for processing results in batches.</returns>
-        FeedIterator<T> QueryItemsIterator<T>(string containerId, QueryDefinition query);
-
-        /// <summary>
-        /// Gets a container reference (synchronous helper method).
-        /// </summary>
-        /// <param name="databaseId">The database identifier.</param>
-        /// <param name="containerId">The container identifier.</param>
-        /// <returns>Container reference.</returns>
-        Container GetContainer(string databaseId, string containerId);
+        Task<FeedIterator<T>> QueryItemsIteratorAsync<T>(string containerId, QueryDefinition query);
     }
 }

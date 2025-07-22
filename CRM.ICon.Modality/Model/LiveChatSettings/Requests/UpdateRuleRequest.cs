@@ -44,9 +44,7 @@ namespace CRM.ICon.Modality.Model.LiveChatSettings.Requests
         public void PatchToDomainModel(LiveChatRule existing)
         {
             if (AllowedServiceLevels?.Any() == true)
-                existing.AllowedServiceLevels = AllowedServiceLevels
-                    .Select(s => s.ToLowerInvariant())
-                    .ToList();
+                existing.AllowedServiceLevels = AllowedServiceLevels.ToList();
             if (AllowedSaps?.Any() == true)
                 existing.AllowedSaps = AllowedSaps.ToList();
             if (ExcludedServiceIds?.Any() == true)

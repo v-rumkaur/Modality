@@ -94,7 +94,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
             try
             {
-                var container = GetContainer(containerId);
+                var container = await GetContainerAsync(containerId);
                 var response = await container.CreateItemAsync(
                     item,
                     new PartitionKey(partitionKey)
@@ -126,7 +126,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
             try
             {
-                var container = GetContainer(containerId);
+                var container = await GetContainerAsync(containerId);
                 var response = await container.UpsertItemAsync<T>(item);
 
                 telemetryService.LogTrace<ModalityCosmosDbClient>(
@@ -166,7 +166,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
             try
             {
-                var container = GetContainer(containerId);
+                var container = await GetContainerAsync(containerId);
                 var response = await container.ReadItemAsync<T>(
                     name,
                     new PartitionKey(partitionKey)
@@ -210,7 +210,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
             try
             {
-                var container = GetContainer(containerId);
+                var container = await GetContainerAsync(containerId);
                 var response = await container.ReadItemAsync<T>(id, PartitionKey.None);
 
                 telemetryService.LogTrace<ModalityCosmosDbClient>(
@@ -252,7 +252,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
             try
             {
-                var container = GetContainer(containerId);
+                var container = await GetContainerAsync(containerId);
                 var results = new List<T>();
                 var iterator = container.GetItemQueryIterator<T>(query);
                 double totalRU = 0;
@@ -292,7 +292,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
             try
             {
-                var container = GetContainer(containerId);
+                var container = await GetContainerAsync(containerId);
                 var iterator = container.GetItemQueryIterator<T>(query);
 
                 while (iterator.HasMoreResults)
@@ -324,7 +324,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         }
 
         /// <inheritdoc/>
-        public FeedIterator<T> QueryItemsIterator<T>(string containerId, QueryDefinition query)
+        public async Task<FeedIterator<T>> QueryItemsIteratorAsync<T>(string containerId, QueryDefinition query)
         {
             ValidateContainerParameters(containerId, nameof(containerId));
             ValidateQueryParameter(query, nameof(query));
@@ -335,7 +335,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
             try
             {
-                var container = GetContainer(containerId);
+                var container = await GetContainerAsync(containerId);
                 return container.GetItemQueryIterator<T>(query);
             }
             catch (Exception ex)
@@ -365,7 +365,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
             try
             {
-                var container = GetContainer(containerId);
+                var container = await GetContainerAsync(containerId);
                 var response = await container.DeleteItemAsync<object>(
                     id,
                     new PartitionKey(partitionKey)
@@ -390,7 +390,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         #region UTILITY Methods
 
         /// <inheritdoc/>
-        public Container GetContainer(string databaseId, string containerId)
+        private Container GetContainer(string databaseId, string containerId)
         {
             ValidateStringParameter(databaseId, nameof(databaseId));
             ValidateContainerParameters(containerId, nameof(containerId));
@@ -418,11 +418,36 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         /// <param name="containerId">The container identifier</param>
         /// <returns>Container reference</returns>
         /// <exception cref="InvalidOperationException">Thrown when container cannot be accessed</exception>
-        private Container GetContainer(string containerId)
+        private async Task<Container> GetContainerAsync(string containerId)
         {
             try
             {
-                return cosmosClient.GetContainer(cosmosDbConfiguration.DatabaseId, containerId);
+                var partitionKeyPath = cosmosDbConfiguration.PartitionKeyPath;
+                if (
+                    containerId.Equals(
+                        cosmosDbConfiguration.ContainerIds.LiveChatSettings,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    partitionKeyPath = "/" + LiveChatConstants.PartitionKeyPath;
+                }
+                else if (
+                    containerId.Equals(
+                        cosmosDbConfiguration.ContainerIds.WidgetMapping,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    partitionKeyPath = "/id";
+                }
+
+                var database = cosmosClient.GetDatabase(cosmosDbConfiguration.DatabaseId);
+                var containerResponse = await database.CreateContainerIfNotExistsAsync(
+                    containerId,
+                    partitionKeyPath
+                );
+                return containerResponse.Container;
             }
             catch (Exception ex)
             {
@@ -507,7 +532,6 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             if (query == null)
                 throw new ArgumentNullException(parameterName);
         }
-
         #endregion
     }
 }

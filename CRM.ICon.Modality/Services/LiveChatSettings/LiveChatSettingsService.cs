@@ -149,7 +149,10 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
 
             try
             {
-                var iterator = cosmosDbClient.QueryItemsIterator<LiveChatRule>(containerId, query);
+                var iterator = await cosmosDbClient.QueryItemsIteratorAsync<LiveChatRule>(
+                    containerId,
+                    query
+                );
                 logger.LogTrace<LiveChatSettingsService>(
                     $"Query iterator created successfully for containerId: {containerId}"
                 );
@@ -218,6 +221,9 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                 // Determine evaluation order
                 if (newRule.EvaluationOrder is int evalOrder)
                 {
+                    // Validate evaluation order before processing
+                    ValidateEvaluationOrder(evalOrder);
+                    
                     logger.LogTrace<LiveChatSettingsService>(
                         $"Rule has specified evaluation order: {evalOrder}"
                     );
@@ -318,6 +324,8 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                     && newOrder != oldOrder
                 )
                 {
+                    // No validation needed here - PatchToDomainModel already prevents negative values
+                    
                     logger.LogTrace<LiveChatSettingsService>(
                         $"Evaluation order changed from {oldOrder} to {newOrder}"
                     );
@@ -411,7 +419,10 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
 
             try
             {
-                var iterator = cosmosDbClient.QueryItemsIterator<int>(containerId, query);
+                var iterator = await cosmosDbClient.QueryItemsIteratorAsync<int>(
+                    containerId,
+                    query
+                );
                 var response = await iterator.ReadNextAsync();
                 var maxOrder = response.Resource.FirstOrDefault();
 
@@ -469,28 +480,36 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                     return;
                 }
 
-                // Calculate shifts for all rules that need to move
+                // Shift rules starting from the conflict position and handle consecutive conflicts
                 var shifts = new List<LiveChatRule>();
-                int nextAvailableOrder = startOrder;
+                int currentShiftPosition = startOrder;
 
-                foreach (var rule in candidates)
+                while (true)
                 {
-                    if (
-                        rule.EvaluationOrder.HasValue
-                        && rule.EvaluationOrder.Value >= nextAvailableOrder
-                    )
+                    // Find if there's a rule at the current position that needs to be shifted
+                    var ruleToShift = candidates.FirstOrDefault(r => 
+                        r.EvaluationOrder.HasValue && 
+                        r.EvaluationOrder.Value == currentShiftPosition);
+                    
+                    if (ruleToShift == null)
                     {
-                        // This rule needs to be shifted
-                        nextAvailableOrder = rule.EvaluationOrder.Value + 1;
-
-                        logger.LogTrace<LiveChatSettingsService>(
-                            $"Shifting rule '{rule.Name}' from order {rule.EvaluationOrder.Value} to {nextAvailableOrder}"
-                        );
-
-                        rule.EvaluationOrder = nextAvailableOrder;
-                        rule.SetAudit(user, isNew: false);
-                        shifts.Add(rule);
+                        // No rule at this position, we can stop the cascade
+                        break;
                     }
+
+                    // This rule conflicts with the current position, shift it
+                    int newOrder = ruleToShift.EvaluationOrder.Value + EvaluationOrderIncrement;
+                    
+                    logger.LogTrace<LiveChatSettingsService>(
+                        $"Shifting rule '{ruleToShift.Name}' from order {ruleToShift.EvaluationOrder.Value} to {newOrder}"
+                    );
+
+                    ruleToShift.EvaluationOrder = newOrder;
+                    ruleToShift.SetAudit(user, isNew: false);
+                    shifts.Add(ruleToShift);
+                    
+                    // Update the next position we need to check for conflicts
+                    currentShiftPosition = newOrder;
                 }
 
                 logger.LogTrace<LiveChatSettingsService>(
@@ -500,14 +519,22 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                 if (shifts.Count > 0)
                 {
                     logger.LogTrace<LiveChatSettingsService>(
-                        "Executing parallel upserts for shifted rules"
+                        $"Updating {shifts.Count} rules in Cosmos DB"
                     );
-                    await Task.WhenAll(
-                        shifts.Select(rule => cosmosDbClient.UpsertItemAsync(containerId, rule))
-                    );
-                    logger.LogTrace<LiveChatSettingsService>(
-                        "All shifted rules updated successfully"
-                    );
+
+                    foreach (var rule in shifts)
+                    {
+                        logger.LogTrace<LiveChatSettingsService>(
+                            $"Updating rule: {rule.Name} with new order: {rule.EvaluationOrder}"
+                        );
+                        await cosmosDbClient.UpsertItemAsync(containerId, rule);
+                    }
+
+                    logger.LogTrace<LiveChatSettingsService>("All rules updated successfully");
+                }
+                else
+                {
+                    logger.LogTrace<LiveChatSettingsService>("No rules required shifting");
                 }
             }
             catch (Exception ex)
@@ -540,15 +567,29 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             );
             try
             {
-                var iterator = cosmosDbClient.QueryItemsIterator<LiveChatRule>(containerId, query);
+                var iterator = await cosmosDbClient.QueryItemsIteratorAsync<LiveChatRule>(
+                    containerId,
+                    query
+                );
+                if (iterator == null)
+                {
+                    logger.LogTrace<LiveChatSettingsService>(
+                        "Query iterator returned null, returning empty list"
+                    );
+                    return new List<LiveChatRule>();
+                }
+
                 var results = new List<LiveChatRule>();
                 while (iterator.HasMoreResults)
                 {
-                    var batch = (await iterator.ReadNextAsync()).Resource;
-                    results.AddRange(batch);
-                    logger.LogTrace<LiveChatSettingsService>(
-                        $"Added {batch.Count()} rules from batch"
-                    );
+                    var batch = (await iterator.ReadNextAsync())?.Resource;
+                    if (batch != null)
+                    {
+                        results.AddRange(batch);
+                        logger.LogTrace<LiveChatSettingsService>(
+                            $"Added {batch.Count()} rules from batch"
+                        );
+                    }
                 }
 
                 logger.LogTrace<LiveChatSettingsService>(
