@@ -149,7 +149,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
 
             try
             {
-                var iterator = cosmosDbClient.QueryItemsIterator<LiveChatRule>(containerId, query);
+                var iterator = await cosmosDbClient.QueryItemsIteratorAsync<LiveChatRule>(containerId, query);
                 logger.LogTrace<LiveChatSettingsService>(
                     $"Query iterator created successfully for containerId: {containerId}"
                 );
@@ -411,7 +411,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
 
             try
             {
-                var iterator = cosmosDbClient.QueryItemsIterator<int>(containerId, query);
+                var iterator = await cosmosDbClient.QueryItemsIteratorAsync<int>(containerId, query);
                 var response = await iterator.ReadNextAsync();
                 var maxOrder = response.Resource.FirstOrDefault();
 
@@ -540,7 +540,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             );
             try
             {
-                var iterator = cosmosDbClient.QueryItemsIterator<LiveChatRule>(containerId, query);
+                var iterator = await cosmosDbClient.QueryItemsIteratorAsync<LiveChatRule>(containerId, query);
                 var results = new List<LiveChatRule>();
                 while (iterator.HasMoreResults)
                 {
