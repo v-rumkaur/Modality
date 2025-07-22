@@ -390,7 +390,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         #region UTILITY Methods
 
         /// <inheritdoc/>
-        public Container GetContainer(string databaseId, string containerId)
+        private Container GetContainer(string databaseId, string containerId)
         {
             ValidateStringParameter(databaseId, nameof(databaseId));
             ValidateContainerParameters(containerId, nameof(containerId));
@@ -532,6 +532,11 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         {
             if (query == null)
                 throw new ArgumentNullException(parameterName);
+        }
+
+        Task<Container> IModalityCosmosDbClient.GetContainerAsync(string containerId)
+        {
+            return GetContainerAsync(containerId);
         }
 
         #endregion
