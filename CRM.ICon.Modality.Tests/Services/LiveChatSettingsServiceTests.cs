@@ -877,7 +877,7 @@ namespace CRM.ICon.Modality.Tests.Services
             mockIterator.HasMoreResults.Returns(true, false);
             mockIterator.ReadNextAsync().Returns(mockResponse);
 
-            mockCosmosClient.QueryItemsIterator<LiveChatRule>(
+            mockCosmosClient.QueryItemsIteratorAsync<LiveChatRule>(
                 Arg.Any<string>(), 
                 Arg.Is<QueryDefinition>(q => q.QueryText.Contains("evaluationOrder"))
             ).Returns(mockIterator);
@@ -894,7 +894,7 @@ namespace CRM.ICon.Modality.Tests.Services
             mockIterator.HasMoreResults.Returns(true, false);
             mockIterator.ReadNextAsync().Returns(mockResponse);
 
-            mockCosmosClient.QueryItemsIterator<int>(Arg.Any<string>(), Arg.Any<QueryDefinition>())
+            mockCosmosClient.QueryItemsIteratorAsync<int>(Arg.Any<string>(), Arg.Any<QueryDefinition>())
                 .Returns(mockIterator);
         }
 
@@ -909,7 +909,7 @@ namespace CRM.ICon.Modality.Tests.Services
             mockIterator.HasMoreResults.Returns(true, false);
             mockIterator.ReadNextAsync().Returns(mockResponse);
 
-            mockCosmosClient.QueryItemsIterator<LiveChatRule>(Arg.Any<string>(), Arg.Any<QueryDefinition>())
+            mockCosmosClient.QueryItemsIteratorAsync<LiveChatRule>(Arg.Any<string>(), Arg.Any<QueryDefinition>())
                 .Returns(mockIterator);
         }
 
