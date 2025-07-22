@@ -445,10 +445,9 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
                 var database = cosmosClient.GetDatabase(cosmosDbConfiguration.DatabaseId);
                 var containerResponse = await database.CreateContainerIfNotExistsAsync(
                     containerId,
-                    "/" + LiveChatConstants.PartitionKeyPath
+                    partitionKeyPath
                 );
                 return containerResponse.Container;
-                //return cosmosClient.GetContainer(cosmosDbConfiguration.DatabaseId, containerId);
             }
             catch (Exception ex)
             {
@@ -533,12 +532,6 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             if (query == null)
                 throw new ArgumentNullException(parameterName);
         }
-
-        Task<Container> IModalityCosmosDbClient.GetContainerAsync(string containerId)
-        {
-            return GetContainerAsync(containerId);
-        }
-
         #endregion
     }
 }
