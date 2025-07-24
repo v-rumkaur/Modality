@@ -457,15 +457,12 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
             if (string.IsNullOrWhiteSpace(user))
                 throw new ArgumentException("User cannot be null or empty.", nameof(user));
 
-            logger.LogTrace<LiveChatSettingsService>(
-                $"Starting CascadingShiftEfficientAsync with startOrder: {startOrder}, user: {user}, excludeName: {excludeName}"
-            );
-
             try
             {
                 var candidates = (await GetRulesAtOrAfterOrderAsync(startOrder))
                     .Where(rule => rule.Name != excludeName)
-                    .OrderBy(rule => rule.EvaluationOrder)
+                    .Where(rule => rule.EvaluationOrder.HasValue)
+                    .OrderBy(rule => rule.EvaluationOrder.Value)
                     .ToList();
 
                 logger.LogTrace<LiveChatSettingsService>(
@@ -480,61 +477,31 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                     return;
                 }
 
-                // Shift rules starting from the conflict position and handle consecutive conflicts
+                // Simple approach: shift consecutive rules starting from startOrder
                 var shifts = new List<LiveChatRule>();
-                int currentShiftPosition = startOrder;
+                int expectedOrder = startOrder;
 
-                while (true)
+                foreach (var rule in candidates)
                 {
-                    // Find if there's a rule at the current position that needs to be shifted
-                    var ruleToShift = candidates.FirstOrDefault(r => 
-                        r.EvaluationOrder.HasValue && 
-                        r.EvaluationOrder.Value == currentShiftPosition);
-                    
-                    if (ruleToShift == null)
+                    if (rule.EvaluationOrder.Value == expectedOrder)
                     {
-                        // No rule at this position, we can stop the cascade
+                        // This rule needs to be shifted
+                        rule.EvaluationOrder = expectedOrder + EvaluationOrderIncrement;
+                        rule.SetAudit(user, isNew: false);
+                        shifts.Add(rule);
+                        expectedOrder++; // Check next position
+                    }
+                    else
+                    {
+                        // Gap found, stop cascading
                         break;
                     }
-
-                    // This rule conflicts with the current position, shift it
-                    int newOrder = ruleToShift.EvaluationOrder.Value + EvaluationOrderIncrement;
-                    
-                    logger.LogTrace<LiveChatSettingsService>(
-                        $"Shifting rule '{ruleToShift.Name}' from order {ruleToShift.EvaluationOrder.Value} to {newOrder}"
-                    );
-
-                    ruleToShift.EvaluationOrder = newOrder;
-                    ruleToShift.SetAudit(user, isNew: false);
-                    shifts.Add(ruleToShift);
-                    
-                    // Update the next position we need to check for conflicts
-                    currentShiftPosition = newOrder;
                 }
 
-                logger.LogTrace<LiveChatSettingsService>(
-                    $"Shift planning completed. {shifts.Count} rules need to be updated"
-                );
-
-                if (shifts.Count > 0)
+                // Update all shifted rules
+                foreach (var rule in shifts)
                 {
-                    logger.LogTrace<LiveChatSettingsService>(
-                        $"Updating {shifts.Count} rules in Cosmos DB"
-                    );
-
-                    foreach (var rule in shifts)
-                    {
-                        logger.LogTrace<LiveChatSettingsService>(
-                            $"Updating rule: {rule.Name} with new order: {rule.EvaluationOrder}"
-                        );
-                        await cosmosDbClient.UpsertItemAsync(containerId, rule);
-                    }
-
-                    logger.LogTrace<LiveChatSettingsService>("All rules updated successfully");
-                }
-                else
-                {
-                    logger.LogTrace<LiveChatSettingsService>("No rules required shifting");
+                    await cosmosDbClient.UpsertItemAsync(containerId, rule);
                 }
             }
             catch (Exception ex)
@@ -605,19 +572,6 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                 );
                 throw;
             }
-        }
-
-        private async Task<int> DetermineEvaluationOrderAsync(LiveChatRule newRule, string user)
-        {
-            if (newRule.EvaluationOrder is int evalOrder)
-            {
-                ValidateEvaluationOrder(evalOrder);
-                await CascadingShiftEfficientAsync(evalOrder, user);
-                return evalOrder;
-            }
-
-            var maxOrder = await GetMaxEvaluationOrderAsync();
-            return maxOrder + EvaluationOrderIncrement;
         }
 
         private static void ValidateEvaluationOrder(int evalOrder)

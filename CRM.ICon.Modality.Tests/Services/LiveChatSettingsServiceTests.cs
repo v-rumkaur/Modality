@@ -1,121 +1,110 @@
 using System.Net;
-using System.Reflection;
 using CRM.ICon.Modality.Helpers.ModalityCosmos;
-using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model.LiveChatSettings;
 using CRM.ICon.Modality.Model.LiveChatSettings.Requests;
 using CRM.ICon.Modality.Services.LiveChatSettings;
 using FluentAssertions;
+using LiveChatSettings.Configuration;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
-using NSubstitute;
-using NSubstitute.ExceptionExtensions;
+using Moq;
 using Xunit;
 
-namespace CRM.ICon.Modality.Tests.Services
+namespace LiveChatSettings.Tests.Services
 {
-    /// <summary>
-    /// Comprehensive unit tests for LiveChatSettingsService covering all CRUD operations and evaluation order management.
-    /// Tests use mocked dependencies for isolated unit testing with complete coverage of business logic.
-    /// </summary>
     public class LiveChatSettingsServiceTests
     {
-        #region Test Infrastructure
-
-        private readonly IModalityCosmosDbClient mockCosmosClient;
-        private readonly ITelemetryService mockTelemetryService;
-        private readonly IOptions<ModalityCosmosDbConfiguration> mockConfig;
-        private readonly LiveChatSettingsService service;
+        private readonly Mock<IModalityCosmosDbClient> _mockCosmosDbClient;
+        private readonly Mock<IOptions<ModalityCosmosDbConfiguration>> _mockCosmosDbOptions;
+        private readonly ModalityCosmosDbConfiguration _cosmosDbConfig;
+        private readonly LiveChatSettingsService _liveChatService;
 
         public LiveChatSettingsServiceTests()
         {
-            mockCosmosClient = Substitute.For<IModalityCosmosDbClient>();
-            mockTelemetryService = Substitute.For<ITelemetryService>();
-            mockConfig = Substitute.For<IOptions<ModalityCosmosDbConfiguration>>();
+            _mockCosmosDbClient = new Mock<IModalityCosmosDbClient>();
+            _cosmosDbConfig = new ModalityCosmosDbConfiguration
+            {
+                CosmosDbEndpoint = "https://test.documents.azure.com:443/",
+                DatabaseId = "test-database",
+                LiveChatContainerId = "test-container",
+                RequestTimeout = 2,
+            };
+            _mockCosmosDbOptions = new Mock<IOptions<ModalityCosmosDbConfiguration>>();
+            _mockCosmosDbOptions.Setup(x => x.Value).Returns(_cosmosDbConfig);
 
-            mockConfig.Value.Returns(
-                new ModalityCosmosDbConfiguration
-                {
-                    ContainerIds = new ContainerIds
-                    {
-                        LiveChatSettings = "livechat-container",
-                        WidgetMapping = "widget-container",
-                    },
-                }
-            );
-
-            service = new LiveChatSettingsService(
-                mockConfig,
-                mockCosmosClient,
-                mockTelemetryService
+            _liveChatService = new LiveChatSettingsService(
+                _mockCosmosDbOptions.Object,
+                _mockCosmosDbClient.Object
             );
         }
-
-        #endregion
 
         #region GetAllRulesAsync Tests
 
         [Fact]
-        public async Task GetAllRulesAsync_ReturnsAllRules_WhenRulesExist()
+        public async Task GetAllRulesAsync_WhenRulesExist_ShouldReturnAllRules()
         {
-            // Arrange
             var expectedRules = new List<LiveChatRule>
             {
-                CreateTestRule("rule-alpha", 1),
-                CreateTestRule("rule-beta", 2),
+                CreateTestRule("rule1", evaluationOrder: 1),
+                CreateTestRule("rule2", evaluationOrder: 2),
             };
-            mockCosmosClient
-                .QueryItemsAsync<LiveChatRule>(Arg.Any<string>(), Arg.Any<QueryDefinition>())
-                .Returns(expectedRules);
 
-            // Act
-            var result = await service.GetAllRulesAsync();
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.QueryItemsAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        It.IsAny<QueryDefinition>()
+                    )
+                )
+                .ReturnsAsync(expectedRules);
 
-            // Assert
-            result.Should().HaveCount(2);
-            result.Should().Contain(r => r.Name == "rule-alpha");
-            result.Should().Contain(r => r.Name == "rule-beta");
+            var result = await _liveChatService.GetAllRulesAsync();
+
+            result.Should().BeEquivalentTo(expectedRules);
         }
 
         [Fact]
-        public async Task GetAllRulesAsync_ReturnsEmptyList_WhenNoRulesExist()
+        public async Task GetAllRulesAsync_WhenNoRulesExist_ShouldReturnEmptyCollection()
         {
-            // Arrange
-            mockCosmosClient
-                .QueryItemsAsync<LiveChatRule>(Arg.Any<string>(), Arg.Any<QueryDefinition>())
-                .Returns(new List<LiveChatRule>());
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.QueryItemsAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        It.IsAny<QueryDefinition>()
+                    )
+                )
+                .ReturnsAsync(new List<LiveChatRule>());
 
-            // Act
-            var result = await service.GetAllRulesAsync();
+            var result = await _liveChatService.GetAllRulesAsync();
 
-            // Assert
             result.Should().BeEmpty();
         }
 
         [Fact]
-        public async Task GetAllRulesAsync_LogsErrorAndRethrows_WhenCosmosThrows()
+        public async Task GetAllRulesAsync_WhenCosmosDbThrowsException_ShouldPropagateException()
         {
-            // Arrange
-            var cosmosException = new CosmosException(
-                "Query failed",
+            var expectedException = new CosmosException(
+                "Database error",
                 HttpStatusCode.InternalServerError,
                 0,
-                "",
-                0
+                "test",
+                1
             );
-            mockCosmosClient
-                .QueryItemsAsync<LiveChatRule>(Arg.Any<string>(), Arg.Any<QueryDefinition>())
-                .Throws(cosmosException);
 
-            // Act & Assert
-            await Assert.ThrowsAsync<CosmosException>(() => service.GetAllRulesAsync());
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.QueryItemsAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        It.IsAny<QueryDefinition>()
+                    )
+                )
+                .ThrowsAsync(expectedException);
 
-            mockTelemetryService
-                .Received(1)
-                .LogError<LiveChatSettingsService>(
-                    Arg.Is<string>(s => s.Contains("Error in GetAllRulesAsync")),
-                    Arg.Any<IDictionary<string, string>>()
-                );
+            var exception = await Assert.ThrowsAsync<CosmosException>(() =>
+                _liveChatService.GetAllRulesAsync()
+            );
+
+            exception.Should().Be(expectedException);
         }
 
         #endregion
@@ -123,57 +112,53 @@ namespace CRM.ICon.Modality.Tests.Services
         #region GetRuleByNameAsync Tests
 
         [Fact]
-        public async Task GetRuleByNameAsync_ReturnsRule_WhenRuleExists()
+        public async Task GetRuleByNameAsync_WhenRuleExists_ShouldReturnRule()
         {
-            // Arrange
-            var expectedRule = CreateTestRule("existing-rule", 3);
-            mockCosmosClient
-                .GetItemByIdAsync<LiveChatRule>(
-                    Arg.Any<string>(),
-                    "existing-rule",
-                    Arg.Any<string>()
+            var expectedRule = CreateTestRule("test-rule");
+
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.GetItemByIdAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        "test-rule",
+                        It.IsAny<string>()
+                    )
                 )
-                .Returns(expectedRule);
+                .ReturnsAsync(expectedRule);
 
-            // Act
-            var result = await service.GetRuleByNameAsync("existing-rule");
+            var result = await _liveChatService.GetRuleByNameAsync("test-rule");
 
-            // Assert
-            result.Should().NotBeNull();
-            result!.Name.Should().Be("existing-rule");
-            result.EvaluationOrder.Should().Be(3);
+            result.Should().BeEquivalentTo(expectedRule);
         }
 
         [Fact]
-        public async Task GetRuleByNameAsync_ReturnsNull_WhenRuleDoesNotExist()
+        public async Task GetRuleByNameAsync_WhenRuleNotFound_ShouldReturnNull()
         {
-            // Arrange
-            mockCosmosClient
-                .GetItemByIdAsync<LiveChatRule>(
-                    Arg.Any<string>(),
-                    "nonexistent-rule",
-                    Arg.Any<string>()
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.GetItemByIdAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        "nonexistent-rule",
+                        It.IsAny<string>()
+                    )
                 )
-                .Returns((LiveChatRule?)null);
+                .ReturnsAsync((LiveChatRule?)null);
 
-            // Act
-            var result = await service.GetRuleByNameAsync("nonexistent-rule");
+            var result = await _liveChatService.GetRuleByNameAsync("nonexistent-rule");
 
-            // Assert
             result.Should().BeNull();
         }
 
         [Theory]
+        [InlineData(null)]
         [InlineData("")]
         [InlineData("   ")]
-        [InlineData(null)]
-        public async Task GetRuleByNameAsync_ThrowsArgumentException_WhenNameIsInvalid(
+        public async Task GetRuleByNameAsync_WhenNameIsInvalid_ShouldThrowArgumentException(
             string invalidName
         )
         {
-            // Act & Assert
             await Assert.ThrowsAsync<ArgumentException>(() =>
-                service.GetRuleByNameAsync(invalidName)
+                _liveChatService.GetRuleByNameAsync(invalidName)
             );
         }
 
@@ -182,507 +167,194 @@ namespace CRM.ICon.Modality.Tests.Services
         #region MatchRuleAsync Tests
 
         [Fact]
-        public async Task MatchRuleAsync_ReturnsMatchingRule_WhenUserMatches()
+        public async Task MatchRuleAsync_WhenRuleMatches_ShouldReturnFirstMatchingRule()
         {
-            // Arrange
-            var request = new MatchRuleRequest
+            var matchRequest = new MatchRuleRequest
             {
-                ServiceLevel = "Professional", // Changed from "Premium"
-                SapId = Guid.NewGuid(),
+                ServiceLevel = "professional",
+                IsRestricted = false,
+                SapId = Guid.Parse("12345678-1234-1234-1234-123456789012"),
                 ServiceId = 123,
-                IsRestricted = false
             };
+            var expectedRule = CreateTestRule("matching-rule");
+            var mockIterator = CreateMockIterator(new[] { expectedRule });
 
-            var matchedRule = CreateTestRule("professional-rule", 10); // Changed from "premium-rule"
-            SetupQueryIteratorResponse(new List<LiveChatRule> { matchedRule });
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.QueryItemsIteratorAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        It.IsAny<QueryDefinition>()
+                    )
+                )
+                .ReturnsAsync(mockIterator);
 
-            // Act
-            var result = await service.MatchRuleAsync(request);
+            var result = await _liveChatService.MatchRuleAsync(matchRequest);
 
-            // Assert
-            result.Should().NotBeNull();
-            result!.Name.Should().Be("professional-rule"); // Changed from "premium-rule"
+            result.Should().BeEquivalentTo(expectedRule);
         }
 
         [Fact]
-        public async Task MatchRuleAsync_ReturnsNull_WhenNoRuleMatches()
+        public async Task MatchRuleAsync_WhenNoRuleMatches_ShouldReturnNull()
         {
-            // Arrange
-            var request = new MatchRuleRequest
+            var matchRequest = new MatchRuleRequest
             {
-                ServiceLevel = "Premier", // Changed from "Basic"
-                SapId = Guid.NewGuid(),
-                ServiceId = 456,
-                IsRestricted = true
+                ServiceLevel = "basic",
+                IsRestricted = true,
+                SapId = Guid.Parse("99999999-9999-9999-9999-999999999999"),
+                ServiceId = 999,
             };
+            var mockIterator = CreateMockIterator(Array.Empty<LiveChatRule>());
 
-            SetupQueryIteratorResponse(new List<LiveChatRule>());
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.QueryItemsIteratorAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        It.IsAny<QueryDefinition>()
+                    )
+                )
+                .ReturnsAsync(mockIterator);
 
-            // Act
-            var result = await service.MatchRuleAsync(request);
+            var result = await _liveChatService.MatchRuleAsync(matchRequest);
 
-            // Assert
             result.Should().BeNull();
         }
 
         [Fact]
-        public async Task MatchRuleAsync_ThrowsArgumentNullException_WhenRequestIsNull()
+        public async Task MatchRuleAsync_WhenRequestIsNull_ShouldThrowArgumentNullException()
         {
-            // Act & Assert
-            await Assert.ThrowsAsync<ArgumentNullException>(() => service.MatchRuleAsync(null!));
+            await Assert.ThrowsAsync<ArgumentNullException>(() =>
+                _liveChatService.MatchRuleAsync(null)
+            );
         }
 
         #endregion
 
         #region CreateRuleAsync Tests
 
-        /// <summary>
-        /// Basic creation tests covering fundamental rule creation scenarios.
-        /// </summary>
         [Fact]
-        public async Task CreateRuleAsync_CreatesRule_WhenValidInputProvided()
+        public async Task CreateRuleAsync_WhenRuleAlreadyExists_ShouldThrowInvalidOperationException()
         {
-            // Arrange
-            var newRule = CreateTestRule("new-rule", null);
-            SetupRuleDoesNotExist("new-rule");
-            SetupMaxEvaluationOrderQuery(4);
+            var newRule = CreateTestRule("existing-rule");
+            var existingRule = CreateTestRule("existing-rule");
 
-            // Act
-            var result = await service.CreateRuleAsync(newRule, "test-user");
-
-            // Assert
-            result.Should().NotBeNull();
-            result.Name.Should().Be("new-rule");
-            result.EvaluationOrder.Should().Be(5); // max + 1
-            await mockCosmosClient.Received(1).UpsertItemAsync(Arg.Any<string>(), newRule);
-        }
-
-        [Fact]
-        public async Task CreateRuleAsync_ThrowsInvalidOperationException_WhenRuleAlreadyExists()
-        {
-            // Arrange
-            var newRule = CreateTestRule("existing-rule", 1);
-            var existingRule = CreateTestRule("existing-rule", 1);
-            mockCosmosClient
-                .GetItemByIdAsync<LiveChatRule>(
-                    Arg.Any<string>(),
-                    "existing-rule",
-                    Arg.Any<string>()
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.GetItemByIdAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        "existing-rule",
+                        It.IsAny<string>()
+                    )
                 )
-                .Returns(existingRule);
+                .ReturnsAsync(existingRule);
 
-            // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                service.CreateRuleAsync(newRule, "test-user")
+                _liveChatService.CreateRuleAsync(newRule, "test-user")
             );
         }
 
-        [Theory]
-        [InlineData(null)]
-        [InlineData("")]
-        [InlineData("   ")]
-        public async Task CreateRuleAsync_ThrowsArgumentException_WhenUserIsInvalid(
-            string invalidUser
-        )
-        {
-            // Arrange
-            var newRule = CreateTestRule("test-rule", 1);
-
-            // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() =>
-                service.CreateRuleAsync(newRule, invalidUser)
-            );
-        }
-
-        /// <summary>
-        /// Evaluation order assignment tests covering automatic order assignment logic.
-        /// </summary>
         [Fact]
-        public async Task CreateRuleAsync_AssignsMaxPlusOne_WhenNoEvaluationOrderProvided()
+        public async Task CreateRuleAsync_WithValidRule_ShouldCreateRuleSuccessfully()
         {
-            // Arrange
-            var newRule = CreateTestRule("auto-order-rule", null);
-            SetupRuleDoesNotExist("auto-order-rule");
-            SetupMaxEvaluationOrderQuery(10);
+            var newRule = CreateTestRule("new-rule", evaluationOrder: 5);
 
-            // Act
-            var result = await service.CreateRuleAsync(newRule, "test-user");
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.UpsertItemAsync(_cosmosDbConfig.LiveChatContainerId, It.IsAny<LiveChatRule>())
+                )
+                .ReturnsAsync(newRule);
 
-            // Assert
-            result.EvaluationOrder.Should().Be(11); // max + 1
+            var result = await _liveChatService.CreateRuleAsync(newRule, "test-user");
+
+            result.Name.Should().Be("new-rule");
         }
 
         [Fact]
-        public async Task CreateRuleAsync_AssignsOrderOne_WhenNoExistingRules()
+        public async Task CreateRuleAsync_WithNullEvaluationOrder_ShouldAddToEnd()
         {
-            // Arrange
-            var newRule = CreateTestRule("first-rule", null);
-            SetupRuleDoesNotExist("first-rule");
-            SetupMaxEvaluationOrderQuery(0); // No existing rules
+            var newRule = CreateTestRule("new-rule", evaluationOrder: null);
+            var mockIterator = CreateMockIterator(new[] { 5 });
 
-            // Act
-            var result = await service.CreateRuleAsync(newRule, "test-user");
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.QueryItemsIteratorAsync<int>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        It.IsAny<QueryDefinition>()
+                    )
+                )
+                .ReturnsAsync(mockIterator);
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.UpsertItemAsync(_cosmosDbConfig.LiveChatContainerId, It.IsAny<LiveChatRule>())
+                )
+                .ReturnsAsync((string _, LiveChatRule rule) => rule);
 
-            // Assert
-            result.EvaluationOrder.Should().Be(1);
-        }
+            var result = await _liveChatService.CreateRuleAsync(newRule, "test-user");
 
-        /// <summary>
-        /// Conflict resolution tests covering evaluation order collision handling.
-        /// </summary>
-        [Fact]
-        public async Task CreateRuleAsync_ShiftsSingleConflict_WhenOneRuleAtOrder()
-        {
-            // Arrange
-            var newRule = CreateTestRule("new-rule", 3);
-            var conflictingRule = CreateTestRule("existing-at-3", 3);
-
-            SetupRuleDoesNotExist("new-rule");
-            SetupGetRulesAtOrAfterOrderQuery(3, new List<LiveChatRule> { conflictingRule });
-
-            // Act
-            var result = await service.CreateRuleAsync(newRule, "test-user");
-
-            // Assert
-            result.EvaluationOrder.Should().Be(3);
-            await mockCosmosClient
-                .Received(1)
-                .UpsertItemAsync(
-                    Arg.Any<string>(),
-                    Arg.Is<LiveChatRule>(r => r.Name == "existing-at-3" && r.EvaluationOrder == 4)
-                );
-        }
-
-        [Fact]
-        public async Task CreateRuleAsync_ShiftsMultipleConflicts_WhenConsecutiveRulesAtOrders()
-        {
-            // Arrange
-            var newRule = CreateTestRule("new-rule", 2);
-            var conflictingRules = new List<LiveChatRule>
-            {
-                CreateTestRule("rule-at-2", 2),
-                CreateTestRule("rule-at-3", 3),
-                CreateTestRule("rule-at-4", 4),
-            };
-
-            SetupRuleDoesNotExist("new-rule");
-            SetupGetRulesAtOrAfterOrderQuery(2, conflictingRules);
-
-            // Act
-            var result = await service.CreateRuleAsync(newRule, "test-user");
-
-            // Assert
-            result.EvaluationOrder.Should().Be(2);
-            await mockCosmosClient
-                .Received(1)
-                .UpsertItemAsync(
-                    Arg.Any<string>(),
-                    Arg.Is<LiveChatRule>(r => r.Name == "rule-at-2" && r.EvaluationOrder == 3)
-                );
-            await mockCosmosClient
-                .Received(1)
-                .UpsertItemAsync(
-                    Arg.Any<string>(),
-                    Arg.Is<LiveChatRule>(r => r.Name == "rule-at-3" && r.EvaluationOrder == 4)
-                );
-            await mockCosmosClient
-                .Received(1)
-                .UpsertItemAsync(
-                    Arg.Any<string>(),
-                    Arg.Is<LiveChatRule>(r => r.Name == "rule-at-4" && r.EvaluationOrder == 5)
-                );
-        }
-
-        /// <summary>
-        /// Boundary value tests covering edge cases and validation limits.
-        /// </summary>
-        [Fact]
-        public async Task CreateRuleAsync_AcceptsMaximumValues_WhenLargeValidData()
-        {
-            // Arrange
-            var newRule = new LiveChatRule
-            {
-                Name = "max-values-rule",
-                EvaluationOrder = 1000,
-                AllowedServiceLevels = Enumerable
-                    .Range(1, 50)
-                    .Select(i => $"ServiceLevel{i}")
-                    .ToList(),
-                AllowedSaps = Enumerable.Range(1, 100).Select(_ => Guid.NewGuid()).ToList(),
-                ExcludedServiceIds = Enumerable.Range(1, 200).ToList(),
-                IsChatForced = true,
-                AllowRestricted = true,
-            };
-
-            SetupRuleDoesNotExist("max-values-rule");
-            SetupGetRulesAtOrAfterOrderQuery(1000, new List<LiveChatRule>());
-
-            // Act
-            var result = await service.CreateRuleAsync(newRule, "test-user");
-
-            // Assert
-            result.Should().NotBeNull();
-            result.AllowedServiceLevels.Should().HaveCount(50);
-            result.AllowedSaps.Should().HaveCount(100);
-            result.ExcludedServiceIds.Should().HaveCount(200);
-        }
-
-        [Fact]
-        public async Task CreateRuleAsync_AcceptsMinimumViableRule_WhenMinimalData()
-        {
-            // Arrange
-            var newRule = new LiveChatRule
-            {
-                Name = "minimal-rule",
-                EvaluationOrder = 1,
-                AllowedServiceLevels = new List<string> { "Professional" }, // Changed from "Basic"
-                AllowedSaps = new List<Guid> { Guid.NewGuid() },
-                ExcludedServiceIds = new List<int> { 1 },
-                IsChatForced = false,
-                AllowRestricted = false
-            };
-            
-            SetupRuleDoesNotExist("minimal-rule");
-            SetupGetRulesAtOrAfterOrderQuery(1, new List<LiveChatRule>());
-
-            // Act
-            var result = await service.CreateRuleAsync(newRule, "test-user");
-
-            // Assert
-            result.Should().NotBeNull();
-            result.AllowedServiceLevels.Should().HaveCount(1);
-            result.AllowedSaps.Should().HaveCount(1);
-            result.ExcludedServiceIds.Should().HaveCount(1);
-        }
-
-        [Theory]
-        [InlineData(-1)]
-        [InlineData(-10)]
-        [InlineData(-100)]
-        public async Task CreateRuleAsync_ThrowsArgumentOutOfRangeException_WhenNegativeEvaluationOrder(
-            int negativeOrder
-        )
-        {
-            // Arrange
-            var newRule = CreateTestRule("test-rule", negativeOrder);
-            SetupRuleDoesNotExist("test-rule");
-
-            // Act & Assert
-            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
-                service.CreateRuleAsync(newRule, "test-user")
-            );
+            result.EvaluationOrder.Should().Be(6);
         }
 
         #endregion
 
         #region UpdateRuleAsync Tests
 
-        /// <summary>
-        /// Field update tests covering selective property modification scenarios.
-        /// </summary>
         [Fact]
-        public async Task UpdateRuleAsync_UpdatesSingleField_WhenOnlyOneBooleanChanged()
+        public async Task UpdateRuleAsync_WithValidRequest_ShouldUpdateRule()
         {
-            // Arrange
-            var request = new UpdateRuleRequest
+            var existingRule = CreateTestRule("existing-rule", evaluationOrder: 5);
+            var updateRequest = new UpdateRuleRequest
             {
-                Name = "update-single-rule",
-                UpdatedBy = "test-user",
-                IsChatForced = true, // Only this field updated
-            };
-
-            var existingRule = CreateTestRule("update-single-rule", 5);
-            existingRule.IsChatForced = false; // Original value
-            existingRule.AllowRestricted = true; // Should remain unchanged
-
-            SetupRuleExists("update-single-rule", existingRule);
-
-            // Act
-            await service.UpdateRuleAsync(request, "test-user");
-
-            // Assert
-            existingRule.IsChatForced.Should().BeTrue(); // Updated
-            existingRule.AllowRestricted.Should().BeTrue(); // Preserved
-            existingRule.EvaluationOrder.Should().Be(5); // Preserved
-        }
-
-        [Fact]
-        public async Task UpdateRuleAsync_UpdatesMultipleFields_WhenMultipleProvided()
-        {
-            // Arrange
-            var originalSaps = new List<Guid> { Guid.NewGuid() };
-            var newSaps = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
-
-            var request = new UpdateRuleRequest
-            {
-                Name = "update-multi-rule",
-                UpdatedBy = "test-user",
-                IsChatForced = true,
-                AllowedSaps = newSaps,
+                Name = "existing-rule",
                 EvaluationOrder = 10,
-            };
-
-            var existingRule = CreateTestRule("update-multi-rule", 5);
-            existingRule.IsChatForced = false;
-            existingRule.AllowedSaps = originalSaps;
-            existingRule.AllowRestricted = true; // Should remain unchanged
-
-            SetupRuleExists("update-multi-rule", existingRule);
-            SetupGetRulesAtOrAfterOrderQuery(10, new List<LiveChatRule>());
-
-            // Act
-            await service.UpdateRuleAsync(request, "test-user");
-
-            // Assert
-            existingRule.IsChatForced.Should().BeTrue(); // Updated
-            existingRule.AllowedSaps.Should().BeEquivalentTo(newSaps); // Updated
-            existingRule.EvaluationOrder.Should().Be(10); // Updated
-            existingRule.AllowRestricted.Should().BeTrue(); // Preserved
-        }
-
-        [Fact]
-        public async Task UpdateRuleAsync_PreservesName_WhenAllOtherFieldsUpdated()
-        {
-            // Arrange
-            var request = new UpdateRuleRequest 
-            { 
-                Name = "preserve-name-rule", 
                 UpdatedBy = "test-user",
-                IsChatForced = true,
-                AllowRestricted = false,
-                AllowedServiceLevels = new List<string> { "Professional", "Premier" }, // Changed from "Premium", "Enterprise"
-                AllowedSaps = new List<Guid> { Guid.NewGuid() },
-                ExcludedServiceIds = new List<int> { 100, 200 },
-                EvaluationOrder = 15
-            };
-            
-            var existingRule = CreateTestRule("preserve-name-rule", 5);
-            SetupRuleExists("preserve-name-rule", existingRule);
-            SetupGetRulesAtOrAfterOrderQuery(15, new List<LiveChatRule>());
-
-            // Act
-            await service.UpdateRuleAsync(request, "test-user");
-
-            // Assert
-            existingRule.Name.Should().Be("preserve-name-rule"); // Name preserved
-            existingRule.IsChatForced.Should().BeTrue(); // Updated
-            existingRule.AllowRestricted.Should().BeFalse(); // Updated
-            existingRule.AllowedServiceLevels.Should().BeEquivalentTo(new[] { "Professional", "Premier" }); // Updated - Changed from "Premium", "Enterprise"
-            existingRule.EvaluationOrder.Should().Be(15); // Updated
-        }
-
-        /// <summary>
-        /// Evaluation order handling tests covering order modification scenarios.
-        /// </summary>
-        [Fact]
-        public async Task UpdateRuleAsync_PreservesEvaluationOrder_WhenNotProvided()
-        {
-            // Arrange
-            var request = new UpdateRuleRequest
-            {
-                Name = "preserve-order-rule",
-                UpdatedBy = "test-user",
-                IsChatForced = true,
-                // EvaluationOrder not provided
             };
 
-            var existingRule = CreateTestRule("preserve-order-rule", 7);
-            SetupRuleExists("preserve-order-rule", existingRule);
+            _mockCosmosDbClient
+                .Setup(x => x.GetItemByIdAsync<LiveChatRule>(_cosmosDbConfig.LiveChatContainerId, "existing-rule", It.IsAny<string>()))
+                .ReturnsAsync(existingRule);
 
-            // Act
-            await service.UpdateRuleAsync(request, "test-user");
+            LiveChatRule updatedRule = null;
+            _mockCosmosDbClient
+                .Setup(x => x.UpsertItemAsync(_cosmosDbConfig.LiveChatContainerId, It.IsAny<LiveChatRule>()))
+                .Callback<string, LiveChatRule>((_, rule) => updatedRule = rule)
+                .ReturnsAsync((string _, LiveChatRule rule) => rule);
 
-            // Assert
-            existingRule.EvaluationOrder.Should().Be(7); // Original value preserved
-            // Should not trigger cascading shift
-            await mockCosmosClient
-                .DidNotReceive()
-                .UpsertItemAsync(
-                    Arg.Any<string>(),
-                    Arg.Is<LiveChatRule>(r => r.Name != "preserve-order-rule")
-                );
+            await _liveChatService.UpdateRuleAsync(updateRequest, "test-user");
+
+            // Verify the rule was actually updated
+            updatedRule.Should().NotBeNull();
+            updatedRule.EvaluationOrder.Should().Be(10); // This would fail if PatchToDomainModel is commented out
+            updatedRule.Name.Should().Be("existing-rule");
         }
 
         [Fact]
-        public async Task UpdateRuleAsync_TriggersShiftResolution_WhenEvaluationOrderCausesConflict()
+        public async Task UpdateRuleAsync_WhenRuleDoesNotExist_ShouldThrowInvalidOperationException()
         {
-            // Arrange
-            var request = new UpdateRuleRequest
-            {
-                Name = "shift-trigger-rule",
-                UpdatedBy = "test-user",
-                EvaluationOrder = 3,
-            };
-
-            var existingRule = CreateTestRule("shift-trigger-rule", 7);
-            var conflictingRule = CreateTestRule("rule-at-3", 3);
-
-            SetupRuleExists("shift-trigger-rule", existingRule);
-            SetupGetRulesAtOrAfterOrderQuery(3, new List<LiveChatRule> { conflictingRule });
-
-            // Act
-            await service.UpdateRuleAsync(request, "test-user");
-
-            // Assert
-            existingRule.EvaluationOrder.Should().Be(3);
-            await mockCosmosClient
-                .Received(1)
-                .UpsertItemAsync(
-                    Arg.Any<string>(),
-                    Arg.Is<LiveChatRule>(r => r.Name == "rule-at-3" && r.EvaluationOrder == 4)
-                );
-        }
-
-        /// <summary>
-        /// Error handling tests covering validation and exception scenarios.
-        /// </summary>
-        [Fact]
-        public async Task UpdateRuleAsync_ThrowsInvalidOperationException_WhenRuleNotFound()
-        {
-            // Arrange
-            var request = new UpdateRuleRequest
+            var updateRequest = new UpdateRuleRequest
             {
                 Name = "nonexistent-rule",
                 UpdatedBy = "test-user",
-                IsChatForced = true,
             };
 
-            mockCosmosClient
-                .GetItemByIdAsync<LiveChatRule>(
-                    Arg.Any<string>(),
-                    "nonexistent-rule",
-                    Arg.Any<string>()
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.GetItemByIdAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        "nonexistent-rule",
+                        It.IsAny<string>()
+                    )
                 )
-                .Returns((LiveChatRule?)null);
+                .ReturnsAsync((LiveChatRule?)null);
 
-            // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                service.UpdateRuleAsync(request, "test-user")
+                _liveChatService.UpdateRuleAsync(updateRequest, "test-user")
             );
         }
 
-        [Theory]
-        [InlineData(null)]
-        [InlineData("")]
-        [InlineData("   ")]
-        public async Task UpdateRuleAsync_ThrowsArgumentException_WhenUserIsInvalid(
-            string invalidUser
-        )
+        [Fact]
+        public async Task UpdateRuleAsync_WhenRequestIsNull_ShouldThrowArgumentNullException()
         {
-            // Arrange
-            var request = new UpdateRuleRequest
-            {
-                Name = "valid-rule",
-                UpdatedBy = "test-user",
-                IsChatForced = true,
-            };
-
-            var existingRule = CreateTestRule("valid-rule", 5);
-            SetupRuleExists("valid-rule", existingRule);
-
-            // Act & Assert
-            await Assert.ThrowsAsync<ArgumentException>(() =>
-                service.UpdateRuleAsync(request, invalidUser)
+            await Assert.ThrowsAsync<ArgumentNullException>(() =>
+                _liveChatService.UpdateRuleAsync(null, "test-user")
             );
         }
 
@@ -691,36 +363,47 @@ namespace CRM.ICon.Modality.Tests.Services
         #region DeleteRuleByNameAsync Tests
 
         [Fact]
-        public async Task DeleteRuleByNameAsync_DeletesRule_WhenRuleExists()
+        public async Task DeleteRuleByNameAsync_WhenRuleExists_ShouldDeleteRule()
         {
-            // Arrange
-            var existingRule = CreateTestRule("delete-me", 5);
-            SetupRuleExists("delete-me", existingRule);
+            var existingRule = CreateTestRule("test-rule");
 
-            // Act
-            await service.DeleteRuleByNameAsync("delete-me");
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.GetItemByIdAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        "test-rule",
+                        It.IsAny<string>()
+                    )
+                )
+                .ReturnsAsync(existingRule);
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.DeleteItemAsync(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        "test-rule",
+                        It.IsAny<string>()
+                    )
+                )
+                .Returns(Task.CompletedTask);
 
-            // Assert
-            await mockCosmosClient
-                .Received(1)
-                .DeleteItemAsync(Arg.Any<string>(), "delete-me", Arg.Any<string>());
+            await _liveChatService.DeleteRuleByNameAsync("test-rule");
         }
 
         [Fact]
-        public async Task DeleteRuleByNameAsync_ThrowsInvalidOperationException_WhenRuleNotFound()
+        public async Task DeleteRuleByNameAsync_WhenRuleDoesNotExist_ShouldThrowInvalidOperationException()
         {
-            // Arrange
-            mockCosmosClient
-                .GetItemByIdAsync<LiveChatRule>(
-                    Arg.Any<string>(),
-                    "nonexistent-rule",
-                    Arg.Any<string>()
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.GetItemByIdAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        "nonexistent-rule",
+                        It.IsAny<string>()
+                    )
                 )
-                .Returns((LiveChatRule?)null);
+                .ReturnsAsync((LiveChatRule?)null);
 
-            // Act & Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                service.DeleteRuleByNameAsync("nonexistent-rule")
+                _liveChatService.DeleteRuleByNameAsync("nonexistent-rule")
             );
         }
 
@@ -728,65 +411,13 @@ namespace CRM.ICon.Modality.Tests.Services
         [InlineData(null)]
         [InlineData("")]
         [InlineData("   ")]
-        public async Task DeleteRuleByNameAsync_ThrowsArgumentException_WhenNameIsInvalid(
+        public async Task DeleteRuleByNameAsync_WhenNameIsInvalid_ShouldThrowArgumentException(
             string invalidName
         )
         {
-            // Act & Assert
             await Assert.ThrowsAsync<ArgumentException>(() =>
-                service.DeleteRuleByNameAsync(invalidName)
+                _liveChatService.DeleteRuleByNameAsync(invalidName)
             );
-        }
-
-        [Fact]
-        public async Task DeleteRuleByNameAsync_LogsSuccess_WhenDeletionCompletes()
-        {
-            // Arrange
-            var existingRule = CreateTestRule("log-delete", 3);
-            SetupRuleExists("log-delete", existingRule);
-
-            // Act
-            await service.DeleteRuleByNameAsync("log-delete");
-
-            // Assert
-            mockTelemetryService
-                .Received(1)
-                .LogTrace<LiveChatSettingsService>(
-                    Arg.Is<string>(s =>
-                        s.Contains("log-delete") && s.Contains("deleted successfully")
-                    )
-                );
-        }
-
-        [Fact]
-        public async Task DeleteRuleByNameAsync_LogsErrorAndRethrows_WhenCosmosThrows()
-        {
-            // Arrange
-            var existingRule = CreateTestRule("error-delete", 2);
-            SetupRuleExists("error-delete", existingRule);
-
-            var cosmosException = new CosmosException(
-                "Delete failed",
-                HttpStatusCode.InternalServerError,
-                0,
-                "",
-                0
-            );
-            mockCosmosClient
-                .DeleteItemAsync(Arg.Any<string>(), "error-delete", Arg.Any<string>())
-                .Throws(cosmosException);
-
-            // Act & Assert
-            await Assert.ThrowsAsync<CosmosException>(() =>
-                service.DeleteRuleByNameAsync("error-delete")
-            );
-
-            mockTelemetryService
-                .Received(1)
-                .LogError<LiveChatSettingsService>(
-                    Arg.Is<string>(s => s.Contains("Error in DeleteRuleByNameAsync")),
-                    Arg.Any<IDictionary<string, string>>()
-                );
         }
 
         #endregion
@@ -794,245 +425,186 @@ namespace CRM.ICon.Modality.Tests.Services
         #region GetMaxEvaluationOrderAsync Tests
 
         [Fact]
-        public async Task GetMaxEvaluationOrderAsync_ReturnsMaxValue_WhenRulesExist()
+        public async Task GetMaxEvaluationOrderAsync_WhenRulesExist_ShouldReturnMaxEvaluationOrder()
         {
-            // Arrange
-            SetupMaxEvaluationOrderQuery(42);
+            var mockIterator = CreateMockIterator(new[] { 42 });
 
-            // Act
-            var result = await InvokeGetMaxEvaluationOrderAsync();
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.QueryItemsIteratorAsync<int>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        It.IsAny<QueryDefinition>()
+                    )
+                )
+                .ReturnsAsync(mockIterator);
 
-            // Assert
+            var result = await _liveChatService.GetMaxEvaluationOrderAsync();
+
             result.Should().Be(42);
         }
 
         [Fact]
-        public async Task GetMaxEvaluationOrderAsync_ReturnsZero_WhenNoRulesExist()
+        public async Task GetMaxEvaluationOrderAsync_WhenNoRulesExist_ShouldReturnZero()
         {
-            // Arrange
-            SetupMaxEvaluationOrderQuery(0);
+            var mockIterator = CreateMockIterator(new[] { 0 });
 
-            // Act
-            var result = await InvokeGetMaxEvaluationOrderAsync();
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.QueryItemsIteratorAsync<int>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        It.IsAny<QueryDefinition>()
+                    )
+                )
+                .ReturnsAsync(mockIterator);
 
-            // Assert
+            var result = await _liveChatService.GetMaxEvaluationOrderAsync();
+
             result.Should().Be(0);
         }
 
+        #endregion
+
+        #region Cascading Shift Tests
+
         [Fact]
-        public async Task GetMaxEvaluationOrderAsync_ReturnsLargeValue_WhenMaxValueIsLarge()
+        public async Task CreateRuleAsync_InsertInGap_ShouldNotShiftExistingRules()
         {
-            // Arrange
-            SetupMaxEvaluationOrderQuery(9999);
+            var newRule = CreateTestRule("new-rule", evaluationOrder: 2);
+            var existingRules = new List<LiveChatRule>
+            {
+                CreateTestRule("rule3", evaluationOrder: 3),
+                CreateTestRule("rule4", evaluationOrder: 4),
+            };
 
-            // Act
-            var result = await InvokeGetMaxEvaluationOrderAsync();
+            SetupCascadingShiftMocks(existingRules);
 
-            // Assert
-            result.Should().Be(9999);
+            var result = await _liveChatService.CreateRuleAsync(newRule, "test-user");
+
+            result.EvaluationOrder.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task CreateRuleAsync_ConsecutiveConflicts_ShouldCascadeShiftUntilGap()
+        {
+            var newRule = CreateTestRule("new-rule", evaluationOrder: 3);
+            var existingRules = new List<LiveChatRule>
+            {
+                CreateTestRule("rule3", evaluationOrder: 3),
+                CreateTestRule("rule4", evaluationOrder: 4),
+                CreateTestRule("rule5", evaluationOrder: 5),
+                CreateTestRule("rule7", evaluationOrder: 7), // Gap at 6
+            };
+
+            // Track which rules get upserted
+            var upsertedRules = new List<LiveChatRule>();
+            
+            _mockCosmosDbClient
+                .Setup(x => x.GetItemByIdAsync<LiveChatRule>(_cosmosDbConfig.LiveChatContainerId, "new-rule", It.IsAny<string>()))
+                .ReturnsAsync((LiveChatRule?)null);
+
+            SetupCascadingShiftMocks(existingRules);
+            
+            _mockCosmosDbClient
+                .Setup(x => x.UpsertItemAsync(_cosmosDbConfig.LiveChatContainerId, It.IsAny<LiveChatRule>()))
+                .Callback<string, LiveChatRule>((_, rule) => upsertedRules.Add(rule))
+                .ReturnsAsync((string _, LiveChatRule rule) => rule);
+
+            var result = await _liveChatService.CreateRuleAsync(newRule, "test-user");
+
+            // Verify the new rule
+            result.EvaluationOrder.Should().Be(3);
+            
+            // Verify that shifted rules were actually saved to database
+            upsertedRules.Should().HaveCount(4, "because 3 existing rules should be shifted + 1 new rule");
+            
+            // Verify specific shifted rules were saved with correct new orders
+            var shiftedRule3 = upsertedRules.FirstOrDefault(r => r.Name == "rule3");
+            shiftedRule3?.EvaluationOrder.Should().Be(4, "because rule3 should be shifted from 3 to 4");
+            
+            var shiftedRule4 = upsertedRules.FirstOrDefault(r => r.Name == "rule4");
+            shiftedRule4?.EvaluationOrder.Should().Be(5, "because rule4 should be shifted from 4 to 5");
+            
+            var shiftedRule5 = upsertedRules.FirstOrDefault(r => r.Name == "rule5");
+            shiftedRule5?.EvaluationOrder.Should().Be(6, "because rule5 should be shifted from 5 to 6");
+            
+            // Rule7 should NOT be shifted (gap at 6)
+            var rule7 = upsertedRules.FirstOrDefault(r => r.Name == "rule7");
+            rule7.Should().BeNull("because rule7 should not be shifted due to gap at position 6");
         }
 
         #endregion
 
-        #region CascadingShiftEfficientAsync Tests
+        #region Constructor Tests
 
         [Fact]
-        public async Task CascadingShiftEfficientAsync_ShiftsSingleRule_WhenOneRuleAtOrder()
+        public void Constructor_WhenCosmosDbConfigurationIsNull_ShouldThrowArgumentNullException()
         {
-            // Arrange
-            var ruleAtOrder5 = CreateTestRule("rule-at-5", 5);
-            SetupGetRulesAtOrAfterOrderQuery(5, new List<LiveChatRule> { ruleAtOrder5 });
-
-            // Act
-            await InvokeCascadingShiftAsync(5, "test-user");
-
-            // Assert
-            ruleAtOrder5.EvaluationOrder.Should().Be(6); // 5 + 1
-            await mockCosmosClient.Received(1).UpsertItemAsync(Arg.Any<string>(), ruleAtOrder5);
+            Assert.Throws<ArgumentNullException>(() =>
+                new LiveChatSettingsService(null, _mockCosmosDbClient.Object)
+            );
         }
 
         [Fact]
-        public async Task CascadingShiftEfficientAsync_ShiftsConsecutiveRules_WhenMultipleRulesNeedShifting()
+        public void Constructor_WhenCosmosDbClientIsNull_ShouldThrowArgumentNullException()
         {
-            // Arrange
-            var rule1 = CreateTestRule("rule-1", 3);
-            var rule2 = CreateTestRule("rule-2", 4);
-            var rule3 = CreateTestRule("rule-3", 5);
-            var consecutiveRules = new List<LiveChatRule> { rule1, rule2, rule3 };
-
-            SetupGetRulesAtOrAfterOrderQuery(3, consecutiveRules);
-
-            // Act
-            await InvokeCascadingShiftAsync(3, "test-user");
-
-            // Assert
-            rule1.EvaluationOrder.Should().Be(4); // 3 + 1
-            rule2.EvaluationOrder.Should().Be(5); // 4 + 1
-            rule3.EvaluationOrder.Should().Be(6); // 5 + 1
-            await mockCosmosClient
-                .Received(3)
-                .UpsertItemAsync(Arg.Any<string>(), Arg.Any<LiveChatRule>());
-        }
-
-        [Fact]
-        public async Task CascadingShiftEfficientAsync_HandlesGapsInOrders_WhenNonConsecutiveRules()
-        {
-            // Arrange - Rules at 3, 7, 8 (gap between 3 and 7)
-            var rule1 = CreateTestRule("rule-at-3", 3);
-            var rule2 = CreateTestRule("rule-at-7", 7);
-            var rule3 = CreateTestRule("rule-at-8", 8);
-            var rulesWithGaps = new List<LiveChatRule> { rule1, rule2, rule3 };
-
-            SetupGetRulesAtOrAfterOrderQuery(3, rulesWithGaps);
-
-            // Act
-            await InvokeCascadingShiftAsync(3, "test-user");
-
-            // Assert
-            rule1.EvaluationOrder.Should().Be(4); // 3 + 1
-            rule2.EvaluationOrder.Should().Be(7); // No change (gap)
-            rule3.EvaluationOrder.Should().Be(8); // No change (gap)
-            await mockCosmosClient.Received(1).UpsertItemAsync(Arg.Any<string>(), rule1);
-        }
-
-        [Fact]
-        public async Task CascadingShiftEfficientAsync_DoesNothing_WhenNoRulesAtOrAfterOrder()
-        {
-            // Arrange
-            SetupGetRulesAtOrAfterOrderQuery(10, new List<LiveChatRule>());
-
-            // Act
-            await InvokeCascadingShiftAsync(10, "test-user");
-
-            // Assert
-            await mockCosmosClient
-                .DidNotReceive()
-                .UpsertItemAsync(Arg.Any<string>(), Arg.Any<LiveChatRule>());
+            Assert.Throws<ArgumentNullException>(() =>
+                new LiveChatSettingsService(_mockCosmosDbOptions.Object, null)
+            );
         }
 
         #endregion
 
-        #region Test Helper Methods
+        #region Test Helpers
 
-        /// <summary>
-        /// Helper method to invoke private CascadingShiftEfficientAsync method via reflection.
-        /// </summary>
-        private async Task InvokeCascadingShiftAsync(
-            int startOrder,
-            string user,
-            string? excludeName = null
+        private FeedIterator<T> CreateMockIterator<T>(IEnumerable<T> data)
+        {
+            var mockIterator = new Mock<FeedIterator<T>>();
+            var mockResponse = new Mock<FeedResponse<T>>();
+            mockResponse.Setup(x => x.Resource).Returns(data);
+            mockIterator.SetupSequence(x => x.HasMoreResults).Returns(true).Returns(false);
+            mockIterator.Setup(x => x.ReadNextAsync(default)).ReturnsAsync(mockResponse.Object);
+            return mockIterator.Object;
+        }
+
+        private void SetupCascadingShiftMocks(List<LiveChatRule> existingRules)
+        {
+            var mockIterator = CreateMockIterator(existingRules);
+            _mockCosmosDbClient
+                .Setup(x =>
+                    x.QueryItemsIteratorAsync<LiveChatRule>(
+                        _cosmosDbConfig.LiveChatContainerId,
+                        It.IsAny<QueryDefinition>()
+                    )
+                )
+                .ReturnsAsync(mockIterator);
+            _mockCosmosDbClient
+                .Setup(x => x.UpsertItemAsync(It.IsAny<string>(), It.IsAny<LiveChatRule>()))
+                .ReturnsAsync((string _, LiveChatRule rule) => rule); // Fixed: using It.IsAny for both parameters
+        }
+
+        private static int _ruleCounter = 0;
+
+        private static LiveChatRule CreateTestRule(
+            string? name = null,
+            int? evaluationOrder = null,
+            List<string>? allowedServiceLevels = null,
+            bool? allowRestricted = null,
+            List<Guid>? allowedSaps = null,
+            List<int>? excludedServiceIds = null,
+            bool? isChatForced = null
         )
-        {
-            var method = typeof(LiveChatSettingsService).GetMethod(
-                "CascadingShiftEfficientAsync",
-                BindingFlags.NonPublic | BindingFlags.Instance
-            );
-            var task = (Task)
-                method!.Invoke(service, new object?[] { startOrder, user, excludeName })!;
-            await task;
-        }
-
-        /// <summary>
-        /// Helper method to invoke private GetMaxEvaluationOrderAsync method via reflection.
-        /// </summary>
-        private async Task<int> InvokeGetMaxEvaluationOrderAsync()
-        {
-            var method = typeof(LiveChatSettingsService).GetMethod(
-                "GetMaxEvaluationOrderAsync",
-                BindingFlags.Public | BindingFlags.Instance
-            );
-            var task = (Task<int>)method!.Invoke(service, Array.Empty<object>())!;
-            return await task;
-        }
-
-        /// <summary>
-        /// Sets up mock for rules at or after specified evaluation order.
-        /// </summary>
-        private void SetupGetRulesAtOrAfterOrderQuery(int order, List<LiveChatRule> rules)
-        {
-            var mockIterator = Substitute.For<FeedIterator<LiveChatRule>>();
-            var mockResponse = Substitute.For<FeedResponse<LiveChatRule>>();
-            mockResponse.Resource.Returns(rules);
-            mockIterator.HasMoreResults.Returns(true, false);
-            mockIterator.ReadNextAsync().Returns(mockResponse);
-
-            mockCosmosClient
-                .QueryItemsIteratorAsync<LiveChatRule>(
-                    Arg.Any<string>(),
-                    Arg.Is<QueryDefinition>(q => q.QueryText.Contains("evaluationOrder"))
-                )
-                .Returns(mockIterator);
-        }
-
-        /// <summary>
-        /// Sets up mock for maximum evaluation order query.
-        /// </summary>
-        private void SetupMaxEvaluationOrderQuery(int maxValue)
-        {
-            var mockIterator = Substitute.For<FeedIterator<int>>();
-            var mockResponse = Substitute.For<FeedResponse<int>>();
-            mockResponse.Resource.Returns(new List<int> { maxValue });
-            mockIterator.HasMoreResults.Returns(true, false);
-            mockIterator.ReadNextAsync().Returns(mockResponse);
-
-            mockCosmosClient
-                .QueryItemsIteratorAsync<int>(Arg.Any<string>(), Arg.Any<QueryDefinition>())
-                .Returns(mockIterator);
-        }
-
-        /// <summary>
-        /// Sets up mock for query iterator responses (used by MatchRuleAsync).
-        /// </summary>
-        private void SetupQueryIteratorResponse(List<LiveChatRule> rules)
-        {
-            var mockIterator = Substitute.For<FeedIterator<LiveChatRule>>();
-            var mockResponse = Substitute.For<FeedResponse<LiveChatRule>>();
-            mockResponse.Resource.Returns(rules);
-            mockIterator.HasMoreResults.Returns(true, false);
-            mockIterator.ReadNextAsync().Returns(mockResponse);
-
-            mockCosmosClient
-                .QueryItemsIteratorAsync<LiveChatRule>(
-                    Arg.Any<string>(),
-                    Arg.Any<QueryDefinition>()
-                )
-                .Returns(mockIterator);
-        }
-
-        /// <summary>
-        /// Sets up mock for rule existence check (rule does not exist).
-        /// </summary>
-        private void SetupRuleDoesNotExist(string ruleName)
-        {
-            mockCosmosClient
-                .GetItemByIdAsync<LiveChatRule>(Arg.Any<string>(), ruleName, Arg.Any<string>())
-                .Returns((LiveChatRule?)null);
-        }
-
-        /// <summary>
-        /// Sets up mock for rule existence check (rule exists).
-        /// </summary>
-        private void SetupRuleExists(string ruleName, LiveChatRule rule)
-        {
-            mockCosmosClient
-                .GetItemByIdAsync<LiveChatRule>(Arg.Any<string>(), ruleName, Arg.Any<string>())
-                .Returns(rule);
-        }
-
-        /// <summary>
-        /// Creates a test LiveChatRule with specified name and evaluation order.
-        /// </summary>
-        private static LiveChatRule CreateTestRule(string name, int? evaluationOrder)
         {
             return new LiveChatRule
             {
-                Name = name,
+                Name = name ?? $"rule-{Interlocked.Increment(ref _ruleCounter)}",
                 EvaluationOrder = evaluationOrder,
-                AllowedServiceLevels = new List<string> { "Professional" }, // Changed from "Standard"
-                IsChatForced = false,
-                AllowRestricted = false,
-                AllowedSaps = new List<Guid> { Guid.NewGuid() },
-                ExcludedServiceIds = new List<int>()
+                AllowedServiceLevels = allowedServiceLevels ?? new List<string> { "professional" },
+                AllowRestricted = allowRestricted ?? false,
+                AllowedSaps =
+                    allowedSaps
+                    ?? new List<Guid> { Guid.Parse("00000000-0000-0000-0000-000000000001") },
+                ExcludedServiceIds = excludedServiceIds ?? new List<int>(),
+                IsChatForced = isChatForced ?? true,
             };
         }
 

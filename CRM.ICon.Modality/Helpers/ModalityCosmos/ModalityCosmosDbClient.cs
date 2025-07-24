@@ -389,29 +389,6 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         #region UTILITY Methods
 
-        /// <inheritdoc/>
-        private Container GetContainer(string databaseId, string containerId)
-        {
-            ValidateStringParameter(databaseId, nameof(databaseId));
-            ValidateContainerParameters(containerId, nameof(containerId));
-
-            try
-            {
-                return cosmosClient.GetContainer(databaseId, containerId);
-            }
-            catch (Exception ex)
-            {
-                telemetryService.LogError<ModalityCosmosDbClient>(
-                    $"Error accessing container '{containerId}' in database '{databaseId}': {ex.Message}",
-                    ex.ToDictionary()
-                );
-                throw new InvalidOperationException(
-                    $"Error accessing container '{containerId}' in database '{databaseId}'.",
-                    ex
-                );
-            }
-        }
-
         /// <summary>
         /// Gets a container reference using the configured database ID
         /// </summary>
