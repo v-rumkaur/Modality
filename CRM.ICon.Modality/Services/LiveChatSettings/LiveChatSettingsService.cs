@@ -477,7 +477,7 @@ namespace CRM.ICon.Modality.Services.LiveChatSettings
                     return;
                 }
 
-                // Simple approach: shift consecutive rules starting from startOrder
+                // shift consecutive rules starting from startOrder
                 var shifts = new List<LiveChatRule>();
                 int expectedOrder = startOrder;
 
