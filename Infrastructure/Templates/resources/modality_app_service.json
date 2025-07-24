@@ -395,6 +395,156 @@
           "tag": "Default",
           "priority": 1025,
           "name": "MSaaS13.76.184.73"
+        },
+        {
+          "ipAddress": "72.145.138.32/32",
+          "action": "Allow",
+          "priority": 212,
+          "name": "MSaaS72.145.138.32"
+        },
+        {
+          "ipAddress": "72.145.138.33/32",
+          "action": "Allow",
+          "priority": 213,
+          "name": "MSaaS72.145.138.33"
+        },
+        {
+          "ipAddress": "172.178.193.160/32",
+          "action": "Allow",
+          "priority": 214,
+          "name": "MSaaS172.178.193.160"
+        },
+        {
+          "ipAddress": "172.178.193.161/32",
+          "action": "Allow",
+          "priority": 215,
+          "name": "MSaaS172.178.193.161"
+        },
+        {
+          "ipAddress": "40.84.114.77/32",
+          "action": "Allow",
+          "priority": 216,
+          "name": "MSaaS40.84.114.77"
+        },
+        {
+          "ipAddress": "57.154.100.96/32",
+          "action": "Allow",
+          "priority": 217,
+          "name": "MSaaS57.154.100.96"
+        },
+        {
+          "ipAddress": "57.154.100.97/32",
+          "action": "Allow",
+          "priority": 218,
+          "name": "MSaaS57.154.100.97"
+        },
+        {
+          "ipAddress": "48.214.136.240/32",
+          "action": "Allow",
+          "priority": 219,
+          "name": "MSaaS48.214.136.240"
+        },
+        {
+          "ipAddress": "48.214.136.241/32",
+          "action": "Allow",
+          "priority": 220,
+          "name": "MSaaS48.214.136.241"
+        },
+        {
+          "ipAddress": "40.84.114.128/32",
+          "action": "Allow",
+          "priority": 221,
+          "name": "MSaaS40.84.114.128"
+        },
+        {
+          "ipAddress": "40.84.114.129/32",
+          "action": "Allow",
+          "priority": 222,
+          "name": "MSaaS40.84.114.129"
+        },
+        {
+          "ipAddress": "4.208.160.32/32",
+          "action": "Allow",
+          "priority": 223,
+          "name": "MSaaS4.208.160.32"
+        },
+        {
+          "ipAddress": "4.208.160.33/32",
+          "action": "Allow",
+          "priority": 224,
+          "name": "MSaaS4.208.160.33"
+        },
+        {
+          "ipAddress": "72.145.138.0/32",
+          "action": "Allow",
+          "priority": 225,
+          "name": "MSaaS72.145.138.0"
+        },
+        {
+          "ipAddress": "72.145.138.1/32",
+          "action": "Allow",
+          "priority": 226,
+          "name": "MSaaS72.145.138.1"
+        },
+        {
+          "ipAddress": "57.155.137.240/32",
+          "action": "Allow",
+          "priority": 227,
+          "name": "MSaaS57.155.137.240"
+        },
+        {
+          "ipAddress": "57.155.137.241/32",
+          "action": "Allow",
+          "priority": 228,
+          "name": "MSaaS57.155.137.241"
+        },
+        {
+          "ipAddress": "48.214.136.192/32",
+          "action": "Allow",
+          "priority": 229,
+          "name": "MSaaS48.214.136.192"
+        },
+        {
+          "ipAddress": "48.214.136.193/32",
+          "action": "Allow",
+          "priority": 230,
+          "name": "MSaaS48.214.136.193"
+        },
+        {
+          "ipAddress": "40.84.114.224/32",
+          "action": "Allow",
+          "priority": 231,
+          "name": "MSaaS40.84.114.224"
+        },
+        {
+          "ipAddress": "40.84.114.225/32",
+          "action": "Allow",
+          "priority": 232,
+          "name": "MSaaS40.84.114.225"
+        },
+        {
+          "ipAddress": "4.208.160.65/32",
+          "action": "Allow",
+          "priority": 233,
+          "name": "MSaaS4.208.160.65"
+        },
+        {
+          "ipAddress": "4.208.160.66/32",
+          "action": "Allow",
+          "priority": 234,
+          "name": "MSaaS4.208.160.66"
+        },
+        {
+          "ipAddress": "48.209.100.225/32",
+          "action": "Allow",
+          "priority": 235,
+          "name": "MSaaS48.209.100.225"
+        },
+        {
+          "ipAddress": "48.209.100.29/32",
+          "action": "Allow",
+          "priority": 236,
+          "name": "MSaaS48.209.100.29"
         }
       ]
     }
