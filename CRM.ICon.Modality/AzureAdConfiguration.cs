@@ -8,6 +8,11 @@
         public string ClientId { get; set; }
 
         /// <summary>
+        /// Gets or sets the Audience
+        /// </summary>
+        public string Audience { get; set; }
+
+        /// <summary>
         /// Gets or sets the TenantId
         /// </summary>
         public string TenantId { get; set; }
@@ -22,7 +27,7 @@
         /// </summary>
         public string? ClientCertSubjectName { get; set; } = string.Empty;
 
-        public string?  Instance { get; set; }
+        public string? Instance { get; set; }
         public string OAuthVersion { get; set; }
     }
 }

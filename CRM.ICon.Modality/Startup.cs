@@ -126,6 +126,16 @@ namespace CRM.ICon.Modality
             services.AddAuthentication(S2SAuthenticationDefaults.AuthenticationScheme)
                     .AddMiseWithDefaultModules(Configuration, authenticationSectionName: "AzureAdConfiguration");
 
+            // Add logging after MISE is configured
+            services.Configure<AzureAdConfiguration>(config =>
+            {
+                var serviceProvider = services.BuildServiceProvider();
+                var logger = serviceProvider.GetService<ILogger<Startup>>();
+                var aadConfig = this.Configuration.GetSection("AzureAdConfiguration").Get<AzureAdConfiguration>();
+                logger?.LogInformation("MISE Audience configured: {Audience}", aadConfig?.Audience);
+                logger?.LogInformation("MISE ClientId configured: {ClientId}", aadConfig?.ClientId);
+            });
+
             services.AddSingleton<AuthTokenClient>();
        
 
