@@ -1,9 +1,10 @@
-﻿using CRM.ICon.Modality.Helpers;
+﻿using System.Text.Json;
+using CRM.ICon.Modality.Helpers;
 using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
 using Microsoft.Extensions.Options;
-using System.Text.Json;
+using static CRM.ICon.Modality.ModalityConstants;
 
 namespace CRM.ICon.Modality.Services.Omnichannel
 {
@@ -19,15 +20,21 @@ namespace CRM.ICon.Modality.Services.Omnichannel
         private readonly IModalityCosmosDbClient modalityCosmosDbClient;
         private readonly string containerId;
 
-        public OmnichannelService(HttpClient httpClient, IOptions<OmnichannelConfiguration> options,
-        IOptions<ModalityCosmosDbConfiguration> cosmosDbConfiguration,
+        public OmnichannelService(
+            HttpClient httpClient,
+            IOptions<OmnichannelConfiguration> options,
+            IOptions<ModalityCosmosDbConfiguration> cosmosDbConfiguration,
             IOptions<Dictionary<string, WidgetDetails>> widgetConfiguration,
             IOptions<Dictionary<string, string>> skillcharacteristicConfiguration,
-            ITelemetryService telemetryService, IOptions<Dictionary<string, WorkstreamDetails>> workstreamConfiguration,
-            IModalityCosmosDbClient modalityCosmosDbClient)
+            ITelemetryService telemetryService,
+            IOptions<Dictionary<string, WorkstreamDetails>> workstreamConfiguration,
+            IModalityCosmosDbClient modalityCosmosDbClient
+        )
         {
             this.httpClient = httpClient;
-            this.cosmosDbConfiguration = cosmosDbConfiguration?.Value ?? throw new ArgumentNullException(nameof(cosmosDbConfiguration));
+            this.cosmosDbConfiguration =
+                cosmosDbConfiguration?.Value
+                ?? throw new ArgumentNullException(nameof(cosmosDbConfiguration));
             this.omnichannelConfiguration = options.Value;
             this.widgetConfiguration = widgetConfiguration.Value;
             this.skillcharacteristicConfiguration = skillcharacteristicConfiguration.Value;
@@ -37,7 +44,12 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             this.containerId = this.cosmosDbConfiguration.ContainerIds.WidgetMapping;
         }
 
-        public async Task<OmnichannelResponse> GetAgentAvailability(OmnichannelRequest request, string source, string userType, string requestId)
+        public async Task<OmnichannelResponse> GetAgentAvailability(
+            OmnichannelRequest request,
+            string source,
+            string userType,
+            string requestId
+        )
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
             logProperties.AddObjectAsString("RequestId", requestId);
@@ -45,26 +57,49 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             {
                 var tracingId = Guid.NewGuid().ToString();
                 string workstreamKey = (source + "-" + userType).ToLowerInvariant();
-                workstreamConfiguration.TryGetValue(workstreamKey, out WorkstreamDetails workstreamDetails);
-                var agentAvailabilityUrl = omnichannelConfiguration.ServiceEndpoint + "/c2q/v1.0/getagentavailabilitypublic/" + workstreamDetails?.WorkstreamId + "/" + tracingId;
+                workstreamConfiguration.TryGetValue(
+                    workstreamKey,
+                    out WorkstreamDetails workstreamDetails
+                );
+                var agentAvailabilityUrl =
+                    omnichannelConfiguration.ServiceEndpoint
+                    + "/c2q/v1.0/getagentavailabilitypublic/"
+                    + workstreamDetails?.WorkstreamId
+                    + "/"
+                    + tracingId;
 
                 var options = new JsonSerializerOptions
                 {
-                    PropertyNamingPolicy = null // Prevent camelCase conversion
+                    PropertyNamingPolicy = null, // Prevent camelCase conversion
                 };
-                var response = await httpClient.PostAsJsonAsync(agentAvailabilityUrl, request, options);
+                var response = await httpClient.PostAsJsonAsync(
+                    agentAvailabilityUrl,
+                    request,
+                    options
+                );
                 response.EnsureSuccessStatusCode();
-                var deserializedResponse = await response.Content.ReadFromJsonAsync<OmnichannelResponse>();
+                var deserializedResponse =
+                    await response.Content.ReadFromJsonAsync<OmnichannelResponse>();
                 return deserializedResponse;
             }
             catch (Exception exception)
             {
-                _telemetryService.LogException<OmnichannelService>(exception, logProperties, "GetAgentAvailability Failure");
+                _telemetryService.LogException<OmnichannelService>(
+                    exception,
+                    logProperties,
+                    "GetAgentAvailability Failure"
+                );
                 return null;
             }
         }
 
-        public async Task<WidgetDetails> GetWidgetDetails(string language, string source, string userType, bool isMCS, string ring)
+        public async Task<WidgetDetails> GetWidgetDetails(
+            string language,
+            string source,
+            string userType,
+            bool isMCS,
+            string ring
+        )
         {
             if (string.IsNullOrEmpty(userType))
             {
@@ -78,22 +113,39 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                 string widgetkey = (source + "-" + language + "-" + userType).ToLowerInvariant();
                 if (widgetConfiguration.TryGetValue(widgetkey, out widgetDetails))
                 {
-                    widgetDetails.OrgUrl = omnichannelConfiguration != null ? omnichannelConfiguration.OrgUrl : null;
-                    widgetDetails.OrgId = omnichannelConfiguration != null ? omnichannelConfiguration.OrgId : null;
+                    widgetDetails.OrgUrl =
+                        omnichannelConfiguration != null ? omnichannelConfiguration.OrgUrl : null;
+                    widgetDetails.OrgId =
+                        omnichannelConfiguration != null ? omnichannelConfiguration.OrgId : null;
                 }
             }
             else
             {
-                string region = RingRegionalMapping.RingRegionalData.TryGetValue(ring, out var regionResult) ? regionResult : "nam";
+                string region = RingRegionalMapping.RingRegionalData.TryGetValue(
+                    ring,
+                    out var regionResult
+                )
+                    ? regionResult
+                    : "nam";
 
-                string widgetkey = (source + "-" + language + "-" + userType + "-" + region).ToLowerInvariant();
+                string widgetkey = (
+                    source + "-" + language + "-" + userType + "-" + region
+                ).ToLowerInvariant();
 
-                var response = await modalityCosmosDbClient.GetItemAsync<WidgetMappingResponse>(containerId, widgetkey);
+                var response = await modalityCosmosDbClient.GetItemByIdAsync<WidgetMappingResponse>(
+                    containerId,
+                    widgetkey,
+                    WidgetMappingConstants.PartitionKeyValue
+                );
 
                 if (response != null)
                 {
-                    widgetDetails.WidgetId = response.IsBackUp ? response.Backup?.WidgetId : response.Primary?.WidgetId;
-                    widgetDetails.BotId = response.IsBackUp ? response.Backup?.BotId : response.Primary?.BotId;
+                    widgetDetails.WidgetId = response.IsBackUp
+                        ? response.Backup?.WidgetId
+                        : response.Primary?.WidgetId;
+                    widgetDetails.BotId = response.IsBackUp
+                        ? response.Backup?.BotId
+                        : response.Primary?.BotId;
                     widgetDetails.OrgUrl = omnichannelConfiguration?.OrgUrl;
                     widgetDetails.OrgId = omnichannelConfiguration?.OrgId;
                 }
@@ -102,7 +154,12 @@ namespace CRM.ICon.Modality.Services.Omnichannel
             return widgetDetails;
         }
 
-        public async Task<WidgetMappingResponse> CreateWidgetDetails(WidgetMappingRequest widgetMappingRequest, string language, string source, string userType)
+        public async Task<WidgetMappingResponse> CreateWidgetDetails(
+            WidgetMappingRequest widgetMappingRequest,
+            string language,
+            string source,
+            string userType
+        )
         {
             //default to commercial
             userType ??= "commercial";
@@ -138,12 +195,17 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                     WidgetId = widgetMappingRequest.Backup?.WidgetId,
                     WorkstreamId = widgetMappingRequest.Backup?.WorkstreamId,
                     BotId = widgetMappingRequest.Backup?.BotId,
-                }
+                },
             };
 
             // Get region from ring
             string ring = widgetMappingRequest.Ring ?? "Ring4";
-            widgetMappingResponse.Region = RingRegionalMapping.RingRegionalData.TryGetValue(ring, out string region) ? region : "nam";
+            widgetMappingResponse.Region = RingRegionalMapping.RingRegionalData.TryGetValue(
+                ring,
+                out string region
+            )
+                ? region
+                : "nam";
 
             // Generate ID
             widgetMappingResponse.Id = widgetMappingResponse.IsMCS
@@ -151,7 +213,10 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                 : $"{source}-{language}-{userType}".ToLowerInvariant();
 
             // Save to Cosmos DB
-            return await modalityCosmosDbClient.UpsertItemAsync<WidgetMappingResponse>(containerId, widgetMappingResponse);
+            return await modalityCosmosDbClient.UpsertItemAsync<WidgetMappingResponse>(
+                containerId,
+                widgetMappingResponse
+            );
         }
 
         public string GetSkillCharacteristicId(string skill)

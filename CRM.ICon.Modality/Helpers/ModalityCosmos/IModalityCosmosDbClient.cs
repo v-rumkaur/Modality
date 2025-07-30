@@ -23,16 +23,6 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         Task<T> UpsertItemAsync<T>(string containerId, T item);
 
         /// <summary>
-        /// Retrieves an item by ID without partition key (for legacy containers).
-        /// Used for widget mapping where partition key breaks live chat settings.
-        /// </summary>
-        /// <typeparam name="T">The type of item to retrieve.</typeparam>
-        /// <param name="id">The item identifier.</param>
-        /// <param name="containerId">The container identifier.</param>
-        /// <returns>The item if found, otherwise null.</returns>
-        Task<T?> GetItemAsync<T>(string id, string containerId);
-
-        /// <summary>
         /// Creates a new item in the specified container with partition key.
         /// </summary>
         /// <typeparam name="T">The type of item to create.</typeparam>
