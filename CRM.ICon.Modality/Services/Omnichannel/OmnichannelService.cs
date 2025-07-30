@@ -132,10 +132,9 @@ namespace CRM.ICon.Modality.Services.Omnichannel
                     source + "-" + language + "-" + userType + "-" + region
                 ).ToLowerInvariant();
 
-                var response = await modalityCosmosDbClient.GetItemByIdAsync<WidgetMappingResponse>(
-                    containerId,
+                var response = await modalityCosmosDbClient.GetItemAsync<WidgetMappingResponse>(
                     widgetkey,
-                    WidgetMappingConstants.PartitionKeyValue
+                    containerId
                 );
 
                 if (response != null)

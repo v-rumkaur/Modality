@@ -148,6 +148,48 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         #region READ Operations
 
+
+        /// <inheritdoc/>
+        public async Task<T?> GetItemAsync<T>(string id, string containerId)
+        {
+            ValidateStringParameter(id, nameof(id));
+            ValidateContainerParameters(containerId, nameof(containerId));
+
+            telemetryService.LogTrace<ModalityCosmosDbClient>(
+                $"Getting item without partition key from container: {containerId}, id: {id}"
+            );
+
+            try
+            {
+                var container = await GetContainerAsync(containerId);
+                var response = await container
+                    .ReadItemAsync<T>(id, new PartitionKey(id))
+                    .ConfigureAwait(false);
+
+                telemetryService.LogTrace<ModalityCosmosDbClient>(
+                    $"Successfully retrieved item from container: {containerId}, RU consumed: {response.RequestCharge}"
+                );
+
+                return response.Resource;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                telemetryService.LogTrace<ModalityCosmosDbClient>(
+                    $"Item not found in container: {containerId}, id: {id}"
+                );
+                return default(T);
+            }
+            catch (Exception ex)
+            {
+                telemetryService.LogError<ModalityCosmosDbClient>(
+                    $"Error retrieving item with id '{id}' from container '{containerId}': {ex.Message}",
+                    ex.ToDictionary()
+                );
+                // For legacy compatibility, return default instead of throwing
+                return default(T);
+            }
+        }
+
         /// <inheritdoc/>
         public async Task<T?> GetItemByIdAsync<T>(
             string containerId,
@@ -371,7 +413,12 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
                     containerId,
                     partitionKeyPath
                 );
-                return containerResponse.Container;
+                var container = containerResponse.Container;
+                var containerProperties = await container.ReadContainerAsync();
+                telemetryService.LogTrace<ModalityCosmosDbClient>(
+                    $"Existing container partition key: {containerProperties.Resource.PartitionKeyPath}"
+                );
+                return container;
             }
             catch (Exception ex)
             {
