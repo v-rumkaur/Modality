@@ -363,6 +363,9 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             try
             {
                 var partitionKeyPath = GetPartitionKeyPath(containerId);
+                telemetryService.LogTrace<ModalityCosmosDbClient>(
+                    $"Getting container - Database: {cosmosDbConfiguration.DatabaseId}, Container: {containerId}, PartitionKeyPath: {partitionKeyPath}"
+                );
                 var database = cosmosClient.GetDatabase(cosmosDbConfiguration.DatabaseId);
                 var containerResponse = await database.CreateContainerIfNotExistsAsync(
                     containerId,
@@ -372,12 +375,13 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             }
             catch (Exception ex)
             {
+                var partitionKeyPath = GetPartitionKeyPath(containerId);
                 telemetryService.LogError<ModalityCosmosDbClient>(
-                    $"Error accessing container '{containerId}' in database '{cosmosDbConfiguration.DatabaseId}': {ex.Message}",
+                    $"Error accessing container - Database: {cosmosDbConfiguration.DatabaseId}, Container: {containerId}, PartitionKeyPath: {partitionKeyPath}, Error: {ex.Message}",
                     ex.ToDictionary()
                 );
                 throw new InvalidOperationException(
-                    $"Error accessing container '{containerId}' in database '{cosmosDbConfiguration.DatabaseId}'.",
+                    $"Error accessing container '{containerId}' in database '{cosmosDbConfiguration.DatabaseId}' with partition key '{partitionKeyPath}'.",
                     ex
                 );
             }
