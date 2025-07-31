@@ -155,7 +155,7 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
             ValidateContainerParameters(containerId, nameof(containerId));
 
             telemetryService.LogTrace<ModalityCosmosDbClient>(
-                $"Getting item without partition key from container: {containerId}, id: {id}"
+                $"Getting item from container: {containerId}, id: {id}, using id as partition key"
             );
 
             try
