@@ -148,7 +148,6 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 
         #region READ Operations
 
-
         /// <inheritdoc/>
         public async Task<T?> GetItemAsync<T>(string id, string containerId)
         {

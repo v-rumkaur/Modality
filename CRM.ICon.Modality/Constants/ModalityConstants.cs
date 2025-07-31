@@ -22,11 +22,6 @@ namespace CRM.ICon.Modality
             /// The partition key property name used in Cosmos DB documents.
             /// </summary>
             public const string PartitionKeyPath = "id";
-
-            /// <summary>
-            /// The partition key value used for Widget Mapping documents.
-            /// </summary>
-            public const string PartitionKeyValue = "id";
         }
     }
 }
