@@ -15,5 +15,13 @@ namespace CRM.ICon.Modality
 
         //RequestId
         public const string RequestId = "RequestId";
+
+        public static class WidgetMappingConstants
+        {
+            /// <summary>
+            /// The partition key property name used in Cosmos DB documents.
+            /// </summary>
+            public const string PartitionKeyPath = "id";
+        }
     }
 }

@@ -5,12 +5,11 @@
 // --------------------------------------------------------------------------------------------------------------------
 
 using System.Net;
-using System.Runtime.CompilerServices;
 using Azure.Identity;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
+using static CRM.ICon.Modality.ModalityConstants;
 
 namespace CRM.ICon.Modality.Helpers.ModalityCosmos
 {
@@ -150,6 +149,47 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         #region READ Operations
 
         /// <inheritdoc/>
+        public async Task<T?> GetItemAsync<T>(string id, string containerId)
+        {
+            ValidateStringParameter(id, nameof(id));
+            ValidateContainerParameters(containerId, nameof(containerId));
+
+            telemetryService.LogTrace<ModalityCosmosDbClient>(
+                $"Getting item from container: {containerId}, id: {id}, using id as partition key"
+            );
+
+            try
+            {
+                var container = await GetContainerAsync(containerId);
+                var response = await container
+                    .ReadItemAsync<T>(id, new PartitionKey(id))
+                    .ConfigureAwait(false);
+
+                telemetryService.LogTrace<ModalityCosmosDbClient>(
+                    $"Successfully retrieved item from container: {containerId}, RU consumed: {response.RequestCharge}"
+                );
+
+                return response.Resource;
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                telemetryService.LogTrace<ModalityCosmosDbClient>(
+                    $"Item not found in container: {containerId}, id: {id}"
+                );
+                return default(T);
+            }
+            catch (Exception ex)
+            {
+                telemetryService.LogError<ModalityCosmosDbClient>(
+                    $"Error retrieving item with id '{id}' from container '{containerId}': {ex.Message}",
+                    ex.ToDictionary()
+                );
+                // For legacy compatibility, return default instead of throwing
+                return default(T);
+            }
+        }
+
+        /// <inheritdoc/>
         public async Task<T?> GetItemByIdAsync<T>(
             string containerId,
             string name,
@@ -195,45 +235,6 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
                     $"Error retrieving item with name '{name}' from container '{containerId}'.",
                     ex
                 );
-            }
-        }
-
-        /// <inheritdoc/>
-        public async Task<T?> GetItemAsync<T>(string id, string containerId)
-        {
-            ValidateStringParameter(id, nameof(id));
-            ValidateContainerParameters(containerId, nameof(containerId));
-
-            telemetryService.LogTrace<ModalityCosmosDbClient>(
-                $"Getting item without partition key from container: {containerId}, id: {id}"
-            );
-
-            try
-            {
-                var container = await GetContainerAsync(containerId);
-                var response = await container.ReadItemAsync<T>(id, PartitionKey.None);
-
-                telemetryService.LogTrace<ModalityCosmosDbClient>(
-                    $"Successfully retrieved item from container: {containerId}, RU consumed: {response.RequestCharge}"
-                );
-
-                return response.Resource;
-            }
-            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-                telemetryService.LogTrace<ModalityCosmosDbClient>(
-                    $"Item not found in container: {containerId}, id: {id}"
-                );
-                return default(T);
-            }
-            catch (Exception ex)
-            {
-                telemetryService.LogError<ModalityCosmosDbClient>(
-                    $"Error retrieving item with id '{id}' from container '{containerId}': {ex.Message}",
-                    ex.ToDictionary()
-                );
-                // For legacy compatibility, return default instead of throwing
-                return default(T);
             }
         }
 
@@ -324,7 +325,10 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         }
 
         /// <inheritdoc/>
-        public async Task<FeedIterator<T>> QueryItemsIteratorAsync<T>(string containerId, QueryDefinition query)
+        public async Task<FeedIterator<T>> QueryItemsIteratorAsync<T>(
+            string containerId,
+            QueryDefinition query
+        )
         {
             ValidateContainerParameters(containerId, nameof(containerId));
             ValidateQueryParameter(query, nameof(query));
@@ -399,41 +403,31 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
         {
             try
             {
-                var partitionKeyPath = cosmosDbConfiguration.PartitionKeyPath;
-                if (
-                    containerId.Equals(
-                        cosmosDbConfiguration.ContainerIds.LiveChatSettings,
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                )
-                {
-                    partitionKeyPath = "/" + LiveChatConstants.PartitionKeyPath;
-                }
-                else if (
-                    containerId.Equals(
-                        cosmosDbConfiguration.ContainerIds.WidgetMapping,
-                        StringComparison.OrdinalIgnoreCase
-                    )
-                )
-                {
-                    partitionKeyPath = "/id";
-                }
-
+                var partitionKeyPath = GetPartitionKeyPath(containerId);
+                telemetryService.LogTrace<ModalityCosmosDbClient>(
+                    $"Getting container - Database: {cosmosDbConfiguration.DatabaseId}, Container: {containerId}, PartitionKeyPath: {partitionKeyPath}"
+                );
                 var database = cosmosClient.GetDatabase(cosmosDbConfiguration.DatabaseId);
                 var containerResponse = await database.CreateContainerIfNotExistsAsync(
                     containerId,
                     partitionKeyPath
                 );
-                return containerResponse.Container;
+                var container = containerResponse.Container;
+                var containerProperties = await container.ReadContainerAsync();
+                telemetryService.LogTrace<ModalityCosmosDbClient>(
+                    $"Existing container partition key: {containerProperties.Resource.PartitionKeyPath}"
+                );
+                return container;
             }
             catch (Exception ex)
             {
+                var partitionKeyPath = GetPartitionKeyPath(containerId);
                 telemetryService.LogError<ModalityCosmosDbClient>(
-                    $"Error accessing container '{containerId}' in database '{cosmosDbConfiguration.DatabaseId}': {ex.Message}",
+                    $"Error accessing container - Database: {cosmosDbConfiguration.DatabaseId}, Container: {containerId}, PartitionKeyPath: {partitionKeyPath}, Error: {ex.Message}",
                     ex.ToDictionary()
                 );
                 throw new InvalidOperationException(
-                    $"Error accessing container '{containerId}' in database '{cosmosDbConfiguration.DatabaseId}'.",
+                    $"Error accessing container '{containerId}' in database '{cosmosDbConfiguration.DatabaseId}' with partition key '{partitionKeyPath}'.",
                     ex
                 );
             }
@@ -510,5 +504,27 @@ namespace CRM.ICon.Modality.Helpers.ModalityCosmos
                 throw new ArgumentNullException(parameterName);
         }
         #endregion
+
+        /// <summary>
+        /// Gets the partition key path for a given container
+        /// </summary>
+        /// <param name="containerId">The container identifier</param>
+        /// <returns>The partition key path (e.g., "/id" or "/partitionKey")</returns>
+        private string GetPartitionKeyPath(string containerId)
+        {
+            // LiveChatSettings uses a custom partition key, everything else uses /id
+            if (
+                string.Equals(
+                    containerId,
+                    cosmosDbConfiguration.ContainerIds.LiveChatSettings,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return "/" + LiveChatConstants.PartitionKeyPath;
+            }
+
+            return "/" + WidgetMappingConstants.PartitionKeyPath; // Default for WidgetMapping and any other containers
+        }
     }
 }
