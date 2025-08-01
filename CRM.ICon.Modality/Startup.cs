@@ -15,6 +15,7 @@ using Microsoft.Identity.ServiceEssentials.Extensions.AspNetCoreMiddleware;
 using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Cosmos;
 using CRM.ICon.Modality.Services.LiveChatSettings;
+using CRM.ICon.Modality.Helpers.Identity;
 
 namespace CRM.ICon.Modality
 {
@@ -156,6 +157,7 @@ namespace CRM.ICon.Modality
                 DFMTenantId = options.DFMTenantId
             });
 
+            services.AddSingleton<ICredentialProvider, CredentialProvider>();
             services.AddSingleton<ITelemetryService, TelemetryService>();
             services.AddSingleton<ITelemetryRepository, TelemetryRepository>();
             services.AddSingleton<ITelemetryProvider, ApplicationInsightsLogProvider>();

@@ -1,14 +1,11 @@
 ﻿using Azure.Core;
 using Azure.Identity;
-using CRM.ICon.Modality.Helpers.KeyVaultClient;
 using CRM.ICon.Modality.Helpers;
-using Microsoft.Identity.Client;
-using Microsoft.Identity.Web;
-using System.Security.Cryptography.X509Certificates;
-using System.Text.Json.Serialization;
-using CRM.ICon.Modality.Controllers;
-using Microsoft.Identity.ServiceEssentials;
+using CRM.ICon.Modality.Helpers.Identity;
+using CRM.ICon.Modality.Helpers.KeyVaultClient;
 using CRM.ICon.Modality.Helpers.Telemetry;
+using Microsoft.Identity.Client;
+using System.Security.Cryptography.X509Certificates;
 
 namespace CRM.ICon.Modality
 {
@@ -18,11 +15,13 @@ namespace CRM.ICon.Modality
         private readonly Dictionary<string, CachedAuthToken> cachedTokens = new();
         private readonly IKeyVaultClient keyVaultClient;
         private readonly ITelemetryService telemetryService;
-        public AuthTokenClient(IHttpClientFactory httpClientFactory, IKeyVaultClient keyVaultClient, ITelemetryService telemetryService)
+        private readonly ICredentialProvider credentialProvider;
+        public AuthTokenClient(IHttpClientFactory httpClientFactory, IKeyVaultClient keyVaultClient, ITelemetryService telemetryService, ICredentialProvider credentialProvider)
         {
             httpClient = httpClientFactory.CreateClient("default");
             this.keyVaultClient = keyVaultClient ?? throw new ArgumentNullException(nameof(keyVaultClient));
             this.telemetryService = telemetryService;
+            this.credentialProvider = credentialProvider ?? throw new ArgumentNullException(nameof(credentialProvider));
         }
 
         public async Task<string> GetToken(string clientId, string managedIdentityClientId, string resource, string tenantId)
@@ -40,13 +39,8 @@ namespace CRM.ICon.Modality
             var logProperties = ModalityExtensions.GetRequestProperties();
             try
             {
-                
-                var credentials = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-                {
-                    ManagedIdentityClientId = managedIdentityClientId
-                });
-                
-                var result = await credentials.GetTokenAsync(new TokenRequestContext(new[] { resource }));
+                var credentials = credentialProvider.GetCredential(managedIdentityClientId);
+                var result = await credentials.GetTokenAsync(new TokenRequestContext([resource]), default);
                 return result.Token.ToString();
             }
             catch (Exception ex)

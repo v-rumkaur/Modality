@@ -16,6 +16,7 @@ namespace CRM.ICon.Modality.Helpers.Cosmos
     using Azure.Core;
     using Azure.Identity;
     using CRM.ICon.Modality;
+    using CRM.ICon.Modality.Helpers.Identity;
     using Microsoft.Azure.Cosmos;
     using Microsoft.Azure.Cosmos.Linq;
     using Microsoft.Extensions.Options;
@@ -33,7 +34,7 @@ namespace CRM.ICon.Modality.Helpers.Cosmos
         /// Initializes a new instance of the <see cref="CosmosDbClient"/> class.
         /// </summary>
         /// <param name="cosmosDbConfiguration">Cosmos db configuration</param>
-        public CosmosDbClient(IOptions<CosmosDbConfiguration> cosmosDbConfiguration, IOptions<AzureAdConfiguration> azureAdConfiguration)
+        public CosmosDbClient(IOptions<CosmosDbConfiguration> cosmosDbConfiguration, IOptions<AzureAdConfiguration> azureAdConfiguration, ICredentialProvider credentialProvider)
         {
             this.cosmosDbConfiguration = cosmosDbConfiguration?.Value ?? throw new ArgumentNullException(nameof(cosmosDbConfiguration));
             this.azureAdConfiguration = azureAdConfiguration.Value;
@@ -49,7 +50,7 @@ namespace CRM.ICon.Modality.Helpers.Cosmos
                     PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
                 }
             };
-            this.cosmosClient = new CosmosClient(this.cosmosDbConfiguration.CosmosDbEndpoint, new DefaultAzureCredential(new DefaultAzureCredentialOptions {ManagedIdentityClientId = this.azureAdConfiguration.ManagedIdentityClientId }), cosmosClientOptions);
+            this.cosmosClient = new CosmosClient(this.cosmosDbConfiguration.CosmosDbEndpoint, credentialProvider.GetCredential(this.azureAdConfiguration.ManagedIdentityClientId), cosmosClientOptions);
         }
 
         public async Task<T> UpsertItemAsync<T>(T item)
