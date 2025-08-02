@@ -1,11 +1,12 @@
 ﻿using Azure.Core;
 using Azure.Identity;
+using System.Collections.Concurrent;
 
 namespace CRM.ICon.Modality.Helpers.Identity
 {
     public class CredentialProvider(IWebHostEnvironment environment) : ICredentialProvider
     {
-        private readonly Dictionary<string, TokenCredential> _clientCredentials = new();
+        private readonly ConcurrentDictionary<string, TokenCredential> _clientCredentials = new();
         private readonly TokenCredential _defaultCredential = environment.IsDevelopment()
                 ? new DefaultAzureCredential()
                 : new ManagedIdentityCredential();
