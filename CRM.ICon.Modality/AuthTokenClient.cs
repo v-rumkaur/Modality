@@ -38,8 +38,13 @@ namespace CRM.ICon.Modality
         private async Task<string> RetrieveToken(string clientId, string managedIdentityClientId, string resource, string tenantId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["ManagedIdentityClientId"] = managedIdentityClientId;
+            logProperties["Resource"] = resource;
+            logProperties["TenantId"] = tenantId;
+            
             try
             {
+                this.telemetryService.LogTrace<AuthTokenClient>("Attempting to retrieve token using managed identity", logProperties);
                 
                 var credentials = new DefaultAzureCredential(new DefaultAzureCredentialOptions
                 {
@@ -47,6 +52,8 @@ namespace CRM.ICon.Modality
                 });
                 
                 var result = await credentials.GetTokenAsync(new TokenRequestContext(new[] { resource }));
+                
+                this.telemetryService.LogTrace<AuthTokenClient>("Successfully retrieved token using managed identity", logProperties);
                 return result.Token.ToString();
             }
             catch (Exception ex)
@@ -68,9 +75,17 @@ namespace CRM.ICon.Modality
         private async Task<string> RetrieveTokenWithCertAsync(string clientId, string certificateSubjectName, string scope, string tenantId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["ClientId"] = clientId;
+            logProperties["CertificateSubjectName"] = certificateSubjectName;
+            logProperties["Scope"] = scope;
+            logProperties["TenantId"] = tenantId;
+            
             try
             {
+                this.telemetryService.LogTrace<AuthTokenClient>("Attempting to retrieve token using certificate", logProperties);
+                
                 X509Certificate2 cert = await keyVaultClient.GetCertificateAsync(certificateSubjectName);
+                
                 var app = ConfidentialClientApplicationBuilder
                             .Create(clientId)
                             .WithTenantId(tenantId)
@@ -79,11 +94,13 @@ namespace CRM.ICon.Modality
                             .Build();
 
                 var result = await app.AcquireTokenForClient(new[] { scope + "/.default" }).WithSendX5C(true).ExecuteAsync();
+                
+                this.telemetryService.LogTrace<AuthTokenClient>("Successfully retrieved token using certificate", logProperties);
                 return result.AccessToken.ToString();
             }
             catch (Exception ex)
             {
-                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "Omnichannel token Generation Failed");
+                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "Certificate token Generation Failed");
                 throw;
             }
         }
