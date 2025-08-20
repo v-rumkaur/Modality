@@ -82,10 +82,10 @@ namespace CRM.ICon.Modality.Controllers
             modalityInfoPhone.InHoops = true;
 
             ModalityInfo modalityInfoPCS = new ModalityInfo();
-            modalityInfoPhone.Modality = 5;
-            modalityInfoPhone.WaitTime = "0";
-            modalityInfoPhone.IsAgentAvailable = true;
-            modalityInfoPhone.InHoops = true;
+            modalityInfoPCS.Modality = 5;
+            modalityInfoPCS.WaitTime = "0";
+            modalityInfoPCS.IsAgentAvailable = true;
+            modalityInfoPCS.InHoops = true;
 
             ICollection<LanguageSkillData> languageSkills = UserLcidToSkillData(userLCID);
 
