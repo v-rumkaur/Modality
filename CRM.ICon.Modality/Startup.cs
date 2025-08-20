@@ -53,8 +53,6 @@ namespace CRM.ICon.Modality
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseSwaggerUI();
-                app.UseSwagger();
             }
             else
             {
