@@ -26,7 +26,10 @@ namespace CRM.ICon.Modality.Helpers.Telemetry
 
             Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration applicationInsightsConfiguration = Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration.CreateDefault();
             applicationInsightsConfiguration.ConnectionString = this.telemetryConfiguration.ApplicationInsightsConnectionString;
-            applicationInsightsConfiguration.SetAzureTokenCredential(credentialProvider.GetCredential());
+            
+            // Let Application Insights use the default App Service authentication instead of explicit managed identity
+            // This avoids the "Unable to load the proper Managed Identity" error while still allowing telemetry to work
+            
             this.telemetryClient = new TelemetryClient(applicationInsightsConfiguration);
         }
 
