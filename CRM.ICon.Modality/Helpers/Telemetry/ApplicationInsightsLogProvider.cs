@@ -4,6 +4,7 @@ using Microsoft.ApplicationInsights;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.Metrics;
 using CRM.ICon.Modality.Helpers.HttpContext;
+using CRM.ICon.Modality.Helpers.Identity;
 
 namespace CRM.ICon.Modality.Helpers.Telemetry
 {
@@ -18,17 +19,14 @@ namespace CRM.ICon.Modality.Helpers.Telemetry
         /// </summary>
         /// <param name="telemetryConfiguration">Telemetry configuration</param>
         /// <param name="httpContextHandler">Http context handler object</param>
-        public ApplicationInsightsLogProvider(IOptions<Configuration.TelemetryConfiguration> telemetryConfiguration, IHttpContextHandler httpContextHandler)
+        public ApplicationInsightsLogProvider(IOptions<Configuration.TelemetryConfiguration> telemetryConfiguration, IHttpContextHandler httpContextHandler, ICredentialProvider credentialProvider)
         {
             this.telemetryConfiguration = telemetryConfiguration?.Value ?? throw new ArgumentNullException(nameof(telemetryConfiguration));
             this.httpContextHandler = httpContextHandler ?? throw new ArgumentNullException(nameof(httpContextHandler));
 
             Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration applicationInsightsConfiguration = Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration.CreateDefault();
             applicationInsightsConfiguration.ConnectionString = this.telemetryConfiguration.ApplicationInsightsConnectionString;
-            
-            // Let Application Insights use the default App Service authentication instead of explicit managed identity
-            // This avoids the "Unable to load the proper Managed Identity" error while still allowing telemetry to work
-            
+            applicationInsightsConfiguration.SetAzureTokenCredential(credentialProvider.GetCredential());
             this.telemetryClient = new TelemetryClient(applicationInsightsConfiguration);
         }
 
