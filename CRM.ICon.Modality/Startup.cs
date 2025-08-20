@@ -100,10 +100,11 @@ namespace CRM.ICon.Modality
             services.Configure<CosmosDbConfiguration>(this.Configuration.GetSection("CosmosDbConfiguration"));
             services.Configure<ModalityCosmosDbConfiguration>(this.Configuration.GetSection("ModalityCosmosDbConfiguration"));
 
-            // Initialize Telemetry
-            var applicationInsightsServiceOptions = new Microsoft.ApplicationInsights.AspNetCore.Extensions.ApplicationInsightsServiceOptions();
-            applicationInsightsServiceOptions.ConnectionString = Configuration.GetSection(ModalityConstants.TelemetryConfiguration).GetValue<string>(ModalityConstants.ApplicationInsightsConnectionString);
-            services.AddApplicationInsightsTelemetry(applicationInsightsServiceOptions);
+            // Initialize Telemetry - Use managed identity for compliance
+            services.AddApplicationInsightsTelemetry(options => 
+            {
+                options.ConnectionString = Configuration.GetSection(ModalityConstants.TelemetryConfiguration).GetValue<string>(ModalityConstants.ApplicationInsightsConnectionString);
+            });
             services.AddHealthChecks();
 
             services.AddControllers().AddJsonOptions(options =>
@@ -136,23 +137,27 @@ namespace CRM.ICon.Modality
             {
                 Resource = options.Resource,
                 TenantId = options.TenantId,
-                
+                UseCertificateAuth = false  // VDM uses managed identity
             });
 
             services.AddHttpClient<IOmnichannelService, OmnichannelService>().ConfigureServiceAuthHandler<OmnichannelConfiguration>((options) => new ServiceAuthHandlerParams
             {
+                FPAClientId = aadConfiguration.FPAClientId,
                 Resource = options.Resource,
                 TenantId = options.TenantId,
                 OrgId = options.OrgId,
-                DFMTenantId = options.DFMTenantId
+                DFMTenantId = options.DFMTenantId,
+                UseCertificateAuth = true   // Omnichannel uses certificate
             });
 
             services.AddHttpClient<IOmnichannelEUService, OmnichannelEUService>().ConfigureServiceAuthHandler<OmnichannelEUConfiguration>((options) => new ServiceAuthHandlerParams
             {
+                FPAClientId = aadConfiguration.FPAClientId,
                 Resource = options.Resource,
                 TenantId = options.TenantId,
                 OrgId = options.OrgId,
-                DFMTenantId = options.DFMTenantId
+                DFMTenantId = options.DFMTenantId,
+                UseCertificateAuth = true   // Omnichannel EU uses certificate
             });
 
             services.AddSingleton<ICredentialProvider, CredentialProvider>();

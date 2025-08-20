@@ -24,9 +24,10 @@ namespace CRM.ICon.Modality.Helpers.Telemetry
             this.telemetryConfiguration = telemetryConfiguration?.Value ?? throw new ArgumentNullException(nameof(telemetryConfiguration));
             this.httpContextHandler = httpContextHandler ?? throw new ArgumentNullException(nameof(httpContextHandler));
 
+            // Use default App Service managed identity authentication to avoid credential conflicts
             Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration applicationInsightsConfiguration = Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration.CreateDefault();
             applicationInsightsConfiguration.ConnectionString = this.telemetryConfiguration.ApplicationInsightsConnectionString;
-            applicationInsightsConfiguration.SetAzureTokenCredential(credentialProvider.GetCredential());
+            
             this.telemetryClient = new TelemetryClient(applicationInsightsConfiguration);
         }
 

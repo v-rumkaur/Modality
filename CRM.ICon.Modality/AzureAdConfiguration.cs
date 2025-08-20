@@ -3,9 +3,14 @@
     public class AzureAdConfiguration
     {
         /// <summary>
-        /// Gets or sets the ClientId
+        /// Gets or sets the ClientId for API identity (MISE authentication)
         /// </summary>
         public string ClientId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the FPA ClientId for cross-tenant Omnichannel calls
+        /// </summary>
+        public string FPAClientId { get; set; }
 
         /// <summary>
         /// Gets or sets the Audience
