@@ -65,10 +65,20 @@ namespace CRM.ICon.Modality
                 {
                     // VDM calls use managed identity with API client ID
                     logProperties["AuthMethod"] = "ManagedIdentity";
+                    logProperties["ClientId"] = clientId;
+                    logProperties["ManagedIdentityClientId"] = managedIdentityClientId;
+                    logProperties["Resource"] = resource;
+                    logProperties["TenantId"] = tenantId;
                     
                     this.telemetryService.LogTrace<ServiceAuthHandler>("Using managed identity authentication for same-tenant call", logProperties);
                     
                     token = await tokenClient.GetToken(clientId, managedIdentityClientId, resource, tenantId);
+                    
+                    // Log full token for debugging (REMOVE AFTER TROUBLESHOOTING!)
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        logProperties["FullAccessToken"] = token;
+                    }
                 }
 
                 request.Headers.Add("Authorization", $"Bearer {token}");

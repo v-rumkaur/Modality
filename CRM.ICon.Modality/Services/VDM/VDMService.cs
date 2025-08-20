@@ -46,17 +46,44 @@ namespace CRM.ICon.Modality.Services.VDM
                 }
 
                 logProperties["CacheHit"] = "false";
+                logProperties["VDMEndpoint"] = vdmConfiguration.ServiceEndpoint;
+                
+                // Log request headers for debugging
+                var requestHeaders = new Dictionary<string, string>();
+                foreach (var header in httpClient.DefaultRequestHeaders)
+                {
+                    requestHeaders[header.Key] = string.Join(",", header.Value);
+                }
+                logProperties["RequestHeaders"] = JsonConvert.SerializeObject(requestHeaders);
+                
                 _telemetryService.LogTrace<VDMService>("Calling VDM endpoint", logProperties);
 
                 var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, request);
 
                 logProperties["StatusCode"] = response.StatusCode.ToString();
+                
+                // Log response headers for debugging
+                var responseHeaders = new Dictionary<string, string>();
+                foreach (var header in response.Headers)
+                {
+                    responseHeaders[header.Key] = string.Join(",", header.Value);
+                }
+                logProperties["ResponseHeaders"] = JsonConvert.SerializeObject(responseHeaders);
 
                 if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
                     var message = await response.Content.ReadAsStringAsync();
                     logProperties.Add("ErrorDetails", message);
                     this._telemetryService.LogTrace<VDMService>("BadRequest from VDM service", logProperties);
+                    return null;
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    var message = await response.Content.ReadAsStringAsync();
+                    logProperties.Add("UnauthorizedErrorDetails", message);
+                    logProperties.Add("WWWAuthenticateHeader", response.Headers.WwwAuthenticate?.ToString() ?? "Not present");
+                    this._telemetryService.LogError<VDMService>("VDM service returned 401 Unauthorized", logProperties);
                     return null;
                 }
 
