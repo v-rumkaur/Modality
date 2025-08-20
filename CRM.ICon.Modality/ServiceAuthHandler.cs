@@ -36,8 +36,9 @@ namespace CRM.ICon.Modality
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties["RequestUri"] = request.RequestUri?.ToString() ?? "";
             logProperties["UseCertificateAuth"] = useCertificateAuth.ToString();
+            logProperties["TargetHost"] = request.RequestUri?.Host ?? "Unknown";
+            logProperties["RequestPath"] = request.RequestUri?.AbsolutePath ?? "";
             
             string token = "";
             try
@@ -45,10 +46,6 @@ namespace CRM.ICon.Modality
                 if (useCertificateAuth)
                 {
                     // Omnichannel calls use certificate with FPA client ID
-                    logProperties["AuthMethod"] = "Certificate";
-                    logProperties["ClientId"] = fpaClientId;
-                    logProperties["Resource"] = resource;
-                    
                     this.telemetryService.LogTrace<ServiceAuthHandler>("Using certificate authentication for cross-tenant call", logProperties);
                     
                     token = await tokenClient.GetTokenWithCertAsync(fpaClientId, certificateSubjectName, resource, tenantId);
@@ -68,8 +65,6 @@ namespace CRM.ICon.Modality
                 {
                     // VDM calls use managed identity with API client ID
                     logProperties["AuthMethod"] = "ManagedIdentity";
-                    logProperties["ClientId"] = clientId;
-                    logProperties["ManagedIdentityClientId"] = managedIdentityClientId;
                     
                     this.telemetryService.LogTrace<ServiceAuthHandler>("Using managed identity authentication for same-tenant call", logProperties);
                     

@@ -24,11 +24,9 @@ namespace CRM.ICon.Modality.Helpers.Telemetry
             this.telemetryConfiguration = telemetryConfiguration?.Value ?? throw new ArgumentNullException(nameof(telemetryConfiguration));
             this.httpContextHandler = httpContextHandler ?? throw new ArgumentNullException(nameof(httpContextHandler));
 
+            // Use default App Service managed identity authentication to avoid credential conflicts
             Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration applicationInsightsConfiguration = Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration.CreateDefault();
             applicationInsightsConfiguration.ConnectionString = this.telemetryConfiguration.ApplicationInsightsConnectionString;
-            
-            // Let Application Insights use the default App Service authentication instead of explicit managed identity
-            // This avoids the "Unable to load the proper Managed Identity" error while still allowing telemetry to work
             
             this.telemetryClient = new TelemetryClient(applicationInsightsConfiguration);
         }

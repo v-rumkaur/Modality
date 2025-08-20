@@ -37,9 +37,6 @@ namespace CRM.ICon.Modality
         private async Task<string> RetrieveToken(string clientId, string managedIdentityClientId, string resource, string tenantId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties["ManagedIdentityClientId"] = managedIdentityClientId;
-            logProperties["Resource"] = resource;
-            logProperties["TenantId"] = tenantId;
             
             try
             {               
@@ -67,10 +64,6 @@ namespace CRM.ICon.Modality
         private async Task<string> RetrieveTokenWithCertAsync(string clientId, string certificateSubjectName, string scope, string tenantId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties["ClientId"] = clientId;
-            logProperties["CertificateSubjectName"] = certificateSubjectName;
-            logProperties["Scope"] = scope;
-            logProperties["TenantId"] = tenantId;
             
             try
             {
