@@ -111,7 +111,7 @@ namespace CRM.ICon.Modality
                 options.JsonSerializerOptions.PropertyNamingPolicy = null; // Keeps PascalCase
             }); ;
             services.AddEndpointsApiExplorer();
-            services.AddSwaggerGen();
+            //services.AddSwaggerGen(); Remove this line as Swagger is not needed in production
             services.AddMemoryCache();
 
             var aadConfiguration = this.Configuration.GetSection("AzureAdConfiguration").Get<AzureAdConfiguration>();
