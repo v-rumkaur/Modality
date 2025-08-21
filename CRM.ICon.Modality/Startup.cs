@@ -137,7 +137,7 @@ namespace CRM.ICon.Modality
             {
                 Resource = options.Resource,
                 TenantId = options.TenantId,
-                UseCertificateAuth = false  // VDM uses managed identity
+                UseCertificateAuth = false  // VDM uses managed identity with tenant specified
             });
 
             services.AddHttpClient<IOmnichannelService, OmnichannelService>().ConfigureServiceAuthHandler<OmnichannelConfiguration>((options) => new ServiceAuthHandlerParams

@@ -37,17 +37,31 @@ namespace CRM.ICon.Modality
         private async Task<string> RetrieveToken(string clientId, string managedIdentityClientId, string resource, string tenantId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["RequestedTenantId"] = tenantId;
+            logProperties["RequestedResource"] = resource;
             
             try
             {               
                 var credentials = credentialProvider.GetCredential(managedIdentityClientId);
-                var result = await credentials.GetTokenAsync(new TokenRequestContext([resource]), default);
+                
+                // Create TokenRequestContext with tenant-specific parameters
+                var tokenRequestContext = new TokenRequestContext(
+                    scopes: [resource],
+                    tenantId: tenantId  // Specify the target tenant
+                );
+                
+                logProperties["TokenRequestTenantId"] = tokenRequestContext.TenantId;
+                
+                var result = await credentials.GetTokenAsync(tokenRequestContext, default);
+                
+                logProperties["TokenReceived"] = "Success";
+                this.telemetryService.LogTrace<AuthTokenClient>("Successfully retrieved cross-tenant token", logProperties);
                 
                 return result.Token.ToString();
             }
             catch (Exception ex)
             {
-                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "VDM token Generation Failed");
+                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "Cross-tenant VDM token Generation Failed");
                 throw;
             }
         }

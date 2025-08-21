@@ -70,7 +70,7 @@ namespace CRM.ICon.Modality
                     logProperties["Resource"] = resource;
                     logProperties["TenantId"] = tenantId;
                     
-                    this.telemetryService.LogTrace<ServiceAuthHandler>("Using managed identity authentication for same-tenant call", logProperties);
+                    this.telemetryService.LogTrace<ServiceAuthHandler>("Using managed identity authentication for cross-tenant call", logProperties);
                     
                     token = await tokenClient.GetToken(clientId, managedIdentityClientId, resource, tenantId);
                     
