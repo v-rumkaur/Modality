@@ -81,6 +81,12 @@ namespace CRM.ICon.Modality.Controllers
             modalityInfoPhone.IsAgentAvailable = true;
             modalityInfoPhone.InHoops = true;
 
+            ModalityInfo modalityInfoPCS = new ModalityInfo();
+            modalityInfoPCS.Modality = 5;
+            modalityInfoPCS.WaitTime = "0";
+            modalityInfoPCS.IsAgentAvailable = true;
+            modalityInfoPCS.InHoops = true;
+
             ICollection<LanguageSkillData> languageSkills = UserLcidToSkillData(userLCID);
 
             LanguageSkillData languageSkillData = languageSkills.FirstOrDefault();
@@ -213,6 +219,8 @@ namespace CRM.ICon.Modality.Controllers
                     modalityResponse.Modalities.Add(modalityInfoChat);
                 }
 
+                // hardcode PCS modality until real data is available in September
+                modalityResponse.Modalities.Add(modalityInfoPCS);
                 return Ok(modalityResponse);
             }
 
