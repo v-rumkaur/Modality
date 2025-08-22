@@ -135,9 +135,11 @@ namespace CRM.ICon.Modality
             })
                 .ConfigureServiceAuthHandler<VDMConfiguration>((options) => new ServiceAuthHandlerParams
             {
+                ClientId = aadConfiguration.ClientId,  // Use main app registration (caee4b01...)
+                clientCertSubjectName = aadConfiguration.ClientCertSubjectName,  // Use certificate
                 Resource = options.Resource,
                 TenantId = options.TenantId,
-                UseCertificateAuth = false  // VDM uses managed identity with tenant specified
+                UseCertificateAuth = true  // Use certificate auth with main app registration
             });
 
             services.AddHttpClient<IOmnichannelService, OmnichannelService>().ConfigureServiceAuthHandler<OmnichannelConfiguration>((options) => new ServiceAuthHandlerParams
