@@ -135,7 +135,7 @@ namespace CRM.ICon.Modality
             })
                 .ConfigureServiceAuthHandler<VDMConfiguration>((options) => new ServiceAuthHandlerParams
             {
-                ClientId = aadConfiguration.ClientId,  // Use main app registration (caee4b01...)
+                FPAClientId = aadConfiguration.ClientId,  // Use main app registration for certificate auth
                 clientCertSubjectName = aadConfiguration.ClientCertSubjectName,  // Use certificate
                 Resource = options.Resource,
                 TenantId = options.TenantId,
