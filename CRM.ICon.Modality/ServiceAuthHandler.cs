@@ -36,9 +36,11 @@ namespace CRM.ICon.Modality
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties["UseCertificateAuth"] = useCertificateAuth.ToString();
-            logProperties["TargetHost"] = request.RequestUri?.Host ?? "Unknown";
-            logProperties["RequestPath"] = request.RequestUri?.AbsolutePath ?? "";
+            logProperties["TENANT_DEBUG_UseCertificateAuth"] = useCertificateAuth.ToString();
+            logProperties["TENANT_DEBUG_TargetHost"] = request.RequestUri?.Host ?? "Unknown";
+            logProperties["TENANT_DEBUG_RequestPath"] = request.RequestUri?.AbsolutePath ?? "";
+            logProperties["TENANT_DEBUG_TargetTenant"] = tenantId;
+            logProperties["TENANT_DEBUG_Resource"] = resource;
             
             string token = "";
             try
@@ -49,28 +51,27 @@ namespace CRM.ICon.Modality
                     this.telemetryService.LogTrace<ServiceAuthHandler>("Using certificate authentication for cross-tenant call", logProperties);
                     
                     token = await tokenClient.GetTokenWithCertAsync(fpaClientId, certificateSubjectName, resource, tenantId);
+                    
                     if (!string.IsNullOrEmpty(OrgId))
                     {
                         request.Headers.Add("OrganizationId", OrgId);
                         request.Headers.Add("x-ms-organizationid", OrgId);
-                        logProperties["OrgId"] = OrgId;
+                        logProperties["TENANT_DEBUG_OrgId"] = OrgId;
                     }
                     if (!string.IsNullOrEmpty(dfmTenantId))
                     {
                         request.Headers.Add("TenantId", dfmTenantId);
-                        logProperties["DFMTenantId"] = dfmTenantId;
+                        logProperties["TENANT_DEBUG_DFMTenantId"] = dfmTenantId;
                     }
                 }
                 else
                 {
-                    // VDM calls use managed identity with API client ID
-                    logProperties["AuthMethod"] = "ManagedIdentity";
-                    logProperties["ClientId"] = clientId;
-                    logProperties["ManagedIdentityClientId"] = managedIdentityClientId;
-                    logProperties["Resource"] = resource;
-                    logProperties["TenantId"] = tenantId;
+                    // Managed identity authentication (tends to produce v1.0 tokens from home tenant)
+                    logProperties["TENANT_DEBUG_AuthMethod"] = "ManagedIdentity";
+                    logProperties["TENANT_DEBUG_ClientId"] = clientId;
+                    logProperties["TENANT_DEBUG_ManagedIdentityClientId"] = managedIdentityClientId;
                     
-                    this.telemetryService.LogTrace<ServiceAuthHandler>("Using managed identity authentication for cross-tenant call", logProperties);
+                    this.telemetryService.LogTrace<ServiceAuthHandler>("TENANT_DEBUG: Using managed identity authentication for cross-tenant call", logProperties);
                     
                     token = await tokenClient.GetToken(clientId, managedIdentityClientId, resource, tenantId);
                     
@@ -83,13 +84,14 @@ namespace CRM.ICon.Modality
 
                 request.Headers.Add("Authorization", $"Bearer {token}");
                 
-                this.telemetryService.LogTrace<ServiceAuthHandler>("Successfully added authentication to request", logProperties);
+                logProperties["TENANT_DEBUG_TokenAdded"] = "Success";
+                this.telemetryService.LogTrace<ServiceAuthHandler>("TENANT_DEBUG: Successfully added authentication to request", logProperties);
                 
                 return await base.SendAsync(request, cancellationToken);
             }
             catch (Exception ex)
             {
-                this.telemetryService.LogException<ServiceAuthHandler>(ex, logProperties, "Authentication failed in ServiceAuthHandler");
+                this.telemetryService.LogException<ServiceAuthHandler>(ex, logProperties, "TENANT_DEBUG: Authentication failed in ServiceAuthHandler");
                 throw;
             }
         }

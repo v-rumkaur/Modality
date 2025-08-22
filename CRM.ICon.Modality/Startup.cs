@@ -135,9 +135,11 @@ namespace CRM.ICon.Modality
             })
                 .ConfigureServiceAuthHandler<VDMConfiguration>((options) => new ServiceAuthHandlerParams
             {
+                ClientId = aadConfiguration.ClientId,  // Use main app registration client ID
+                ManagedIdentityClientId = aadConfiguration.ManagedIdentityClientId,  // Use managed identity
                 Resource = options.Resource,
                 TenantId = options.TenantId,
-                UseCertificateAuth = false  // VDM uses managed identity with tenant specified
+                UseCertificateAuth = false  // Use managed identity for v2.0 tokens
             });
 
             services.AddHttpClient<IOmnichannelService, OmnichannelService>().ConfigureServiceAuthHandler<OmnichannelConfiguration>((options) => new ServiceAuthHandlerParams

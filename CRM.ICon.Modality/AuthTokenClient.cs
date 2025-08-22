@@ -6,6 +6,8 @@ using CRM.ICon.Modality.Helpers.KeyVaultClient;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using Microsoft.Identity.Client;
 using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
+using System.Text;
 
 namespace CRM.ICon.Modality
 {
@@ -37,31 +39,66 @@ namespace CRM.ICon.Modality
         private async Task<string> RetrieveToken(string clientId, string managedIdentityClientId, string resource, string tenantId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties["RequestedTenantId"] = tenantId;
-            logProperties["RequestedResource"] = resource;
+            logProperties["TENANT_DEBUG_RequestedTenantId"] = tenantId;
+            logProperties["TENANT_DEBUG_RequestedResource"] = resource;
+            logProperties["TENANT_DEBUG_ClientId"] = clientId;
+            logProperties["TENANT_DEBUG_ManagedIdentityClientId"] = managedIdentityClientId;
             
             try
             {               
+                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Starting managed identity v2.0 token request", logProperties);
+                
                 var credentials = credentialProvider.GetCredential(managedIdentityClientId);
                 
-                // Create TokenRequestContext with tenant-specific parameters
+                // For v2.0 tokens, use the resource with /.default scope format
+                var v2Scope = resource.EndsWith("/.default") ? resource : $"{resource}/.default";
+                
+                // Create TokenRequestContext with v2.0 compatible parameters
                 var tokenRequestContext = new TokenRequestContext(
-                    scopes: [resource],
-                    tenantId: tenantId  // Specify the target tenant
+                    scopes: [v2Scope],
+                    tenantId: tenantId  // Specify the target tenant for v2.0
                 );
                 
-                logProperties["TokenRequestTenantId"] = tokenRequestContext.TenantId;
+                logProperties["TENANT_DEBUG_TokenRequestContextTenantId"] = tokenRequestContext.TenantId ?? "null";
+                logProperties["TENANT_DEBUG_TokenRequestContextScopes"] = string.Join(",", tokenRequestContext.Scopes ?? []);
+                logProperties["TENANT_DEBUG_V2Scope"] = v2Scope;
+                
+                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: About to call GetTokenAsync with v2.0 TokenRequestContext", logProperties);
                 
                 var result = await credentials.GetTokenAsync(tokenRequestContext, default);
                 
-                logProperties["TokenReceived"] = "Success";
-                this.telemetryService.LogTrace<AuthTokenClient>("Successfully retrieved cross-tenant token", logProperties);
+                // Decode JWT to analyze actual token details
+                var tokenClaims = DecodeJwtClaims(result.Token);
+                logProperties["TENANT_DEBUG_ActualTokenTenant"] = tokenClaims.GetValueOrDefault("tid", "not found");
+                logProperties["TENANT_DEBUG_ActualTokenIssuer"] = tokenClaims.GetValueOrDefault("iss", "not found");
+                logProperties["TENANT_DEBUG_ActualTokenAudience"] = tokenClaims.GetValueOrDefault("aud", "not found");
+                logProperties["TENANT_DEBUG_TokenAppId"] = tokenClaims.GetValueOrDefault("appid", "not found");
+                logProperties["TENANT_DEBUG_TokenVersion"] = tokenClaims.GetValueOrDefault("ver", "not found");
+                logProperties["TENANT_DEBUG_TokenExpires"] = result.ExpiresOn.ToString();
+                
+                // Check if issuer indicates v1.0 vs v2.0 token
+                var issuer = tokenClaims.GetValueOrDefault("iss", "");
+                if (issuer.Contains("sts.windows.net"))
+                {
+                    logProperties["TENANT_DEBUG_TokenType"] = "v1.0 (sts.windows.net)";
+                }
+                else if (issuer.Contains("login.microsoftonline.com"))
+                {
+                    logProperties["TENANT_DEBUG_TokenType"] = "v2.0 (login.microsoftonline.com)";
+                }
+                else
+                {
+                    logProperties["TENANT_DEBUG_TokenType"] = $"Unknown issuer: {issuer}";
+                }
+                
+                logProperties["TENANT_DEBUG_TokenReceived"] = "Success";
+                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Token analysis - REQUESTED vs ACTUAL tenant comparison", logProperties);
                 
                 return result.Token.ToString();
             }
             catch (Exception ex)
             {
-                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "Cross-tenant VDM token Generation Failed");
+                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "TENANT_DEBUG: Cross-tenant VDM token Generation Failed");
                 throw;
             }
         }
@@ -78,31 +115,94 @@ namespace CRM.ICon.Modality
         private async Task<string> RetrieveTokenWithCertAsync(string clientId, string certificateSubjectName, string scope, string tenantId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["TENANT_DEBUG_CertMethod_ClientId"] = clientId;
+            logProperties["TENANT_DEBUG_CertMethod_TenantId"] = tenantId;
+            logProperties["TENANT_DEBUG_CertMethod_Scope"] = scope;
             
             try
             {
-                this.telemetryService.LogTrace<AuthTokenClient>("Attempting to retrieve token using certificate", logProperties);
+                logProperties["TENANT_DEBUG_TenantId"] = tenantId;
+                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Attempting certificate authentication for cross-tenant call", logProperties);
                 
                 X509Certificate2 cert = await keyVaultClient.GetCertificateAsync(certificateSubjectName);
                 
+                // Configure for v2.0 tokens by using common endpoint
                 var app = ConfidentialClientApplicationBuilder
                             .Create(clientId)
                             .WithTenantId(tenantId)
                             .WithAzureRegion()
                             .WithCertificate(cert)
+                            .WithAuthority($"https://login.microsoftonline.com/{tenantId}/v2.0") // Force v2.0 endpoint
                             .Build();
 
                 var result = await app.AcquireTokenForClient(new[] { scope + "/.default" }).WithSendX5C(true).ExecuteAsync();
                 
-                this.telemetryService.LogTrace<AuthTokenClient>("Successfully retrieved token using certificate", logProperties);
+                // Decode and analyze the certificate-based token
+                var tokenClaims = DecodeJwtClaims(result.AccessToken);
+                logProperties["TENANT_DEBUG_CertToken_Tenant"] = tokenClaims.GetValueOrDefault("tid", "not found");
+                logProperties["TENANT_DEBUG_CertToken_Issuer"] = tokenClaims.GetValueOrDefault("iss", "not found");
+                logProperties["TENANT_DEBUG_CertToken_Audience"] = tokenClaims.GetValueOrDefault("aud", "not found");
+                logProperties["TENANT_DEBUG_CertToken_AppId"] = tokenClaims.GetValueOrDefault("appid", "not found");
+                logProperties["TENANT_DEBUG_CertToken_Version"] = tokenClaims.GetValueOrDefault("ver", "not found");
+                
+                // Check token version based on issuer
+                var issuer = tokenClaims.GetValueOrDefault("iss", "");
+                if (issuer.Contains("sts.windows.net"))
+                {
+                    logProperties["TENANT_DEBUG_CertTokenType"] = "v1.0 (sts.windows.net)";
+                }
+                else if (issuer.Contains("login.microsoftonline.com"))
+                {
+                    logProperties["TENANT_DEBUG_CertTokenType"] = "v2.0 (login.microsoftonline.com)";
+                }
+                else
+                {
+                    logProperties["TENANT_DEBUG_CertTokenType"] = $"Unknown issuer: {issuer}";
+                }
+                
+                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Successfully retrieved certificate token with analysis", logProperties);
                 return result.AccessToken.ToString();
             }
             catch (Exception ex)
             {
-                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "Certificate token Generation Failed");
+                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "TENANT_DEBUG: Certificate token Generation Failed");
                 throw;
             }
         }
+
+        private Dictionary<string, string> DecodeJwtClaims(string token)
+        {
+            var claims = new Dictionary<string, string>();
+            try
+            {
+                var parts = token.Split('.');
+                if (parts.Length >= 2)
+                {
+                    var payload = parts[1];
+                    // Add padding if needed
+                    switch (payload.Length % 4)
+                    {
+                        case 2: payload += "=="; break;
+                        case 3: payload += "="; break;
+                    }
+                    
+                    var jsonBytes = Convert.FromBase64String(payload);
+                    var json = Encoding.UTF8.GetString(jsonBytes);
+                    var document = JsonDocument.Parse(json);
+                    
+                    foreach (var property in document.RootElement.EnumerateObject())
+                    {
+                        claims[property.Name] = property.Value.ToString();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                this.telemetryService.LogTrace<AuthTokenClient>($"TENANT_DEBUG: Failed to decode JWT: {ex.Message}", ModalityExtensions.GetRequestProperties());
+            }
+            return claims;
+        }
+
         class CachedAuthToken
         {
             public string Token { get; set; }
