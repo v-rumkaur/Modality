@@ -51,7 +51,6 @@ namespace CRM.ICon.Modality
                     this.telemetryService.LogTrace<ServiceAuthHandler>("Using certificate authentication for cross-tenant call", logProperties);
                     
                     token = await tokenClient.GetTokenWithCertAsync(fpaClientId, certificateSubjectName, resource, tenantId);
-                    
                     if (!string.IsNullOrEmpty(OrgId))
                     {
                         request.Headers.Add("OrganizationId", OrgId);
@@ -84,14 +83,13 @@ namespace CRM.ICon.Modality
 
                 request.Headers.Add("Authorization", $"Bearer {token}");
                 
-                logProperties["TENANT_DEBUG_TokenAdded"] = "Success";
-                this.telemetryService.LogTrace<ServiceAuthHandler>("TENANT_DEBUG: Successfully added authentication to request", logProperties);
+                this.telemetryService.LogTrace<ServiceAuthHandler>("Successfully added authentication to request", logProperties);
                 
                 return await base.SendAsync(request, cancellationToken);
             }
             catch (Exception ex)
             {
-                this.telemetryService.LogException<ServiceAuthHandler>(ex, logProperties, "TENANT_DEBUG: Authentication failed in ServiceAuthHandler");
+                this.telemetryService.LogException<ServiceAuthHandler>(ex, logProperties, "Authentication failed in ServiceAuthHandler");
                 throw;
             }
         }

@@ -50,18 +50,15 @@ namespace CRM.ICon.Modality
                 
                 var credentials = credentialProvider.GetCredential(managedIdentityClientId);
                 
-                // For v2.0 tokens, use the resource with /.default scope format
-                var v2Scope = resource.EndsWith("/.default") ? resource : $"{resource}/.default";
-                
-                // Create TokenRequestContext with v2.0 compatible parameters
+                // Create TokenRequestContext with tenant-specific parameters
                 var tokenRequestContext = new TokenRequestContext(
-                    scopes: [v2Scope],
-                    tenantId: tenantId  // Specify the target tenant for v2.0
+                    scopes: [resource],
+                    tenantId: tenantId  // Specify the target tenant
                 );
                 
                 logProperties["TENANT_DEBUG_TokenRequestContextTenantId"] = tokenRequestContext.TenantId ?? "null";
                 logProperties["TENANT_DEBUG_TokenRequestContextScopes"] = string.Join(",", tokenRequestContext.Scopes ?? []);
-                logProperties["TENANT_DEBUG_V2Scope"] = v2Scope;
+                logProperties["TENANT_DEBUG_Scope"] = resource;
                 
                 this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: About to call GetTokenAsync with v2.0 TokenRequestContext", logProperties);
                 
@@ -98,7 +95,7 @@ namespace CRM.ICon.Modality
             }
             catch (Exception ex)
             {
-                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "TENANT_DEBUG: Cross-tenant VDM token Generation Failed");
+                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "Cross-tenant VDM token Generation Failed");
                 throw;
             }
         }
@@ -121,18 +118,15 @@ namespace CRM.ICon.Modality
             
             try
             {
-                logProperties["TENANT_DEBUG_TenantId"] = tenantId;
-                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Attempting certificate authentication for cross-tenant call", logProperties);
+                this.telemetryService.LogTrace<AuthTokenClient>("Attempting to retrieve token using certificate", logProperties);
                 
                 X509Certificate2 cert = await keyVaultClient.GetCertificateAsync(certificateSubjectName);
                 
-                // Configure for v2.0 tokens by using common endpoint
                 var app = ConfidentialClientApplicationBuilder
                             .Create(clientId)
                             .WithTenantId(tenantId)
                             .WithAzureRegion()
                             .WithCertificate(cert)
-                            .WithAuthority($"https://login.microsoftonline.com/{tenantId}/v2.0") // Force v2.0 endpoint
                             .Build();
 
                 var result = await app.AcquireTokenForClient(new[] { scope + "/.default" }).WithSendX5C(true).ExecuteAsync();
@@ -165,7 +159,7 @@ namespace CRM.ICon.Modality
             }
             catch (Exception ex)
             {
-                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "TENANT_DEBUG: Certificate token Generation Failed");
+                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "Certificate token Generation Failed");
                 throw;
             }
         }
