@@ -152,7 +152,47 @@ namespace CRM.ICon.Modality
                 logProperties["TENANT_DEBUG_AboutToCallMSAL"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
                 this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: About to call MSAL AcquireTokenForClient", logProperties);
 
-                var result = await app.AcquireTokenForClient(new[] { scope + "/.default" }).WithSendX5C(true).ExecuteAsync();
+                AuthenticationResult result;
+                try
+                {
+                    result = await app.AcquireTokenForClient(new[] { scope + "/.default" }).WithSendX5C(true).ExecuteAsync();
+                    telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: MSAL token acquisition successful", logProperties);
+                }
+                catch (MsalServiceException msalEx)
+                {
+                    // Capture detailed MSAL service exception information
+                    logProperties["TENANT_DEBUG_MSALError"] = "MsalServiceException";
+                    logProperties["TENANT_DEBUG_MSALErrorCode"] = msalEx.ErrorCode ?? "Unknown";
+                    logProperties["TENANT_DEBUG_MSALStatusCode"] = msalEx.StatusCode.ToString();
+                    logProperties["TENANT_DEBUG_MSALResponseBody"] = msalEx.ResponseBody ?? "No response body";
+                    logProperties["TENANT_DEBUG_MSALCorrelationId"] = msalEx.CorrelationId ?? "No correlation ID";
+                    logProperties["TENANT_DEBUG_MSALClaims"] = msalEx.Claims ?? "No claims";
+                    logProperties["TENANT_DEBUG_MSALMessage"] = msalEx.Message ?? "No message";
+
+                    this.telemetryService.LogException<AuthTokenClient>(msalEx, logProperties, "TENANT_DEBUG: MSAL Service Exception with detailed Azure AD error");
+                    throw;
+                }
+                catch (MsalClientException clientEx)
+                {
+                    // Capture MSAL client exception information
+                    logProperties["TENANT_DEBUG_MSALError"] = "MsalClientException";
+                    logProperties["TENANT_DEBUG_MSALErrorCode"] = clientEx.ErrorCode ?? "Unknown";
+                    logProperties["TENANT_DEBUG_MSALMessage"] = clientEx.Message ?? "No message";
+                    logProperties["TENANT_DEBUG_MSALCorrelationId"] = clientEx.CorrelationId ?? "No correlation ID";
+
+                    this.telemetryService.LogException<AuthTokenClient>(clientEx, logProperties, "TENANT_DEBUG: MSAL Client Exception");
+                    throw;
+                }
+                catch (Exception genericEx)
+                {
+                    // Capture any other exceptions
+                    logProperties["TENANT_DEBUG_MSALError"] = "GenericException";
+                    logProperties["TENANT_DEBUG_MSALMessage"] = genericEx.Message ?? "No message";
+                    logProperties["TENANT_DEBUG_MSALStackTrace"] = genericEx.StackTrace ?? "No stack trace";
+
+                    this.telemetryService.LogException<AuthTokenClient>(genericEx, logProperties, "TENANT_DEBUG: Generic exception during MSAL token acquisition");
+                    throw;
+                }
                 
                 // Decode and analyze the certificate-based token
                 var tokenClaims = DecodeJwtClaims(result.AccessToken);
