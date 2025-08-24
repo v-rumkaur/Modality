@@ -290,6 +290,7 @@ namespace CRM.ICon.Modality.Controllers
 
             omnichannelRequest.CustomContext = customContext;
 
+            _telemetryService.LogTrace<ModalityController>("Requesting agent availability", logProperties);
             var omnichannelResponse = await omnichannelService.GetAgentAvailability(omnichannelRequest, source, userType, requestId);
 
             if (omnichannelResponse == null)

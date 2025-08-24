@@ -49,7 +49,6 @@ namespace CRM.ICon.Modality
                 this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Starting managed identity v2.0 token request", logProperties);
                 
                 var credentials = credentialProvider.GetCredential(managedIdentityClientId);
-                
                 // Create TokenRequestContext with tenant-specific parameters
                 var tokenRequestContext = new TokenRequestContext(
                     scopes: [resource],
@@ -61,9 +60,8 @@ namespace CRM.ICon.Modality
                 logProperties["TENANT_DEBUG_Scope"] = resource;
                 
                 this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: About to call GetTokenAsync with v2.0 TokenRequestContext", logProperties);
-                
-                var result = await credentials.GetTokenAsync(tokenRequestContext, default);
-                
+             
+                var result = await credentials.GetTokenAsync(new TokenRequestContext([resource]), default);
                 // Decode JWT to analyze actual token details
                 var tokenClaims = DecodeJwtClaims(result.Token);
                 logProperties["TENANT_DEBUG_ActualTokenTenant"] = tokenClaims.GetValueOrDefault("tid", "not found");
@@ -89,8 +87,7 @@ namespace CRM.ICon.Modality
                 }
                 
                 logProperties["TENANT_DEBUG_TokenReceived"] = "Success";
-                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Token analysis - REQUESTED vs ACTUAL tenant comparison", logProperties);
-                
+                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Token Success! analysis - REQUESTED vs ACTUAL tenant comparison", logProperties);
                 return result.Token.ToString();
             }
             catch (Exception ex)
