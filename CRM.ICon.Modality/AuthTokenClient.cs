@@ -122,12 +122,38 @@ namespace CRM.ICon.Modality
                 
                 X509Certificate2 cert = await keyVaultClient.GetCertificateAsync(certificateSubjectName);
                 
+                // Validate certificate
+                logProperties["TENANT_DEBUG_CertSubject"] = cert.Subject;
+                logProperties["TENANT_DEBUG_CertIssuer"] = cert.Issuer;
+                logProperties["TENANT_DEBUG_CertThumbprint"] = cert.Thumbprint;
+                logProperties["TENANT_DEBUG_CertSerialNumber"] = cert.SerialNumber;
+                logProperties["TENANT_DEBUG_CertHasPrivateKey"] = cert.HasPrivateKey.ToString();
+                logProperties["TENANT_DEBUG_CertNotBefore"] = cert.NotBefore.ToString();
+                logProperties["TENANT_DEBUG_CertNotAfter"] = cert.NotAfter.ToString();
+                logProperties["TENANT_DEBUG_CertExpired"] = (cert.NotAfter < DateTime.UtcNow).ToString();
+                logProperties["TENANT_DEBUG_CertKeySize"] = cert.GetRSAPublicKey()?.KeySize.ToString() ?? "Unknown";
+                logProperties["TENANT_DEBUG_CertSignatureAlgorithm"] = cert.SignatureAlgorithm.FriendlyName ?? "Unknown";
+                logProperties["TENANT_DEBUG_CertVersion"] = cert.Version.ToString();
+                
+                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Certificate validation details", logProperties);
+                
+                // Log MSAL configuration details
+                logProperties["TENANT_DEBUG_MSALClientId"] = clientId;
+                logProperties["TENANT_DEBUG_MSALTenantId"] = tenantId;
+                logProperties["TENANT_DEBUG_MSALScope"] = scope + "/.default";
+                logProperties["TENANT_DEBUG_MSALAuthority"] = $"https://login.microsoftonline.com/{tenantId}/";
+                logProperties["TENANT_DEBUG_SendX5C"] = "true";
+                
+                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: MSAL configuration details", logProperties);
+                
                 var app = ConfidentialClientApplicationBuilder
                             .Create(clientId)
-                            .WithTenantId(tenantId)
-                            .WithAzureRegion()
                             .WithCertificate(cert)
                             .Build();
+
+                // Log just before token request
+                logProperties["TENANT_DEBUG_AboutToCallMSAL"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ");
+                this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: About to call MSAL AcquireTokenForClient", logProperties);
 
                 var result = await app.AcquireTokenForClient(new[] { scope + "/.default" }).WithSendX5C(true).ExecuteAsync();
                 
