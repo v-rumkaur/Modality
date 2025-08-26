@@ -57,9 +57,7 @@ namespace CRM.ICon.Modality.Services.VDM
                 logProperties["RequestHeaders"] = JsonConvert.SerializeObject(requestHeaders);
                 
                 _telemetryService.LogTrace<VDMService>("Calling VDM endpoint", logProperties);
-
                 var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, request);
-
                 logProperties["StatusCode"] = response.StatusCode.ToString();
                 
                 // Log response headers for debugging
@@ -69,8 +67,10 @@ namespace CRM.ICon.Modality.Services.VDM
                     responseHeaders[header.Key] = string.Join(",", header.Value);
                 }
                 logProperties["ResponseHeaders"] = JsonConvert.SerializeObject(responseHeaders);
-
-                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                logProperties["StatusCode"] = response.StatusCode.ToString();
+                
+                // Log response headers for debugging
+               if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
                     var message = await response.Content.ReadAsStringAsync();
                     logProperties.Add("ErrorDetails", message);
@@ -84,6 +84,42 @@ namespace CRM.ICon.Modality.Services.VDM
                     logProperties.Add("UnauthorizedErrorDetails", message);
                     logProperties.Add("WWWAuthenticateHeader", response.Headers.WwwAuthenticate?.ToString() ?? "Not present");
                     this._telemetryService.LogError<VDMService>("VDM service returned 401 Unauthorized", logProperties);
+                    return null;
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    var message = await response.Content.ReadAsStringAsync();
+                    logProperties.Add("ForbiddenErrorDetails", message);
+                    this._telemetryService.LogError<VDMService>("VDM service returned 403 Forbidden - access denied", logProperties);
+                    return null;
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    var message = await response.Content.ReadAsStringAsync();
+                    logProperties.Add("RateLimitErrorDetails", message);
+                    logProperties.Add("RetryAfterHeader", response.Headers.RetryAfter?.ToString() ?? "Not present");
+                    this._telemetryService.LogError<VDMService>("VDM service returned 429 Too Many Requests - rate limited", logProperties);
+                    return null;
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                {
+                    var message = await response.Content.ReadAsStringAsync();
+                    logProperties.Add("ServerErrorDetails", message);
+                    this._telemetryService.LogError<VDMService>("VDM service returned 500 Internal Server Error", logProperties);
+                    return null;
+                }
+
+                if (response.StatusCode == System.Net.HttpStatusCode.BadGateway || 
+                    response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable || 
+                    response.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
+                {
+                    var message = await response.Content.ReadAsStringAsync();
+                    logProperties.Add("ServiceUnavailableDetails", message);
+                    logProperties.Add("ServiceStatus", response.StatusCode.ToString());
+                    this._telemetryService.LogError<VDMService>("VDM service unavailable or gateway error", logProperties);
                     return null;
                 }
 
