@@ -57,16 +57,8 @@ namespace CRM.ICon.Modality.Services.VDM
                 }
                 logProperties["RequestHeaders"] = JsonConvert.SerializeObject(requestHeaders);
 
-                // Log the exact JSON payload being sent to VDM
-                var jsonPayload = new VDMRequest
-                {
-                    Text = "I cannot setup the application and I am having issues with security and I dont know what I am talking about",
-                    Boundary = "public",
-                    SapId = "a15ee149-80c5-6fef-e00d-74065e38507a",
-                    PredictionPurposes = "crmee_ml_skill_model"
-                };
 
-                var jsonContent = JsonConvert.SerializeObject(jsonPayload);
+                var jsonContent = JsonConvert.SerializeObject(request);
                 logProperties["VDMRequestPayload"] = jsonContent;
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
                 logProperties["VDMRequestPayloadString"] = httpContent.ReadAsStringAsync().Result;
@@ -167,35 +159,48 @@ namespace CRM.ICon.Modality.Services.VDM
                 
                 try
                 {
-                    var deserializedResponse = JsonConvert.DeserializeObject<VDMResult>(responseContent);
-                    logProperties["DeserializationSuccess"] = (deserializedResponse != null).ToString();
+                    // First, deserialize the outer response which has Result as a string
+                    var outerResponse = JsonConvert.DeserializeObject<dynamic>(responseContent);
+                    logProperties["OuterDeserializationSuccess"] = (outerResponse != null).ToString();
                     
-                    if (deserializedResponse != null)
+                    if (outerResponse?.Result != null)
                     {
-                        logProperties["VDMResultExists"] = (deserializedResponse.Result != null).ToString();
-                        if (deserializedResponse.Result != null)
+                        // The Result property is a JSON string that needs to be deserialized again
+                        string resultJsonString = outerResponse.Result.ToString();
+                        logProperties["ResultJsonString"] = resultJsonString;
+                        
+                        var deserializedResult = JsonConvert.DeserializeObject<VDMResultData>(resultJsonString);
+                        logProperties["InnerDeserializationSuccess"] = (deserializedResult != null).ToString();
+                        
+                        if (deserializedResult != null)
                         {
-                            logProperties["PurposefulResultsCount"] = deserializedResponse.Result.purposefulResults?.Count().ToString() ?? "0";
-                            logProperties["PurposefulResultsExists"] = (deserializedResponse.Result.purposefulResults != null).ToString();
+                            logProperties["PurposefulResultsCount"] = deserializedResult.purposefulResults?.Count().ToString() ?? "0";
+                            logProperties["PurposefulResultsExists"] = (deserializedResult.purposefulResults != null).ToString();
                         }
-                    }
-                    
-                    var vdmResponse = deserializedResponse?.Result?.purposefulResults.FirstOrDefault();
-                    logProperties["VDMResponseExtracted"] = (vdmResponse != null).ToString();
-                    
-                    if (vdmResponse != null)
-                    {
-                        AddInMemoryCacheEntry(vdmKey, vdmResponse);
-                        logProperties["SerializedVDMResponse"] = JsonConvert.SerializeObject(vdmResponse);
-                        _telemetryService.LogTrace<VDMService>("Successfully extracted and returning VDM response", logProperties);
+                        
+                        var vdmResponse = deserializedResult?.purposefulResults?.FirstOrDefault();
+                        logProperties["VDMResponseExtracted"] = (vdmResponse != null).ToString();
+                        
+                        if (vdmResponse != null)
+                        {
+                            AddInMemoryCacheEntry(vdmKey, vdmResponse);
+                            logProperties["SerializedVDMResponse"] = JsonConvert.SerializeObject(vdmResponse);
+                            _telemetryService.LogTrace<VDMService>("Successfully extracted and returning VDM response", logProperties);
+                        }
+                        else
+                        {
+                            logProperties["NoVDMResponseReason"] = "No purposefulResults found or empty array";
+                            _telemetryService.LogTrace<VDMService>("No VDM response found in results", logProperties);
+                        }
+
+                        return vdmResponse;
                     }
                     else
                     {
-                        logProperties["NoVDMResponseReason"] = "No purposefulResults found or empty array";
-                        _telemetryService.LogTrace<VDMService>("No VDM response found in results", logProperties);
+                        logProperties["NoVDMResponseReason"] = "Result property is null or missing";
+                        _telemetryService.LogTrace<VDMService>("No Result property found in VDM response", logProperties);
+                        return null;
                     }
-
-                    return vdmResponse;
                 }
                 catch (JsonException jsonEx)
                 {
