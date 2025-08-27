@@ -56,6 +56,11 @@ namespace CRM.ICon.Modality.Services.VDM
                 }
                 logProperties["RequestHeaders"] = JsonConvert.SerializeObject(requestHeaders);
                 
+                // Log the exact JSON payload being sent to VDM
+                var jsonPayload = JsonConvert.SerializeObject(request);
+                logProperties["VDMRequestPayload"] = jsonPayload;
+                _telemetryService.LogTrace<VDMService>($"VDM JSON Payload: {jsonPayload}", logProperties);
+                
                 _telemetryService.LogTrace<VDMService>("Calling VDM endpoint", logProperties);
                 var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, request);
                 logProperties["StatusCode"] = response.StatusCode.ToString();
@@ -127,7 +132,7 @@ namespace CRM.ICon.Modality.Services.VDM
 
                 var stringResponse = await response.Content.ReadAsStringAsync();
                 var deserializedResponse = JsonConvert.DeserializeObject<VDMResult>(stringResponse);
-                var vdmResponse = deserializedResponse?.purposefulResults?.FirstOrDefault();
+                var vdmResponse = deserializedResponse?.Result?.purposefulResult;
 
                 if (vdmResponse != null)
                 {
