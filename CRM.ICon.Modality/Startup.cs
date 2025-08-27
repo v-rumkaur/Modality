@@ -139,7 +139,7 @@ namespace CRM.ICon.Modality
                     TenantId = options.TenantId,
                     VDMAppRegistrationId = options.AppRegistrationId,
                     ManagedIdentityClientId = aadConfiguration.ManagedIdentityClientId,
-                    AuthMethod = options.AuthMethod ?? "Certificate",
+                    AuthMethod = "ClientAssertion",  // VDM uses ClientAssertion
 
                 });
 

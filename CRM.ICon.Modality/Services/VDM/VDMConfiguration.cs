@@ -18,9 +18,5 @@
         /// Gets or sets the App Registration Id for VDM cross-tenant authentication
         /// </summary>
         public string? AppRegistrationId { get; set; }
-        /// <summary>
-        /// Gets or sets the authentication method for VDM calls (Certificate or ClientAssertion)
-        /// </summary>
-        public string? AuthMethod { get; set; } = "Certificate"; // Default to certificate for backward compatibility
     }
 }
