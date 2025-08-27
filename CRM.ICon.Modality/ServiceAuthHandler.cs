@@ -16,11 +16,10 @@ namespace CRM.ICon.Modality
         private readonly string managedIdentityClientId;
         private readonly string certificateSubjectName;
         private readonly string dfmTenantId;
-        private readonly bool useCertificateAuth;
         private readonly string vdmAppRegistrationId;
         private readonly string authMethod;
 
-        public ServiceAuthHandler(AuthTokenClient tokenClient, ITelemetryService telemetryService, string clientId, string fpaClientId, string managedIdentityClientId, string resource, string tenantId, string OrgId, string certificateSubjectName, string dfmTenantId, bool useCertificateAuth, string vdmAppRegistrationId = "", string authMethod = "Certificate")
+        public ServiceAuthHandler(AuthTokenClient tokenClient, ITelemetryService telemetryService, string clientId, string fpaClientId, string managedIdentityClientId, string resource, string tenantId, string OrgId, string certificateSubjectName, string dfmTenantId, string vdmAppRegistrationId = "", string authMethod = "Certificate")
         {
             this.tokenClient = tokenClient;
             this.telemetryService = telemetryService;
@@ -32,7 +31,6 @@ namespace CRM.ICon.Modality
             this.OrgId = OrgId;
             this.certificateSubjectName = certificateSubjectName;
             this.dfmTenantId = dfmTenantId;
-            this.useCertificateAuth = useCertificateAuth;
             this.vdmAppRegistrationId = vdmAppRegistrationId;
             this.authMethod = authMethod;
         }
@@ -40,7 +38,7 @@ namespace CRM.ICon.Modality
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties["UseCertificateAuth"] = useCertificateAuth.ToString();
+            logProperties["AuthMethod"] = authMethod;
             logProperties["TargetHost"] = request.RequestUri?.Host ?? "Unknown";
             logProperties["RequestPath"] = request.RequestUri?.AbsolutePath ?? "";
             
@@ -63,7 +61,7 @@ namespace CRM.ICon.Modality
                     logProperties["ServiceAuthHandler_RECEIVED_TOKEN"] = token;
                     this.telemetryService.LogTrace<ServiceAuthHandler>($"ServiceAuthHandler DEBUG - Received token: {token}", logProperties);
                 }
-                else if (useCertificateAuth)
+                else if (authMethod == "Certificate")
                 {
                     // Omnichannel calls use certificate with FPA client ID
                     this.telemetryService.LogTrace<ServiceAuthHandler>("Using certificate authentication for cross-tenant call", logProperties);
@@ -116,9 +114,8 @@ namespace CRM.ICon.Modality
         public string? OrgId;
         public string? clientCertSubjectName;
         public string? DFMTenantId;
-        public bool UseCertificateAuth { get; set; } = false; // Explicit flag for auth method
         public string? VDMAppRegistrationId { get; set; } = ""; // VDM app registration ID for ClientAssertion
-        public string? AuthMethod { get; set; } = "Certificate"; // Certificate or ClientAssertion
+        public string? AuthMethod { get; set; } = "Certificate"; // Certificate, ClientAssertion, or ManagedIdentity
     }
 
     public static class ServiceAuthHandlerExtension
@@ -141,7 +138,6 @@ namespace CRM.ICon.Modality
                     p.OrgId ?? "",
                     p.clientCertSubjectName ?? authConfig.ClientCertSubjectName ?? "",
                     p.DFMTenantId ?? "",
-                    p.UseCertificateAuth,
                     p.VDMAppRegistrationId ?? "",
                     p.AuthMethod ?? "Certificate"
                 );

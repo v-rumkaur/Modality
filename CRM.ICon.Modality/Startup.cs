@@ -150,7 +150,7 @@ namespace CRM.ICon.Modality
                 TenantId = options.TenantId,
                 OrgId = options.OrgId,
                 DFMTenantId = options.DFMTenantId,
-                UseCertificateAuth = true   // Omnichannel uses certificate
+                AuthMethod = "Certificate"   // Omnichannel uses certificate
             });
 
             services.AddHttpClient<IOmnichannelEUService, OmnichannelEUService>().ConfigureServiceAuthHandler<OmnichannelEUConfiguration>((options) => new ServiceAuthHandlerParams
@@ -160,7 +160,7 @@ namespace CRM.ICon.Modality
                 TenantId = options.TenantId,
                 OrgId = options.OrgId,
                 DFMTenantId = options.DFMTenantId,
-                UseCertificateAuth = true   // Omnichannel EU uses certificate
+                AuthMethod = "Certificate"   // Omnichannel EU uses certificate
             });
 
             services.AddSingleton<ICredentialProvider, CredentialProvider>();
