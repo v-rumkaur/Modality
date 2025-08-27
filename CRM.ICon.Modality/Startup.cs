@@ -30,7 +30,6 @@ namespace CRM.ICon.Modality
         public IConfiguration Configuration { get; }
         public Startup(IWebHostEnvironment env)
         {
-            
             var builder = new ConfigurationBuilder()
           .SetBasePath(Directory.GetCurrentDirectory())
           .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
@@ -72,7 +71,8 @@ namespace CRM.ICon.Modality
               .UseHttpsRedirection()
               ;
 
-            app.UseEndpoints(endpoints => {
+            app.UseEndpoints(endpoints =>
+            {
                 endpoints.MapControllers();
 
                 // Add endpoint for checking the health of this application.
@@ -101,7 +101,7 @@ namespace CRM.ICon.Modality
             services.Configure<ModalityCosmosDbConfiguration>(this.Configuration.GetSection("ModalityCosmosDbConfiguration"));
 
             // Initialize Telemetry - Use managed identity for compliance
-            services.AddApplicationInsightsTelemetry(options => 
+            services.AddApplicationInsightsTelemetry(options =>
             {
                 options.ConnectionString = Configuration.GetSection(ModalityConstants.TelemetryConfiguration).GetValue<string>(ModalityConstants.ApplicationInsightsConnectionString);
             });
@@ -112,7 +112,7 @@ namespace CRM.ICon.Modality
                 options.JsonSerializerOptions.PropertyNamingPolicy = null; // Keeps PascalCase
             }); ;
             services.AddEndpointsApiExplorer();
-            services.AddSwaggerGen();
+            //services.AddSwaggerGen(); Remove this line as Swagger is not needed in production
             services.AddMemoryCache();
 
             var aadConfiguration = this.Configuration.GetSection("AzureAdConfiguration").Get<AzureAdConfiguration>();
@@ -127,28 +127,21 @@ namespace CRM.ICon.Modality
                     .AddMiseWithDefaultModules(Configuration, authenticationSectionName: "AzureAdConfiguration");
 
             services.AddSingleton<AuthTokenClient>();
-       
 
             services.AddHttpClient<IVDMService, VDMService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(30);
             })
                 .ConfigureServiceAuthHandler<VDMConfiguration>((options) => new ServiceAuthHandlerParams
-            {
-                // Only pass what's needed for VDM authentication
-                Resource = options.Resource,
-                TenantId = options.TenantId,
-                AuthMethod = options.AuthMethod ?? "Certificate",
-                
-                // For ClientAssertion method
-                VDMAppRegistrationId = options.AppRegistrationId,
-                ManagedIdentityClientId = aadConfiguration.ManagedIdentityClientId,
-                
-                // For Certificate method (fallback)
-                FPAClientId = aadConfiguration.ClientId,
-                clientCertSubjectName = aadConfiguration.ClientCertSubjectName,
-                UseCertificateAuth = (options.AuthMethod ?? "Certificate") == "Certificate"
-            });
+                {
+                    // For ClientAssertion method
+                    Resource = options.Resource,
+                    TenantId = options.TenantId,
+                    VDMAppRegistrationId = options.AppRegistrationId,
+                    ManagedIdentityClientId = aadConfiguration.ManagedIdentityClientId,
+                    AuthMethod = options.AuthMethod ?? "Certificate",
+
+                });
 
             services.AddHttpClient<IOmnichannelService, OmnichannelService>().ConfigureServiceAuthHandler<OmnichannelConfiguration>((options) => new ServiceAuthHandlerParams
             {

@@ -40,12 +40,9 @@ namespace CRM.ICon.Modality
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties["TENANT_DEBUG_UseCertificateAuth"] = useCertificateAuth.ToString();
-            logProperties["TENANT_DEBUG_AuthMethod"] = authMethod;
-            logProperties["TENANT_DEBUG_TargetHost"] = request.RequestUri?.Host ?? "Unknown";
-            logProperties["TENANT_DEBUG_RequestPath"] = request.RequestUri?.AbsolutePath ?? "";
-            logProperties["TENANT_DEBUG_TargetTenant"] = tenantId;
-            logProperties["TENANT_DEBUG_Resource"] = resource;
+            logProperties["UseCertificateAuth"] = useCertificateAuth.ToString();
+            logProperties["TargetHost"] = request.RequestUri?.Host ?? "Unknown";
+            logProperties["RequestPath"] = request.RequestUri?.AbsolutePath ?? "";
             
             string token = "";
             try
@@ -76,38 +73,28 @@ namespace CRM.ICon.Modality
                     {
                         request.Headers.Add("OrganizationId", OrgId);
                         request.Headers.Add("x-ms-organizationid", OrgId);
-                        logProperties["TENANT_DEBUG_OrgId"] = OrgId;
+                        logProperties["OrgId"] = OrgId;
                     }
                     if (!string.IsNullOrEmpty(dfmTenantId))
                     {
                         request.Headers.Add("TenantId", dfmTenantId);
-                        logProperties["TENANT_DEBUG_DFMTenantId"] = dfmTenantId;
+                        logProperties["DFMTenantId"] = dfmTenantId;
                     }
                 }
                 else
                 {
-                    // Managed identity authentication (tends to produce v1.0 tokens from home tenant)
-                    logProperties["TENANT_DEBUG_AuthMethod"] = "ManagedIdentity";
-                    logProperties["TENANT_DEBUG_ClientId"] = clientId;
-                    logProperties["TENANT_DEBUG_ManagedIdentityClientId"] = managedIdentityClientId;
+                    // VDM calls use managed identity with API client ID
+                    // deprecated code. to be removed
+                    logProperties["AuthMethod"] = "ManagedIdentity";
                     
-                    this.telemetryService.LogTrace<ServiceAuthHandler>("TENANT_DEBUG: Using managed identity authentication for cross-tenant call", logProperties);
+                    this.telemetryService.LogTrace<ServiceAuthHandler>("Using managed identity authentication for same-tenant call", logProperties);
                     
                     token = await tokenClient.GetToken(clientId, managedIdentityClientId, resource, tenantId);
-                    
-                    // Log full token for debugging (REMOVE AFTER TROUBLESHOOTING!)
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        logProperties["FullAccessToken"] = token;
-                    }
                 }
 
                 request.Headers.Add("Authorization", $"Bearer {token}");
                 
-                // Log the final authorization header value for debugging
-                logProperties["FINAL_AUTHORIZATION_HEADER"] = $"Bearer {token}";
                 this.telemetryService.LogTrace<ServiceAuthHandler>("Successfully added authentication to request", logProperties);
-                this.telemetryService.LogTrace<ServiceAuthHandler>($"ServiceAuthHandler DEBUG - Added Authorization header: Bearer {token}", logProperties);
                 
                 return await base.SendAsync(request, cancellationToken);
             }

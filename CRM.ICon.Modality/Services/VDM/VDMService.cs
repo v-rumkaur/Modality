@@ -47,111 +47,25 @@ namespace CRM.ICon.Modality.Services.VDM
                 }
 
                 logProperties["CacheHit"] = "false";
-                logProperties["VDMEndpoint"] = vdmConfiguration.ServiceEndpoint;
-
-                // Log request headers for debugging
-                var requestHeaders = new Dictionary<string, string>();
-                foreach (var header in httpClient.DefaultRequestHeaders)
-                {
-                    requestHeaders[header.Key] = string.Join(",", header.Value);
-                }
-                logProperties["RequestHeaders"] = JsonConvert.SerializeObject(requestHeaders);
-
-
-                var jsonContent = JsonConvert.SerializeObject(request);
-                logProperties["VDMRequestPayload"] = jsonContent;
-                var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-                logProperties["VDMRequestPayloadString"] = httpContent.ReadAsStringAsync().Result;
                 _telemetryService.LogTrace<VDMService>("Calling VDM endpoint", logProperties);
 
+                var jsonContent = JsonConvert.SerializeObject(request);
+                var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                logProperties["VDMRequestPayloadString"] = httpContent.ReadAsStringAsync().Result;
+
                 var response = await httpClient.PostAsync(vdmConfiguration.ServiceEndpoint, httpContent);
-                
-                // COMPREHENSIVE RESPONSE LOGGING - Capture everything about the response
                 logProperties["StatusCode"] = response.StatusCode.ToString();
                 logProperties["StatusCodeNumber"] = ((int)response.StatusCode).ToString();
                 logProperties["ReasonPhrase"] = response.ReasonPhrase ?? "No reason phrase";
-                logProperties["IsSuccessStatusCode"] = response.IsSuccessStatusCode.ToString();
-                logProperties["HttpVersion"] = response.Version?.ToString() ?? "Unknown";
-                
-                // Log all response headers
-                var responseHeaders = new Dictionary<string, string>();
-                foreach (var header in response.Headers)
-                {
-                    responseHeaders[header.Key] = string.Join(",", header.Value);
-                }
-                
-                // Log content headers separately
-                var contentHeaders = new Dictionary<string, string>();
-                if (response.Content?.Headers != null)
-                {
-                    foreach (var header in response.Content.Headers)
-                    {
-                        contentHeaders[header.Key] = string.Join(",", header.Value);
-                    }
-                }
-                
-                logProperties["ResponseHeaders"] = JsonConvert.SerializeObject(responseHeaders);
-                logProperties["ContentHeaders"] = JsonConvert.SerializeObject(contentHeaders);
-                
-                // Read and log the full response content
+
                 var responseContent = await response.Content.ReadAsStringAsync();
                 logProperties["VDMResponse"] = responseContent;
-                logProperties["ResponseContentLength"] = responseContent?.Length.ToString() ?? "0";
-                logProperties["ResponseContentType"] = response.Content?.Headers?.ContentType?.ToString() ?? "Unknown";
-                
-                // Log if response is empty or null
-                logProperties["IsResponseEmpty"] = string.IsNullOrEmpty(responseContent).ToString();
-                
-                _telemetryService.LogTrace<VDMService>("FULL VDM RESPONSE DETAILS", logProperties);
-
-                // Log response headers for debugging
-                if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                _telemetryService.LogTrace<VDMService>("Received VDM response", logProperties);
+                if (!response.IsSuccessStatusCode)
                 {
-                    logProperties.Add("ErrorDetails", responseContent);
-                    this._telemetryService.LogTrace<VDMService>("BadRequest from VDM service", logProperties);
+                    this._telemetryService.LogTrace<VDMService>("VDM service call failed with " + response.StatusCode, logProperties);
                     return null;
                 }
-
-                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                {
-                    logProperties.Add("UnauthorizedErrorDetails", responseContent);
-                    logProperties.Add("WWWAuthenticateHeader", response.Headers.WwwAuthenticate?.ToString() ?? "Not present");
-                    this._telemetryService.LogError<VDMService>("VDM service returned 401 Unauthorized", logProperties);
-                    return null;
-                }
-
-                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                {
-                    logProperties.Add("ForbiddenErrorDetails", responseContent);
-                    this._telemetryService.LogError<VDMService>("VDM service returned 403 Forbidden - access denied", logProperties);
-                    return null;
-                }
-
-                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
-                {
-                    logProperties.Add("RateLimitErrorDetails", responseContent);
-                    logProperties.Add("RetryAfterHeader", response.Headers.RetryAfter?.ToString() ?? "Not present");
-                    this._telemetryService.LogError<VDMService>("VDM service returned 429 Too Many Requests - rate limited", logProperties);
-                    return null;
-                }
-
-                if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
-                {
-                    logProperties.Add("ServerErrorDetails", responseContent);
-                    this._telemetryService.LogError<VDMService>("VDM service returned 500 Internal Server Error", logProperties);
-                    return null;
-                }
-
-                if (response.StatusCode == System.Net.HttpStatusCode.BadGateway ||
-                    response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable ||
-                    response.StatusCode == System.Net.HttpStatusCode.GatewayTimeout)
-                {
-                    logProperties.Add("ServiceUnavailableDetails", responseContent);
-                    logProperties.Add("ServiceStatus", response.StatusCode.ToString());
-                    this._telemetryService.LogError<VDMService>("VDM service unavailable or gateway error", logProperties);
-                    return null;
-                }
-
                 response.EnsureSuccessStatusCode();
 
                 // Use the already-read response content and add detailed deserialization logging
