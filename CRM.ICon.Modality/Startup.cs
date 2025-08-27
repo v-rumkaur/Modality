@@ -135,11 +135,19 @@ namespace CRM.ICon.Modality
             })
                 .ConfigureServiceAuthHandler<VDMConfiguration>((options) => new ServiceAuthHandlerParams
             {
-                FPAClientId = aadConfiguration.ClientId,  // Use main app registration for certificate auth
-                clientCertSubjectName = aadConfiguration.ClientCertSubjectName,  // Use certificate
+                // Only pass what's needed for VDM authentication
                 Resource = options.Resource,
                 TenantId = options.TenantId,
-                UseCertificateAuth = true  // Use certificate auth with main app registration
+                AuthMethod = options.AuthMethod ?? "Certificate",
+                
+                // For ClientAssertion method
+                VDMAppRegistrationId = options.AppRegistrationId,
+                ManagedIdentityClientId = aadConfiguration.ManagedIdentityClientId,
+                
+                // For Certificate method (fallback)
+                FPAClientId = aadConfiguration.ClientId,
+                clientCertSubjectName = aadConfiguration.ClientCertSubjectName,
+                UseCertificateAuth = (options.AuthMethod ?? "Certificate") == "Certificate"
             });
 
             services.AddHttpClient<IOmnichannelService, OmnichannelService>().ConfigureServiceAuthHandler<OmnichannelConfiguration>((options) => new ServiceAuthHandlerParams

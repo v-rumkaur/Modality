@@ -43,24 +43,24 @@ namespace CRM.ICon.Modality
             logProperties["TENANT_DEBUG_RequestedResource"] = resource;
             logProperties["TENANT_DEBUG_ClientId"] = clientId;
             logProperties["TENANT_DEBUG_ManagedIdentityClientId"] = managedIdentityClientId;
-            
+
             try
-            {               
+            {
                 this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Starting managed identity v2.0 token request", logProperties);
-                
+
                 var credentials = credentialProvider.GetCredential(managedIdentityClientId);
                 // Create TokenRequestContext with tenant-specific parameters
                 var tokenRequestContext = new TokenRequestContext(
                     scopes: [resource],
                     tenantId: tenantId  // Specify the target tenant
                 );
-                
+
                 logProperties["TENANT_DEBUG_TokenRequestContextTenantId"] = tokenRequestContext.TenantId ?? "null";
                 logProperties["TENANT_DEBUG_TokenRequestContextScopes"] = string.Join(",", tokenRequestContext.Scopes ?? []);
                 logProperties["TENANT_DEBUG_Scope"] = resource;
-                
+
                 this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: About to call GetTokenAsync with v2.0 TokenRequestContext", logProperties);
-             
+
                 var result = await credentials.GetTokenAsync(new TokenRequestContext([resource]), default);
                 // Decode JWT to analyze actual token details
                 var tokenClaims = DecodeJwtClaims(result.Token);
@@ -70,7 +70,7 @@ namespace CRM.ICon.Modality
                 logProperties["TENANT_DEBUG_TokenAppId"] = tokenClaims.GetValueOrDefault("appid", "not found");
                 logProperties["TENANT_DEBUG_TokenVersion"] = tokenClaims.GetValueOrDefault("ver", "not found");
                 logProperties["TENANT_DEBUG_TokenExpires"] = result.ExpiresOn.ToString();
-                
+
                 // Check if issuer indicates v1.0 vs v2.0 token
                 var issuer = tokenClaims.GetValueOrDefault("iss", "");
                 if (issuer.Contains("sts.windows.net"))
@@ -85,7 +85,7 @@ namespace CRM.ICon.Modality
                 {
                     logProperties["TENANT_DEBUG_TokenType"] = $"Unknown issuer: {issuer}";
                 }
-                
+
                 logProperties["TENANT_DEBUG_TokenReceived"] = "Success";
                 this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Token Success! analysis - REQUESTED vs ACTUAL tenant comparison", logProperties);
                 return result.Token.ToString();
@@ -112,13 +112,13 @@ namespace CRM.ICon.Modality
             logProperties["TENANT_DEBUG_CertMethod_ClientId"] = clientId;
             logProperties["TENANT_DEBUG_CertMethod_TenantId"] = tenantId;
             logProperties["TENANT_DEBUG_CertMethod_Scope"] = scope;
-            
+
             try
             {
                 this.telemetryService.LogTrace<AuthTokenClient>("Attempting to retrieve token using certificate", logProperties);
-                
+
                 X509Certificate2 cert = await keyVaultClient.GetCertificateAsync(certificateSubjectName);
-                
+
                 // Validate certificate
                 logProperties["TENANT_DEBUG_CertSubject"] = cert.Subject;
                 logProperties["TENANT_DEBUG_CertIssuer"] = cert.Issuer;
@@ -131,18 +131,18 @@ namespace CRM.ICon.Modality
                 logProperties["TENANT_DEBUG_CertKeySize"] = cert.GetRSAPublicKey()?.KeySize.ToString() ?? "Unknown";
                 logProperties["TENANT_DEBUG_CertSignatureAlgorithm"] = cert.SignatureAlgorithm.FriendlyName ?? "Unknown";
                 logProperties["TENANT_DEBUG_CertVersion"] = cert.Version.ToString();
-                
+
                 this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Certificate validation details", logProperties);
-                
+
                 // Log MSAL configuration details
                 logProperties["TENANT_DEBUG_MSALClientId"] = clientId;
                 logProperties["TENANT_DEBUG_MSALTenantId"] = tenantId;
                 logProperties["TENANT_DEBUG_MSALScope"] = scope + "/.default";
                 logProperties["TENANT_DEBUG_MSALAuthority"] = $"https://login.microsoftonline.com/{tenantId}/";
                 logProperties["TENANT_DEBUG_SendX5C"] = "true";
-                
+
                 this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: MSAL configuration details", logProperties);
-                
+
                 var app = ConfidentialClientApplicationBuilder
                             .Create(clientId)
                             .WithCertificate(cert)
@@ -193,7 +193,7 @@ namespace CRM.ICon.Modality
                     this.telemetryService.LogException<AuthTokenClient>(genericEx, logProperties, "TENANT_DEBUG: Generic exception during MSAL token acquisition");
                     throw;
                 }
-                
+
                 // Decode and analyze the certificate-based token
                 var tokenClaims = DecodeJwtClaims(result.AccessToken);
                 logProperties["TENANT_DEBUG_CertToken_Tenant"] = tokenClaims.GetValueOrDefault("tid", "not found");
@@ -201,7 +201,7 @@ namespace CRM.ICon.Modality
                 logProperties["TENANT_DEBUG_CertToken_Audience"] = tokenClaims.GetValueOrDefault("aud", "not found");
                 logProperties["TENANT_DEBUG_CertToken_AppId"] = tokenClaims.GetValueOrDefault("appid", "not found");
                 logProperties["TENANT_DEBUG_CertToken_Version"] = tokenClaims.GetValueOrDefault("ver", "not found");
-                
+
                 // Check token version based on issuer
                 var issuer = tokenClaims.GetValueOrDefault("iss", "");
                 if (issuer.Contains("sts.windows.net"))
@@ -216,7 +216,7 @@ namespace CRM.ICon.Modality
                 {
                     logProperties["TENANT_DEBUG_CertTokenType"] = $"Unknown issuer: {issuer}";
                 }
-                
+
                 this.telemetryService.LogTrace<AuthTokenClient>("TENANT_DEBUG: Successfully retrieved certificate token with analysis", logProperties);
                 return result.AccessToken.ToString();
             }
@@ -242,11 +242,11 @@ namespace CRM.ICon.Modality
                         case 2: payload += "=="; break;
                         case 3: payload += "="; break;
                     }
-                    
+
                     var jsonBytes = Convert.FromBase64String(payload);
                     var json = Encoding.UTF8.GetString(jsonBytes);
                     var document = JsonDocument.Parse(json);
-                    
+
                     foreach (var property in document.RootElement.EnumerateObject())
                     {
                         claims[property.Name] = property.Value.ToString();
@@ -258,6 +258,38 @@ namespace CRM.ICon.Modality
                 this.telemetryService.LogTrace<AuthTokenClient>($"TENANT_DEBUG: Failed to decode JWT: {ex.Message}", ModalityExtensions.GetRequestProperties());
             }
             return claims;
+        }
+
+        // In AuthTokenClient.cs - add this method
+        public async Task<string> GetVDMTokenAsync(string vdmTenantId, string appRegistrationId, string managedIdentityId, string resource)
+        {
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["VDM_AUTH_METHOD"] = "ClientAssertionCredential";
+            logProperties["VDM_TARGET_TENANT"] = vdmTenantId;
+            logProperties["VDM_RESOURCE"] = resource;
+
+            try
+            {
+                this.telemetryService.LogTrace<AuthTokenClient>("VDM: Starting ClientAssertionCredential authentication", logProperties);
+
+                var token = await VDMCredentialHelper.GetVDMAccessTokenAsync(
+                    telemetryService,
+                    vdmTenantId,
+                    appRegistrationId,
+                    managedIdentityId,
+                    $"{resource}/.default"
+                );
+
+                logProperties["VDM_TOKEN_SUCCESS"] = "true";
+                this.telemetryService.LogTrace<AuthTokenClient>("VDM: ClientAssertionCredential authentication successful", logProperties);
+
+                return token;
+            }
+            catch (Exception ex)
+            {
+                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "VDM ClientAssertionCredential authentication failed");
+                throw;
+            }
         }
 
         class CachedAuthToken

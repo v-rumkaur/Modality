@@ -17,8 +17,10 @@ namespace CRM.ICon.Modality
         private readonly string certificateSubjectName;
         private readonly string dfmTenantId;
         private readonly bool useCertificateAuth;
+        private readonly string vdmAppRegistrationId;
+        private readonly string authMethod;
 
-        public ServiceAuthHandler(AuthTokenClient tokenClient, ITelemetryService telemetryService, string clientId, string fpaClientId, string managedIdentityClientId, string resource, string tenantId, string OrgId, string certificateSubjectName, string dfmTenantId, bool useCertificateAuth)
+        public ServiceAuthHandler(AuthTokenClient tokenClient, ITelemetryService telemetryService, string clientId, string fpaClientId, string managedIdentityClientId, string resource, string tenantId, string OrgId, string certificateSubjectName, string dfmTenantId, bool useCertificateAuth, string vdmAppRegistrationId = "", string authMethod = "Certificate")
         {
             this.tokenClient = tokenClient;
             this.telemetryService = telemetryService;
@@ -31,12 +33,15 @@ namespace CRM.ICon.Modality
             this.certificateSubjectName = certificateSubjectName;
             this.dfmTenantId = dfmTenantId;
             this.useCertificateAuth = useCertificateAuth;
+            this.vdmAppRegistrationId = vdmAppRegistrationId;
+            this.authMethod = authMethod;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
             logProperties["TENANT_DEBUG_UseCertificateAuth"] = useCertificateAuth.ToString();
+            logProperties["TENANT_DEBUG_AuthMethod"] = authMethod;
             logProperties["TENANT_DEBUG_TargetHost"] = request.RequestUri?.Host ?? "Unknown";
             logProperties["TENANT_DEBUG_RequestPath"] = request.RequestUri?.AbsolutePath ?? "";
             logProperties["TENANT_DEBUG_TargetTenant"] = tenantId;
@@ -45,7 +50,15 @@ namespace CRM.ICon.Modality
             string token = "";
             try
             {
-                if (useCertificateAuth)
+                if (authMethod == "ClientAssertion" && !string.IsNullOrEmpty(vdmAppRegistrationId))
+                {
+                    // VDM calls using ClientAssertionCredential with cross-tenant authentication
+                    this.telemetryService.LogTrace<ServiceAuthHandler>("Using ClientAssertionCredential for VDM cross-tenant call", logProperties);
+                    logProperties["VDM_APP_REGISTRATION_ID"] = vdmAppRegistrationId;
+                    
+                    token = await tokenClient.GetVDMTokenAsync(tenantId, vdmAppRegistrationId, managedIdentityClientId, resource);
+                }
+                else if (useCertificateAuth)
                 {
                     // Omnichannel calls use certificate with FPA client ID
                     this.telemetryService.LogTrace<ServiceAuthHandler>("Using certificate authentication for cross-tenant call", logProperties);
@@ -106,6 +119,8 @@ namespace CRM.ICon.Modality
         public string? clientCertSubjectName;
         public string? DFMTenantId;
         public bool UseCertificateAuth { get; set; } = false; // Explicit flag for auth method
+        public string? VDMAppRegistrationId { get; set; } = ""; // VDM app registration ID for ClientAssertion
+        public string? AuthMethod { get; set; } = "Certificate"; // Certificate or ClientAssertion
     }
 
     public static class ServiceAuthHandlerExtension
@@ -128,7 +143,9 @@ namespace CRM.ICon.Modality
                     p.OrgId ?? "",
                     p.clientCertSubjectName ?? authConfig.ClientCertSubjectName ?? "",
                     p.DFMTenantId ?? "",
-                    p.UseCertificateAuth
+                    p.UseCertificateAuth,
+                    p.VDMAppRegistrationId ?? "",
+                    p.AuthMethod ?? "Certificate"
                 );
             });
         }
