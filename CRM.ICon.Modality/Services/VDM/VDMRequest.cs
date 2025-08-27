@@ -5,16 +5,16 @@ namespace CRM.ICon.Modality.Services.VDM
 {
     public class VDMRequest
     {
-        [JsonProperty("Text")]
+        [JsonProperty("crmee_text")]
         public String? Text { get; set; }
         
-        [JsonProperty("Boundary")]
+        [JsonProperty("crmee_boundary")]
         public String? Boundary { get; set; }
 
-        [JsonProperty("SapId")]
+        [JsonProperty("crmee_sapid")]
         public String? SapId { get; set; }
 
-        [JsonProperty("PredictionPurposes")]
+        [JsonProperty("crmee_predictionpurposes")]
         public String? PredictionPurposes { get; set; }
     }
 }
