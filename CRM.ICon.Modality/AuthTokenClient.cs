@@ -272,6 +272,9 @@ namespace CRM.ICon.Modality
             {
                 this.telemetryService.LogTrace<AuthTokenClient>("VDM: Starting ClientAssertionCredential authentication", logProperties);
 
+                // Log all parameters being passed for debugging
+                this.telemetryService.LogTrace<AuthTokenClient>($"VDM DEBUG - Calling VDMCredentialHelper with TenantId: {vdmTenantId}, AppRegId: {appRegistrationId}, ManagedIdentityId: {managedIdentityId}, Resource: {resource}/.default", logProperties);
+
                 var token = await VDMCredentialHelper.GetVDMAccessTokenAsync(
                     telemetryService,
                     vdmTenantId,
@@ -281,7 +284,9 @@ namespace CRM.ICon.Modality
                 );
 
                 logProperties["VDM_TOKEN_SUCCESS"] = "true";
+                logProperties["VDM_FINAL_TOKEN"] = token; // Log the final token received
                 this.telemetryService.LogTrace<AuthTokenClient>("VDM: ClientAssertionCredential authentication successful", logProperties);
+                this.telemetryService.LogTrace<AuthTokenClient>($"VDM DEBUG - Final token received: {token}", logProperties);
 
                 return token;
             }

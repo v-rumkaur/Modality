@@ -55,8 +55,16 @@ namespace CRM.ICon.Modality
                     // VDM calls using ClientAssertionCredential with cross-tenant authentication
                     this.telemetryService.LogTrace<ServiceAuthHandler>("Using ClientAssertionCredential for VDM cross-tenant call", logProperties);
                     logProperties["VDM_APP_REGISTRATION_ID"] = vdmAppRegistrationId;
+                    logProperties["VDM_MANAGED_IDENTITY_ID"] = managedIdentityClientId;
+                    
+                    // Log all parameters for debugging
+                    this.telemetryService.LogTrace<ServiceAuthHandler>($"ServiceAuthHandler DEBUG - Calling GetVDMTokenAsync with TenantId: {tenantId}, AppRegId: {vdmAppRegistrationId}, ManagedIdentityId: {managedIdentityClientId}, Resource: {resource}", logProperties);
                     
                     token = await tokenClient.GetVDMTokenAsync(tenantId, vdmAppRegistrationId, managedIdentityClientId, resource);
+                    
+                    // Log the token received
+                    logProperties["ServiceAuthHandler_RECEIVED_TOKEN"] = token;
+                    this.telemetryService.LogTrace<ServiceAuthHandler>($"ServiceAuthHandler DEBUG - Received token: {token}", logProperties);
                 }
                 else if (useCertificateAuth)
                 {
@@ -96,7 +104,10 @@ namespace CRM.ICon.Modality
 
                 request.Headers.Add("Authorization", $"Bearer {token}");
                 
+                // Log the final authorization header value for debugging
+                logProperties["FINAL_AUTHORIZATION_HEADER"] = $"Bearer {token}";
                 this.telemetryService.LogTrace<ServiceAuthHandler>("Successfully added authentication to request", logProperties);
+                this.telemetryService.LogTrace<ServiceAuthHandler>($"ServiceAuthHandler DEBUG - Added Authorization header: Bearer {token}", logProperties);
                 
                 return await base.SendAsync(request, cancellationToken);
             }
