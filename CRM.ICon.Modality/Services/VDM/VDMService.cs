@@ -57,7 +57,7 @@ namespace CRM.ICon.Modality.Services.VDM
                 logProperties["RequestHeaders"] = JsonConvert.SerializeObject(requestHeaders);
 
                 // Log the exact JSON payload being sent to VDM
-                var jsonPayload = new
+                var jsonPayload = new VDMRequest
                 {
                     Text = "I cannot setup the application and I am having issues with security and I dont know what I am talking about",
                     Boundary = "public",
