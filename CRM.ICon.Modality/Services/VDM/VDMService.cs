@@ -132,7 +132,7 @@ namespace CRM.ICon.Modality.Services.VDM
 
                 var stringResponse = await response.Content.ReadAsStringAsync();
                 var deserializedResponse = JsonConvert.DeserializeObject<VDMResult>(stringResponse);
-                var vdmResponse = deserializedResponse?.Result?.purposefulResult;
+                var vdmResponse = deserializedResponse?.Result?.purposefulResults.FirstOrDefault();
 
                 if (vdmResponse != null)
                 {
