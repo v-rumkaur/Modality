@@ -4,7 +4,7 @@ namespace CRM.ICon.Modality.Services.VDM
 {
     public class VDMRequest
     {
-        [JsonProperty("Test")]
+        [JsonProperty("Text")]
         public String? Text { get; set; }
 
         [JsonProperty("Boundary")]

@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
 using System.Runtime.Caching;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace CRM.ICon.Modality.Services.VDM
@@ -64,12 +65,14 @@ namespace CRM.ICon.Modality.Services.VDM
                     SapId = "a15ee149-80c5-6fef-e00d-74065e38507a",
                     PredictionPurposes = "crmee_ml_skill_model"
                 };
-                logProperties["VDMRequestPayloadString"] = jsonPayload.ToString();
-                logProperties["VDMRequestPayloadSerialized"] = JsonConvert.SerializeObject(jsonPayload);
-                _telemetryService.LogTrace<VDMService>($"VDM JSON Payload: {jsonPayload}", logProperties);
 
+                var jsonContent = JsonConvert.SerializeObject(jsonPayload);
+                logProperties["VDMRequestPayload"] = jsonContent;
+                var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                logProperties["VDMRequestPayloadString"] = httpContent.ReadAsStringAsync().Result;
                 _telemetryService.LogTrace<VDMService>("Calling VDM endpoint", logProperties);
-                var response = await httpClient.PostAsJsonAsync(vdmConfiguration.ServiceEndpoint, jsonPayload);
+
+                var response = await httpClient.PostAsync(vdmConfiguration.ServiceEndpoint, httpContent);
                 logProperties["StatusCode"] = response.StatusCode.ToString();
 
                 // Log response headers for debugging
