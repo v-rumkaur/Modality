@@ -36,7 +36,7 @@ namespace CRM.ICon.Modality.Helpers.Identity
                 // Use ClientAssertionCredential with ManagedIdentityClientAssertion for cross-tenant VDM auth
                 var credential = new ClientAssertionCredential(
                     vdmTenantId, 
-                    appRegistrationId, 
+                    appRegistrationId, //Can probably replace this with client Id?
                     _ => new ManagedIdentityClientAssertion(managedIdentityId).GetSignedAssertionAsync(null)
                 );
 
@@ -82,17 +82,7 @@ namespace CRM.ICon.Modality.Helpers.Identity
                 telemetryService.LogTrace<object>("VDM GetAccessToken - Calling credential.GetTokenAsync with Azure Identity library", logProperties);
                 var accessToken = await credential.GetTokenAsync(tokenContext, CancellationToken.None);
 
-                // Log EVERYTHING for debugging - NO MASKING
-                logProperties["VDM_TOKEN_EXPIRES_ON"] = accessToken.ExpiresOn.ToString("yyyy-MM-dd HH:mm:ss UTC");
-                logProperties["VDM_TOKEN_LENGTH"] = accessToken.Token.Length.ToString();
-                logProperties["VDM_FULL_ACCESS_TOKEN"] = accessToken.Token; // FULL TOKEN FOR DEBUGGING
-                logProperties["VDM_TOKEN_SUCCESS"] = "true";
-                
                 telemetryService.LogTrace<object>("VDM GetAccessToken - Token acquired successfully", logProperties);
-                
-                // Also log the token acquisition details
-                telemetryService.LogTrace<object>($"VDM DEBUG - Full token: {accessToken.Token}", logProperties);
-                telemetryService.LogTrace<object>($"VDM DEBUG - Token expires: {accessToken.ExpiresOn}", logProperties);
                 
                 return accessToken.Token;
             }
