@@ -30,7 +30,6 @@ namespace CRM.ICon.Modality
         public IConfiguration Configuration { get; }
         public Startup(IWebHostEnvironment env)
         {
-            
             var builder = new ConfigurationBuilder()
           .SetBasePath(Directory.GetCurrentDirectory())
           .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
@@ -72,7 +71,8 @@ namespace CRM.ICon.Modality
               .UseHttpsRedirection()
               ;
 
-            app.UseEndpoints(endpoints => {
+            app.UseEndpoints(endpoints =>
+            {
                 endpoints.MapControllers();
 
                 // Add endpoint for checking the health of this application.
@@ -101,7 +101,7 @@ namespace CRM.ICon.Modality
             services.Configure<ModalityCosmosDbConfiguration>(this.Configuration.GetSection("ModalityCosmosDbConfiguration"));
 
             // Initialize Telemetry - Use managed identity for compliance
-            services.AddApplicationInsightsTelemetry(options => 
+            services.AddApplicationInsightsTelemetry(options =>
             {
                 options.ConnectionString = Configuration.GetSection(ModalityConstants.TelemetryConfiguration).GetValue<string>(ModalityConstants.ApplicationInsightsConnectionString);
             });
@@ -127,18 +127,21 @@ namespace CRM.ICon.Modality
                     .AddMiseWithDefaultModules(Configuration, authenticationSectionName: "AzureAdConfiguration");
 
             services.AddSingleton<AuthTokenClient>();
-       
 
             services.AddHttpClient<IVDMService, VDMService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(30);
             })
                 .ConfigureServiceAuthHandler<VDMConfiguration>((options) => new ServiceAuthHandlerParams
-            {
-                Resource = options.Resource,
-                TenantId = options.TenantId,
-                UseCertificateAuth = false  // VDM uses managed identity
-            });
+                {
+                    // For ClientAssertion method
+                    Resource = options.Resource,
+                    TenantId = options.TenantId,
+                    VDMAppRegistrationId = options.AppRegistrationId,
+                    ManagedIdentityClientId = aadConfiguration.ManagedIdentityClientId,
+                    AuthMethod = "ClientAssertion",  // VDM uses ClientAssertion
+
+                });
 
             services.AddHttpClient<IOmnichannelService, OmnichannelService>().ConfigureServiceAuthHandler<OmnichannelConfiguration>((options) => new ServiceAuthHandlerParams
             {
@@ -147,7 +150,7 @@ namespace CRM.ICon.Modality
                 TenantId = options.TenantId,
                 OrgId = options.OrgId,
                 DFMTenantId = options.DFMTenantId,
-                UseCertificateAuth = true   // Omnichannel uses certificate
+                AuthMethod = "Certificate"   // Omnichannel uses certificate
             });
 
             services.AddHttpClient<IOmnichannelEUService, OmnichannelEUService>().ConfigureServiceAuthHandler<OmnichannelEUConfiguration>((options) => new ServiceAuthHandlerParams
@@ -157,7 +160,7 @@ namespace CRM.ICon.Modality
                 TenantId = options.TenantId,
                 OrgId = options.OrgId,
                 DFMTenantId = options.DFMTenantId,
-                UseCertificateAuth = true   // Omnichannel EU uses certificate
+                AuthMethod = "Certificate"   // Omnichannel EU uses certificate
             });
 
             services.AddSingleton<ICredentialProvider, CredentialProvider>();

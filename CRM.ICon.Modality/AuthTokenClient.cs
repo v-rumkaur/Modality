@@ -1,5 +1,4 @@
 ﻿using Azure.Core;
-using Azure.Identity;
 using CRM.ICon.Modality.Helpers;
 using CRM.ICon.Modality.Helpers.Identity;
 using CRM.ICon.Modality.Helpers.KeyVaultClient;
@@ -37,9 +36,15 @@ namespace CRM.ICon.Modality
         private async Task<string> RetrieveToken(string clientId, string managedIdentityClientId, string resource, string tenantId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            
+            logProperties["RequestedTenantId"] = tenantId;
+            logProperties["RequestedResource"] = resource;
+            logProperties["ClientId"] = clientId;
+            logProperties["ManagedIdentityClientId"] = managedIdentityClientId;
+
             try
-            {               
+            {
+                this.telemetryService.LogTrace<AuthTokenClient>("Starting managed identity token request", logProperties);
+
                 var credentials = credentialProvider.GetCredential(managedIdentityClientId);
                 var result = await credentials.GetTokenAsync(new TokenRequestContext([resource]), default);
                 
@@ -47,7 +52,7 @@ namespace CRM.ICon.Modality
             }
             catch (Exception ex)
             {
-                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "VDM token Generation Failed");
+                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "token Generation Failed");
                 throw;
             }
         }
@@ -64,7 +69,10 @@ namespace CRM.ICon.Modality
         private async Task<string> RetrieveTokenWithCertAsync(string clientId, string certificateSubjectName, string scope, string tenantId)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            
+            logProperties["CertMethod_ClientId"] = clientId;
+            logProperties["CertMethod_TenantId"] = tenantId;
+            logProperties["CertMethod_Scope"] = scope;
+
             try
             {
                 this.telemetryService.LogTrace<AuthTokenClient>("Attempting to retrieve token using certificate", logProperties);
@@ -89,6 +97,33 @@ namespace CRM.ICon.Modality
                 throw;
             }
         }
+
+        public async Task<string> GetVDMTokenAsync(string vdmTenantId, string appRegistrationId, string managedIdentityId, string resource)
+        {
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["VDM_TARGET_TENANT"] = vdmTenantId;
+            logProperties["VDM_RESOURCE"] = resource;
+
+            try
+            {
+                this.telemetryService.LogTrace<AuthTokenClient>("VDM: Starting ClientAssertionCredential authentication", logProperties);
+
+                var token = await VDMCredentialHelper.GetVDMAccessTokenAsync(
+                    telemetryService,
+                    vdmTenantId,
+                    appRegistrationId,
+                    managedIdentityId,
+                    $"{resource}/.default"
+                );
+                return token;
+            }
+            catch (Exception ex)
+            {
+                this.telemetryService.LogException<AuthTokenClient>(ex, logProperties, "VDM ClientAssertionCredential authentication failed");
+                throw;
+            }
+        }
+
         class CachedAuthToken
         {
             public string Token { get; set; }

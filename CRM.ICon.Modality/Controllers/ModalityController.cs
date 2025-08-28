@@ -14,6 +14,7 @@ using OpenTelemetry.Resources;
 using System;
 using System.Data.Common;
 using System.Globalization;
+using System.Linq;
 
 namespace CRM.ICon.Modality.Controllers
 {
@@ -131,6 +132,7 @@ namespace CRM.ICon.Modality.Controllers
 
             (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfoEmail);
             modalityResponse.Modalities.Add(modalityInfoPhone);
+            modalityResponse.Modalities.Add(modalityInfoPCS);
 
             if (string.IsNullOrEmpty(userType))
             {
@@ -159,7 +161,7 @@ namespace CRM.ICon.Modality.Controllers
                 else if (string.Equals(source, "SupportCentral", StringComparison.CurrentCultureIgnoreCase) ||
                     string.Equals(source, "SupportCentralSearch", StringComparison.CurrentCultureIgnoreCase))
                 {
-                    return Ok(modalityResponse);
+                    return SortAndReturnModalityResponse(modalityResponse);
                 }
 
                 CustomContext chatCustomContext = new CustomContext();
@@ -182,12 +184,12 @@ namespace CRM.ICon.Modality.Controllers
 
                     if (isConciergeChat && averagewaittime > 15)
                     {
-                        return Ok(modalityResponse);
+                        return SortAndReturnModalityResponse(modalityResponse);
                     }
 
                     if (isSCIMChat && averagewaittime > 5)
                     {
-                        return Ok(modalityResponse);
+                        return SortAndReturnModalityResponse(modalityResponse);
                     }
 
                     if (!queueAvailability.IsQueueAvailable)
@@ -219,8 +221,12 @@ namespace CRM.ICon.Modality.Controllers
                     modalityResponse.Modalities.Add(modalityInfoChat);
                 }
 
+                // Add PCS modality after chat for proper ordering (1, 2, 4, 5)
+
+                // Sort modalities by their numeric value to ensure correct ordering
+                modalityResponse.Modalities = modalityResponse.Modalities?.OrderBy(m => m.Modality).ToList() ?? new List<ModalityInfo>();
+
                 // hardcode PCS modality until real data is available in September
-                modalityResponse.Modalities.Add(modalityInfoPCS);
                 return Ok(modalityResponse);
             }
 
@@ -233,7 +239,7 @@ namespace CRM.ICon.Modality.Controllers
             if (isACE)
             {
                 this._telemetryService.LogTrace<ModalityController>("ACE customer is true", logProperties);
-                return Ok(modalityResponse);
+                return SortAndReturnModalityResponse(modalityResponse);
             }
 
             SupportTicketAttribute supportTicketAttribute = modalityRequest.SupportTicketAttributes;
@@ -262,7 +268,7 @@ namespace CRM.ICon.Modality.Controllers
             {
                 this._telemetryService.LogTrace<ModalityController>("VDM response is null", logProperties);
                 // If VDM response is null, then chat modality and skills are not returned. 
-                return Ok(modalityResponse);
+                return SortAndReturnModalityResponse(modalityResponse);
             }
 
             //language characteristic 
@@ -298,12 +304,13 @@ namespace CRM.ICon.Modality.Controllers
 
             omnichannelRequest.CustomContext = customContext;
 
+            _telemetryService.LogTrace<ModalityController>("Requesting agent availability", logProperties);
             var omnichannelResponse = await omnichannelService.GetAgentAvailability(omnichannelRequest, source, userType, requestId);
 
             if (omnichannelResponse == null)
             {
                 this._telemetryService.LogTrace<ModalityController>("Omnichannel response is null", logProperties);
-                return Ok(modalityResponse);
+                return SortAndReturnModalityResponse(modalityResponse);
             }
 
             SkillInfo vdmSkill = new SkillInfo();
@@ -342,6 +349,9 @@ namespace CRM.ICon.Modality.Controllers
             modalityInfo.CustomContext = customContext;
 
             (modalityResponse.Modalities ??= new List<ModalityInfo>()).Add(modalityInfo);
+
+            // Sort modalities by their numeric value to ensure correct ordering (1, 2, 4, 5)
+            modalityResponse.Modalities = modalityResponse.Modalities?.OrderBy(m => m.Modality).ToList() ?? new List<ModalityInfo>();
 
             logProperties["ModalityResponse"] = JsonConvert.SerializeObject(modalityResponse);
             _telemetryService.LogTrace<ModalityController>("Returning modality response", logProperties);
@@ -401,6 +411,7 @@ namespace CRM.ICon.Modality.Controllers
             // GetWidgetDetails for Non MCS
             WidgetDetails widgetDetailsNonMCS = await omnichannelService.GetWidgetDetails(languageCode, source, userType, false, ring);
 
+            // Change this from a list to primary/backup
             List<WidgetDetails> widgetDetailsList = new();
 
             void AddIfValid(WidgetDetails widgetDetails)
@@ -878,6 +889,17 @@ namespace CRM.ICon.Modality.Controllers
             }
 
             return languageCode;
+        }
+
+        /// <summary>
+        /// Helper method to sort modalities by their numeric value and return the response
+        /// </summary>
+        /// <param name="modalityResponse">The modality response to sort and return</param>
+        /// <returns>Sorted modality response</returns>
+        private ActionResult<ModalityResponse> SortAndReturnModalityResponse(ModalityResponse modalityResponse)
+        {
+            modalityResponse.Modalities = modalityResponse.Modalities?.OrderBy(m => m.Modality).ToList() ?? new List<ModalityInfo>();
+            return Ok(modalityResponse);
         }
     }
 }

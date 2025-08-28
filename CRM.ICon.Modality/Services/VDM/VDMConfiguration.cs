@@ -14,5 +14,9 @@
         /// Gets or sets the Tenant Id
         /// </summary>
         public string? TenantId { get; set; }
+        /// <summary>
+        /// Gets or sets the App Registration Id for VDM cross-tenant authentication
+        /// </summary>
+        public string? AppRegistrationId { get; set; }
     }
 }
