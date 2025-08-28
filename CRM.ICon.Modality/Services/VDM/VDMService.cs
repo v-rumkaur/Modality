@@ -51,7 +51,7 @@ namespace CRM.ICon.Modality.Services.VDM
 
                 var jsonContent = JsonConvert.SerializeObject(request);
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-                logProperties["VDMRequestPayloadString"] = httpContent.ReadAsStringAsync().Result;
+                logProperties["VDMRequestPayloadString"] = jsonContent;
 
                 var response = await httpClient.PostAsync(vdmConfiguration.ServiceEndpoint, httpContent);
                 logProperties["StatusCode"] = response.StatusCode.ToString();

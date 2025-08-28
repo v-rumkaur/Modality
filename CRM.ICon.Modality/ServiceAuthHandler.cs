@@ -52,14 +52,10 @@ namespace CRM.ICon.Modality
                     logProperties["VDM_APP_REGISTRATION_ID"] = vdmAppRegistrationId;
                     logProperties["VDM_MANAGED_IDENTITY_ID"] = managedIdentityClientId;
                     
-                    // Log all parameters for debugging
-                    this.telemetryService.LogTrace<ServiceAuthHandler>($"ServiceAuthHandler DEBUG - Calling GetVDMTokenAsync with TenantId: {tenantId}, AppRegId: {vdmAppRegistrationId}, ManagedIdentityId: {managedIdentityClientId}, Resource: {resource}", logProperties);
-                    
                     token = await tokenClient.GetVDMTokenAsync(tenantId, vdmAppRegistrationId, managedIdentityClientId, resource);
                     
-                    // Log the token received
-                    logProperties["ServiceAuthHandler_RECEIVED_TOKEN"] = token;
-                    this.telemetryService.LogTrace<ServiceAuthHandler>($"ServiceAuthHandler DEBUG - Received token: {token}", logProperties);
+                    logProperties["VDM_TOKEN_LENGTH"] = token?.Length.ToString() ?? "0";
+                    this.telemetryService.LogTrace<ServiceAuthHandler>("VDM ClientAssertion token acquired successfully", logProperties);
                 }
                 else if (authMethod == "Certificate")
                 {
@@ -67,16 +63,18 @@ namespace CRM.ICon.Modality
                     this.telemetryService.LogTrace<ServiceAuthHandler>("Using certificate authentication for cross-tenant call", logProperties);
                     
                     token = await tokenClient.GetTokenWithCertAsync(fpaClientId, certificateSubjectName, resource, tenantId);
+                    logProperties["CERT_TOKEN_LENGTH"] = token?.Length.ToString() ?? "0";
+                    
                     if (!string.IsNullOrEmpty(OrgId))
                     {
                         request.Headers.Add("OrganizationId", OrgId);
                         request.Headers.Add("x-ms-organizationid", OrgId);
-                        logProperties["OrgId"] = OrgId;
+                        logProperties["HAS_ORG_ID"] = "true";
                     }
                     if (!string.IsNullOrEmpty(dfmTenantId))
                     {
                         request.Headers.Add("TenantId", dfmTenantId);
-                        logProperties["DFMTenantId"] = dfmTenantId;
+                        logProperties["HAS_DFM_TENANT_ID"] = "true";
                     }
                 }
                 else
@@ -88,11 +86,19 @@ namespace CRM.ICon.Modality
                     this.telemetryService.LogTrace<ServiceAuthHandler>("Using managed identity authentication for same-tenant call", logProperties);
                     
                     token = await tokenClient.GetToken(clientId, managedIdentityClientId, resource, tenantId);
+                    logProperties["MI_TOKEN_LENGTH"] = token?.Length.ToString() ?? "0";
                 }
 
-                request.Headers.Add("Authorization", $"Bearer {token}");
-                
-                this.telemetryService.LogTrace<ServiceAuthHandler>("Successfully added authentication to request", logProperties);
+                if (!string.IsNullOrEmpty(token))
+                {
+                    request.Headers.Add("Authorization", $"Bearer {token}");
+                    logProperties["AUTH_HEADER_ADDED"] = "true";
+                }
+                else
+                {
+                    logProperties["AUTH_HEADER_ADDED"] = "false";
+                    this.telemetryService.LogTrace<ServiceAuthHandler>("Warning: Empty token received", logProperties);
+                }
                 
                 return await base.SendAsync(request, cancellationToken);
             }

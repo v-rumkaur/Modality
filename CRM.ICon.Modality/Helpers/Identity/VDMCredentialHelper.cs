@@ -28,10 +28,7 @@ namespace CRM.ICon.Modality.Helpers.Identity
 
             try
             {
-                telemetryService.LogTrace<object>("VDM GetCredential - Starting ClientAssertionCredential creation", logProperties);
-
-                // Log detailed Azure Identity library information
-                telemetryService.LogTrace<object>($"VDM DEBUG - Creating ClientAssertionCredential with TenantId: {vdmTenantId}, ClientId: {appRegistrationId}, ManagedIdentityId: {managedIdentityId}", logProperties);
+                telemetryService.LogTrace<object>("VDM GetCredential - Creating ClientAssertionCredential", logProperties);
 
                 // Use ClientAssertionCredential with ManagedIdentityClientAssertion for cross-tenant VDM auth
                 var credential = new ClientAssertionCredential(
@@ -62,24 +59,14 @@ namespace CRM.ICon.Modality.Helpers.Identity
         public static async Task<string> GetVDMAccessTokenAsync(ITelemetryService telemetryService, string vdmTenantId, string appRegistrationId, string managedIdentityId, string vdmResource)
         {
             var logProperties = ModalityExtensions.GetRequestProperties();
-            logProperties["VDM_TENANT_ID"] = vdmTenantId;
-            logProperties["VDM_APP_REGISTRATION_ID"] = appRegistrationId;
-            logProperties["VDM_MANAGED_IDENTITY_ID"] = managedIdentityId;
-            logProperties["VDM_RESOURCE"] = vdmResource;
             logProperties["VDM_AUTH_METHOD"] = "ClientAssertionCredential";
 
             try
             {
-                telemetryService.LogTrace<object>("VDM GetAccessToken - Starting token acquisition process", logProperties);
+                telemetryService.LogTrace<object>("VDM GetAccessToken - Starting token acquisition", logProperties);
 
                 var credential = GetVDMCredential(telemetryService, vdmTenantId, appRegistrationId, managedIdentityId);
-                
-                logProperties["VDM_TOKEN_CONTEXT_SCOPES"] = string.Join(",", new[] { vdmResource });
-                telemetryService.LogTrace<object>("VDM GetAccessToken - Creating TokenRequestContext", logProperties);
-                
                 var tokenContext = new TokenRequestContext(new[] { vdmResource });
-                
-                telemetryService.LogTrace<object>("VDM GetAccessToken - Calling credential.GetTokenAsync with Azure Identity library", logProperties);
                 var accessToken = await credential.GetTokenAsync(tokenContext, CancellationToken.None);
 
                 telemetryService.LogTrace<object>("VDM GetAccessToken - Token acquired successfully", logProperties);
@@ -88,16 +75,7 @@ namespace CRM.ICon.Modality.Helpers.Identity
             }
             catch (Exception ex)
             {
-                logProperties["VDM_TOKEN_SUCCESS"] = "false";
                 logProperties["VDM_ERROR_TYPE"] = ex.GetType().Name;
-                logProperties["VDM_ERROR_MESSAGE"] = ex.Message;
-                logProperties["VDM_FULL_EXCEPTION"] = ex.ToString(); // FULL EXCEPTION DETAILS
-                
-                // Log detailed exception information
-                telemetryService.LogTrace<object>($"VDM ERROR - Exception Type: {ex.GetType().FullName}", logProperties);
-                telemetryService.LogTrace<object>($"VDM ERROR - Exception Message: {ex.Message}", logProperties);
-                telemetryService.LogTrace<object>($"VDM ERROR - Full Exception: {ex}", logProperties);
-                
                 telemetryService.LogException<object>(ex, logProperties, "VDM GetAccessToken - Failed to acquire access token");
                 throw;
             }
