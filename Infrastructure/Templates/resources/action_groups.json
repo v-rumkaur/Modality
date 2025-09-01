@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Insights/actionGroups",
+      "apiVersion": "2019-06-01",
+      "name": "SxG ICon Chat Team",
+      "location": "Global",
+      "properties": {
+        "groupShortName": "sxgchatall",
+        "enabled": true,
+        "emailReceivers": [
+          {
+            "name": "SxG ICon Chat Team Alias",
+            "emailAddress": "sxgchatall@microsoft.com",
+            "useCommonAlertSchema": false
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+  }
+}

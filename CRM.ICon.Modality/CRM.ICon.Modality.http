@@ -1,0 +1,6 @@
+@CRM.ICon.Modality_HostAddress = http://localhost:5057
+
+GET {{CRM.ICon.Modality_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

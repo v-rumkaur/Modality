@@ -1,0 +1,1214 @@
+#################################################################################
+#                               OneBranch Pipelines                             #
+# This pipeline was created by EasyStart from a sample located at:              #
+#   https://aka.ms/obpipelines/easystart/samples                                #
+# Documentation:  https://aka.ms/obpipelines                                    #
+# Yaml Schema:    https://aka.ms/obpipelines/yaml/schema                        #
+# Retail Tasks:   https://aka.ms/obpipelines/tasks                              #
+# Support:        https://aka.ms/onebranchsup                                   #
+#################################################################################
+
+trigger:
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - Infrastructure/*
+
+variables:
+  CDP_DEFINITION_BUILD_COUNT: $[counter('', 0)]  # needed for onebranch.pipeline.version task https://aka.ms/obpipelines/versioning
+  REPOROOT: "$(Build.SourcesDirectory)"
+  OUTPUTROOT: "$(REPOROOT)/out"
+  BuildConfiguration: Release
+  WindowsContainerImage: 'onebranch.azurecr.io/windows/ltsc2022/vse2022:latest' # for Windows jobs https://aka.ms/obpipelines/containers
+
+resources:
+  repositories:
+  - repository: templates
+    type: git
+    name: OneBranch.Pipelines/GovernedTemplates
+    ref: refs/heads/main
+
+extends:
+  template: v2/OneBranch.Official.CrossPlat.yml@templates  # https://aka.ms/obpipelines/templates
+  parameters:
+    featureFlags:
+      WindowsHostVersion: '1ESWindows2022'
+    globalSdl:  # https://aka.ms/obpipelines/sdl
+      tsa:
+        enabled: false  # onebranch publish all SDL results to TSA. If TSA is disabled all SDL tools will forced into 'break' build mode.
+      binskim:
+        break: true  # always break the build on binskim issues.
+      policheck:
+        break: true  # always break the build on policheck issues.
+    stages:
+    # Deploy infrastructure to INT environment
+    - stage: NonProd_Deploy_INT_Infra
+      displayName: "Deploy INT Infrastructure"
+      #dependsOn: NonProd_Deploy_DEV_Infra
+      jobs:
+      - job: Manual_Approval_Common
+        displayName: "Approve Deployment of Common INT Infrastructure"
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_Common
+        displayName: "Deploy Common Infrastructure"
+        dependsOn: Manual_Approval_Common
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_int.ps1 -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestUS
+        displayName: "Approve Deployment to West US INT"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestUS
+        displayName: "Deploy West US"
+        dependsOn: Manual_Approval_WestUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_int_region.ps1 `
+              -Location                         "westus" `
+              -ResourceSuffix                   "-int-wus" `
+              -RegionIPSegment                  "1" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_EastUS
+        displayName: "Approve Deployment to East US INT"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_EastUS
+        displayName: "Deploy East US"
+        dependsOn: Manual_Approval_EastUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_int_region.ps1 `
+              -Location                         "eastus" `
+              -ResourceSuffix                   "-int-eus" `
+              -RegionIPSegment                  "2" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+            
+      - job: Deploy_Alerts
+        displayName: "Deploy Alerts"
+        dependsOn: 
+          - Deploy_Infra_WestUS
+          - Deploy_Infra_EastUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Alerts Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_INT)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_alerts_int.ps1 -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+    # Deploy infrastructure to PPE environment
+    - stage: NonProd_Deploy_PPE_Infra
+      displayName: "Deploy PPE Infrastructure"
+      #dependsOn: NonProd_Deploy_INT_Infra
+      jobs:
+      - job: Manual_Approval_Common
+        displayName: "Approve Deployment of Common PPE Infrastructure"
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_Common
+        displayName: "Deploy Common Infrastructure"
+        dependsOn: Manual_Approval_Common
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe.ps1 -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestUS
+        displayName: "Approve Deployment to West US PPE"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestUS
+        displayName: "Deploy West US"
+        dependsOn: Manual_Approval_WestUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe_region.ps1 `
+              -Location                         "westus" `
+              -ResourceSuffix                   "-ppe-wus" `
+              -RegionIPSegment                  "1" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_EastUS
+        displayName: "Approve Deployment to East US PPE"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_EastUS
+        displayName: "Deploy East US"
+        dependsOn: Manual_Approval_EastUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe_region.ps1 `
+              -Location                         "eastus" `
+              -ResourceSuffix                   "-ppe-eus" `
+              -RegionIPSegment                  "2" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestEurope
+        displayName: "Approve Deployment to West Europe PPE"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestEurope
+        displayName: "Deploy West Europe"
+        dependsOn: Manual_Approval_WestEurope
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe_region.ps1 `
+              -Location                         "westeurope" `
+              -ResourceSuffix                   "-ppe-weu" `
+              -RegionIPSegment                  "3" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_NorthEurope
+        displayName: "Approve Deployment to North Europe PPE"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_NorthEurope
+        displayName: "Deploy North Europe"
+        dependsOn: Manual_Approval_NorthEurope
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe_region.ps1 `
+              -Location                         "northeurope" `
+              -ResourceSuffix                   "-ppe-neu" `
+              -RegionIPSegment                  "4" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_SoutheastAsia
+        displayName: "Approve Deployment to Southeast Asia PPE"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_SoutheastAsia
+        displayName: "Deploy Southeast Asia"
+        dependsOn: Manual_Approval_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_ppe_region.ps1 `
+              -Location                         "southeastasia" `
+              -ResourceSuffix                   "-ppe-sea" `
+              -RegionIPSegment                  "5" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+        
+      - job: Deploy_Alerts
+        displayName: "Deploy Alerts"
+        dependsOn: 
+          - Deploy_Infra_WestUS
+          - Deploy_Infra_EastUS
+          - Deploy_Infra_WestEurope
+          - Deploy_Infra_NorthEurope
+          - Deploy_Infra_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Alerts Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PPE)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_alerts_ppe.ps1 -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+    # Deploy infrastructure to PROD environment
+    - stage: NonProd_Deploy_PROD_Infra
+      displayName: "Deploy PROD Infrastructure"
+      #dependsOn: NonProd_Deploy_PPE_Infra
+      jobs:
+      - job: Manual_Approval_Common
+        displayName: "Approve Deployment of Common Prod Infrastructure"
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_Common
+        displayName: "Deploy Common Infrastructure"
+        dependsOn: Manual_Approval_Common
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod.ps1 -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestUS
+        displayName: "Approve Deployment to West US Prod"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestUS
+        displayName: "Deploy West US"
+        dependsOn: Manual_Approval_WestUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod_region.ps1 `
+              -Location                         "westus" `
+              -ResourceSuffix                   "-prod-wus" `
+              -RegionIPSegment                  "1" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_EastUS
+        displayName: "Approve Deployment to East US Prod"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_EastUS
+        displayName: "Deploy East US"
+        dependsOn: Manual_Approval_EastUS
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod_region.ps1 `
+              -Location                         "eastus" `
+              -ResourceSuffix                   "-prod-eus" `
+              -RegionIPSegment                  "2" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_WestEurope
+        displayName: "Approve Deployment to West Europe Prod"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_WestEurope
+        displayName: "Deploy West Europe"
+        dependsOn: Manual_Approval_WestEurope
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod_region.ps1 `
+              -Location                         "westeurope" `
+              -ResourceSuffix                   "-prod-weu" `
+              -RegionIPSegment                  "3" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_NorthEurope
+        displayName: "Approve Deployment to North Europe Prod"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_NorthEurope
+        displayName: "Deploy North Europe"
+        dependsOn: Manual_Approval_NorthEurope
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod_region.ps1 `
+              -Location                         "northeurope" `
+              -ResourceSuffix                   "-prod-neu" `
+              -RegionIPSegment                  "4" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+
+      - job: Manual_Approval_SoutheastAsia
+        displayName: "Approve Deployment to Southeast Asia Prod"
+        dependsOn: Deploy_Infra_Common
+        pool:
+          type: agentless
+        steps:
+        - task: ManualValidation@1
+          timeoutInMinutes: 1440
+          inputs:
+            notifyUsers: sxgchatall@microsoft.com
+            onTimeout: reject
+
+      - job: Deploy_Infra_SoutheastAsia
+        displayName: "Deploy Southeast Asia"
+        dependsOn: Manual_Approval_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Infrastructure Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_prod_region.ps1 `
+              -Location                         "southeastasia" `
+              -ResourceSuffix                   "-prod-sea" `
+              -RegionIPSegment                  "5" `
+              -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"
+            
+      - job: Deploy_Alerts
+        displayName: "Deploy Alerts"
+        dependsOn: 
+          - Deploy_Infra_WestUS
+          - Deploy_Infra_EastUS
+          - Deploy_Infra_WestEurope
+          - Deploy_Infra_NorthEurope
+          - Deploy_Infra_SoutheastAsia
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: PowerShell@2
+          displayName: 'Install Az.Accounts Module'
+          inputs:
+            targetType: 'inline'
+            script: |
+              Install-PackageProvider -Name NuGet -Force -Confirm:$false
+              Write-Host "NuGet Package Provider Installed Successfully."
+
+              $AccessToken = "$(System.AccessToken)"
+              $SecureAccessToken = ConvertTo-SecureString $AccessToken -AsPlainText -Force
+              $CredentialObj = New-Object System.Management.Automation.PSCredential("AzureDevOps", $SecureAccessToken)
+              Write-Host "Credential object created."
+
+              $CentralFeedName = "ModalityCentralFeed"
+              $CentralFeedLocation = "https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/CRM.ICon.OneChat/nuget/v2"
+        
+              Write-Host "Started registering private central feed."
+              if (-not (Get-PSRepository -Name $CentralFeedName -ErrorAction SilentlyContinue)) {
+                Register-PSRepository -Name $CentralFeedName -SourceLocation $CentralFeedLocation -InstallationPolicy Trusted -Credential $CredentialObj
+                Write-Output "Repository '$CentralFeedName' registered successfully."
+              } else {
+                Write-Output "Repository '$CentralFeedName' is already registered."
+              }
+              Get-PackageProvider -Name NuGet -ForceBootstrap
+              Install-Module -Name Az.Accounts -Verbose -Force -AllowClobber -Repository $CentralFeedName -Credential $CredentialObj
+              $AzureRM = Get-InstalledModule -Name AzureRM -ErrorAction SilentlyContinue
+              if ($AzureRM) {
+              Write-Host "AzureRM module found. Uninstalling..."
+              Get-InstalledModule -Name AzureRM -AllVersions | Uninstall-Module -Force -ErrorAction SilentlyContinue
+              } else {
+                Write-Host "AzureRM module is not installed. Skipping uninstallation."
+              }
+        - task: AzurePowerShell@4
+          displayName: "Run Alerts Deployment Script"
+          inputs:
+            azureSubscription: "$(ServiceConnection_PROD)"
+            ScriptType: InlineScript
+            Inline: |
+              cd $(System.DefaultWorkingDirectory)/Infrastructure/Scripts
+              ./deploy_alerts_prod.ps1 -AccessToken $(System.AccessToken)
+            azurePowerShellVersion: LatestVersion
+            workingDirectory: "$(System.DefaultWorkingDirectory)/Infrastructure/Scripts"

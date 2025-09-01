@@ -1,0 +1,254 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "Location": {
+      "type": "string"
+    },
+    "Environment": {
+      "type": "string"
+    },
+    "ComponentId": {
+      "type": "string"
+    },
+    "ResourcePrefix": {
+      "type": "string"
+    },
+    "ResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "GlobalResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "GlobalIdentitySuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "AzureAdTenantId": {
+      "type": "string"
+    },
+    "Instance": {
+      "type": "string",
+      "defaultValue": "dev"
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "keyVaultName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'kv', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
+    "logAnalyticsWorkspaceName": "[concat(parameters('ResourcePrefix'), '-loganalyticsw', parameters('GlobalResourceSuffix'))]",
+    "identityNamemodality": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('GlobalIdentitySuffix'))]",
+    "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "apiVersion": "2019-09-01",
+      "name": "[variables('keyVaultName')]",
+      "location": "[parameters('Location')]",
+      "tags": {
+        "env": "[parameters('Environment')]",
+        "ComponentId": "[parameters('ComponentId')]"
+      },
+      "properties": {
+        "sku": {
+          "family": "A",
+          "name": "standard"
+        },
+        "tenantId": "[parameters('AzureAdTenantId')]",
+        "accessPolicies": [
+          {
+            "tenantId": "[parameters('AzureAdTenantId')]",
+            "objectId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('identityNamemodality')), '2018-11-30').principalId]",
+            "permissions": {
+              "keys": [ "get", "list", "encrypt", "decrypt" ],
+              "secrets": [ "get", "list" ],
+              "certificates": [ "get", "list" ]
+            }
+          },
+          {
+            "tenantId": "[parameters('AzureAdTenantId')]",
+            "objectId": "b453993d-81d4-41a7-be3a-549bc2435ffa",
+            "permissions": {
+              "keys": [ ],
+              "secrets": [ "get", "list" ],
+              "certificates": [ "get", "list" ]
+            }
+          }
+        ],
+        "enabledForDeployment": true,
+        "enabledForDiskEncryption": true,
+        "enabledForTemplateDeployment": true,
+        "enablePurgeProtection": true,
+        "enableSoftDelete": true,
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Deny"
+        }
+      }
+    },
+    {
+      // This is supported, there is a bug with the schema validation
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "name": "[concat(variables('keyVaultName'), '-diagnosticSettings')]",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ],
+      "properties": {
+        "workspaceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]",
+        "logs": [
+          {
+            "categoryGroup": "allLogs",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "AllMetrics",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('Key Vault - Drop in Availability - 99 Percent ({0})', variables('keyVaultName'))]",
+      "location": "global",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ],
+      "properties": {
+        "description": "Key Vault Drop in Availability",
+        "severity": 4,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+        ],
+        "evaluationFrequency": "PT15M",
+        "windowSize": "PT15M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "criterionType": "StaticThresholdCriterion",
+              "name": "KV Availability",
+              "timeAggregation": "Average",
+              "metricName": "Availability",
+              "operator": "LessThan",
+              "threshold": 99
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[variables('actionGroupId')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('Key Vault - Drop in Availability - 90 Percent ({0})', variables('keyVaultName'))]",
+      "location": "global",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ],
+      "properties": {
+        "description": "Key Vault Drop in Availability",
+        "severity": 3,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+        ],
+        "evaluationFrequency": "PT15M",
+        "windowSize": "PT15M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "criterionType": "StaticThresholdCriterion",
+              "name": "KV Availability",
+              "timeAggregation": "Average",
+              "metricName": "Availability",
+              "operator": "LessThan",
+              "threshold": 90
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[variables('actionGroupId')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "microsoft.insights/activitylogalerts",
+      "apiVersion": "2020-10-01",
+      "name": "[concat('[Administrative Action is Performed on] ', variables('keyVaultName'))]",
+      "location": "global",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+      ],
+      "properties": {
+        "scopes": [
+          "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+        ],
+        "condition": {
+          "allOf": [
+            {
+              "field": "category",
+              "equals": "Administrative"
+            },
+            {
+              "field": "status",
+              "containsAny": [
+                "succeeded"
+              ]
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [
+            {
+              "actionGroupId": "[variables('actionGroupId')]",
+              "webhookProperties": {}
+            }
+          ]
+        },
+        "enabled": false,
+        "description": "An administative action has been performed against OCC Key Vault"
+      }
+    }
+  ],
+  "outputs": {
+    "keyVaultName": {
+      "type": "string",
+      "value": "[variables('keyVaultName')]"
+    }
+  }
+}

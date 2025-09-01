@@ -1,0 +1,842 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "Location": {
+      "type": "string"
+    },
+    "Environment": {
+      "type": "string"
+    },
+    "ComponentId": {
+      "type": "string"
+    },
+    "ResourcePrefix": {
+      "type": "string"
+    },
+    "ResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "GlobalResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "GlobalResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "GlobalIdentitySuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "Instance": {
+      "type": "string",
+      "defaultValue": "dev"
+    },
+    "GlobalResourceLocation": {
+      "type": "string"
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "appServiceName": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('ResourceSuffix'))]",
+    "appServicePlanName": "[concat(parameters('ResourcePrefix'), '-serviceplan', parameters('ResourceSuffix'))]",
+    "applicationInsightsName": "[concat(parameters('ResourcePrefix'), '-appinsight', parameters('GlobalResourceSuffix'))]",
+    "logAnalyticsWorkspaceName": "[concat(parameters('ResourcePrefix'), '-loganalyticsw', parameters('GlobalResourceSuffix'))]",
+    "storageAccountName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'st', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
+    "vnetName": "[concat(parameters('ResourcePrefix'), '-vnet', parameters('ResourceSuffix'))]",
+    "subnetName": "[concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix'))]",
+    "identityName": "[concat(parameters('ResourcePrefix'), '-user-managedidentity', parameters('GlobalIdentitySuffix'))]",
+    "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]",
+    "pingTestName": "[concat(parameters('ResourcePrefix'), '-Modality2-health', parameters('ResourceSuffix'))]",
+    "defaultIpRestrictions": [
+      {
+        "ipAddress": "ApplicationInsightsAvailability",
+        "action": "Allow",
+        "tag": "ServiceTag",
+        "priority": 1000,
+        "name": "Allow Availability Tests"
+      },
+      {
+        "ipAddress": "AzureFrontDoor.Backend",
+        "action": "Allow",
+        "tag": "ServiceTag",
+        "priority": 1001,
+        "name": "Allow Azure Front Door"
+      },
+      {
+        "vnetSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', concat(parameters('ResourcePrefix'), '-vnet', parameters('ResourceSuffix')), concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix')))]",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1002,
+        "name": "Allow Local VNet"
+      },
+      {
+        "ipAddress": "AzureTrafficManager",
+        "action": "Allow",
+        "tag": "ServiceTag",
+        "priority": 1003,
+        "name": "Allow Traffic Manager"
+      },
+      {
+        "ipAddress": "207.68.190.32/27",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1004,
+        "name": "SAW207.68.190.32"
+      },
+      {
+        "ipAddress": "157.58.216.64/26",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1005,
+        "name": "SAW157.58.216.64/26"
+      },
+      {
+        "ipAddress": "13.106.78.32/27",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1006,
+        "name": "SAW13.106.78.32/27"
+      },
+      {
+        "ipAddress": "13.106.174.32/27",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1007,
+        "name": "SAW13.106.174.32/27"
+      },
+      {
+        "ipAddress": "194.69.119.64/26",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1008,
+        "name": "SAW194.69.119.64/26"
+      },
+      {
+        "ipAddress": "13.106.78.32/27",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1009,
+        "name": "SAW13.106.78.32/27"
+      },
+      {
+        "ipAddress": "167.220.249.128/26",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1010,
+        "name": "SAW167.220.249.128/26"
+      },
+      {
+        "ipAddress": "2001:4898:b080::/64",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1011,
+        "name": "SAW2001:4898:b080::/64"
+      },
+      {
+        "ipAddress": "2a01:110:b080::/64",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1012,
+        "name": "SAW2a01:110:b080::/64"
+      },
+      {
+        "ipAddress": "2404:f801:b080::/64",
+        "action": "Allow",
+        "tag": "Default",
+        "priority": 1013,
+        "name": "SAW2404:f801:b080::/64"
+      },
+      {
+        "ipAddress": "Any",
+        "action": "Deny",
+        "priority": 2147483647,
+        "name": "Deny all",
+        "description": "Deny all access"
+      }
+    ],
+    "environmentIpRestrictions": {
+      "-int": [
+        {
+          "ipAddress": "13.93.149.227/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1014,
+          "name": "MSaaS13.93.149.227"
+        },
+        {
+          "ipAddress": "52.138.177.17/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1015,
+          "name": "MSaaS52.138.177.17"
+        },
+        {
+          "ipAddress": "13.90.137.26/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1016,
+          "name": "MSaaS13.90.137.26"
+        },
+        {
+          "ipAddress": "13.95.158.64/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1017,
+          "name": "MSaaS13.95.158.64"
+        },
+        {
+          "ipAddress": "52.138.192.136/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1018,
+          "name": "MSaaS52.138.192.136"
+        }
+      ],
+      "-ppe": [
+        {
+          "ipAddress": "13.93.149.227/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1014,
+          "name": "MSaaS13.93.149.227"
+        },
+        {
+          "ipAddress": "52.138.177.17/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1015,
+          "name": "MSaaS52.138.177.17"
+        },
+        {
+          "ipAddress": "13.90.137.26/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1016,
+          "name": "MSaaS13.90.137.26"
+        },
+        {
+          "ipAddress": "13.95.158.64/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1017,
+          "name": "MSaaS13.95.158.64"
+        },
+        {
+          "ipAddress": "52.138.192.136/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1018,
+          "name": "MSaaS52.138.192.136"
+        }
+      ],
+      "-prod": [
+        {
+          "ipAddress": "172.178.193.76/32",
+          "action": "Allow",
+          "priority": 200,
+          "name": "MSaaS172.178.193.76"
+        },
+        {
+          "ipAddress": "172.178.193.77/32",
+          "action": "Allow",
+          "priority": 201,
+          "name": "MSaaS172.178.193.77"
+        },
+        {
+          "ipAddress": "4.191.124.16/32",
+          "action": "Allow",
+          "priority": 202,
+          "name": "MSaaS4.191.124.16"
+        },
+        {
+          "ipAddress": "4.191.124.17/32",
+          "action": "Allow",
+          "priority": 203,
+          "name": "MSaaS4.191.124.17"
+        },
+        {
+          "ipAddress": "48.211.51.48/32",
+          "action": "Allow",
+          "priority": 204,
+          "name": "MSaaS48.211.51.48"
+        },
+        {
+          "ipAddress": "48.211.50.174/32",
+          "action": "Allow",
+          "priority": 205,
+          "name": "MSaaS48.211.50.174"
+        },
+        {
+          "ipAddress": "4.208.160.50/32",
+          "action": "Allow",
+          "priority": 206,
+          "name": "MSaaS4.208.160.50"
+        },
+        {
+          "ipAddress": "4.208.160.64/32",
+          "action": "Allow",
+          "priority": 207,
+          "name": "MSaaS4.208.160.64"
+        },
+        {
+          "ipAddress": "48.209.100.28/32",
+          "action": "Allow",
+          "priority": 208,
+          "name": "MSaaS48.209.100.28"
+        },
+        {
+          "ipAddress": "48.209.100.224/32",
+          "action": "Allow",
+          "priority": 209,
+          "name": "MSaaS48.209.100.224"
+        },
+        {
+          "ipAddress": "172.178.193.96/32",
+          "action": "Allow",
+          "priority": 210,
+          "name": "MSaaS172.178.193.96"
+        },
+        {
+          "ipAddress": "172.178.193.97/32",
+          "action": "Allow",
+          "priority": 211,
+          "name": "MSaaS172.178.193.97"
+        },
+        {
+          "ipAddress": "52.237.106.177/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1014,
+          "name": "MSaaS52.237.106.177"
+        },
+        {
+          "ipAddress": "13.67.225.3/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1015,
+          "name": "MSaaS13.67.225.3"
+        },
+        {
+          "ipAddress": "172.178.26.139/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1016,
+          "name": "MSaaS172.178.26.139"
+        },
+        {
+          "ipAddress": "23.102.233.131/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1017,
+          "name": "MSaaS23.102.233.131"
+        },
+        {
+          "ipAddress": "13.88.98.42/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1018,
+          "name": "MSaaS13.88.98.42"
+        },
+        {
+          "ipAddress": "172.201.64.220/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1019,
+          "name": "MSaaS172.201.64.220"
+        },
+        {
+          "ipAddress": "52.138.219.112/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1020,
+          "name": "MSaaS52.138.219.112"
+        },
+        {
+          "ipAddress": "13.94.103.147/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1021,
+          "name": "MSaaS13.94.103.147"
+        },
+        {
+          "ipAddress": "52.163.120.235/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1022,
+          "name": "MSaaS52.163.120.235"
+        },
+        {
+          "ipAddress": "13.89.41.12/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1023,
+          "name": "MSaaS13.89.41.12"
+        },
+        {
+          "ipAddress": "20.12.54.62/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1024,
+          "name": "MSaaS20.12.54.62"
+        },
+        {
+          "ipAddress": "13.76.184.73/32",
+          "action": "Allow",
+          "tag": "Default",
+          "priority": 1025,
+          "name": "MSaaS13.76.184.73"
+        },
+        {
+          "ipAddress": "72.145.138.32/32",
+          "action": "Allow",
+          "priority": 212,
+          "name": "MSaaS72.145.138.32"
+        },
+        {
+          "ipAddress": "72.145.138.33/32",
+          "action": "Allow",
+          "priority": 213,
+          "name": "MSaaS72.145.138.33"
+        },
+        {
+          "ipAddress": "172.178.193.160/32",
+          "action": "Allow",
+          "priority": 214,
+          "name": "MSaaS172.178.193.160"
+        },
+        {
+          "ipAddress": "172.178.193.161/32",
+          "action": "Allow",
+          "priority": 215,
+          "name": "MSaaS172.178.193.161"
+        },
+        {
+          "ipAddress": "40.84.114.77/32",
+          "action": "Allow",
+          "priority": 216,
+          "name": "MSaaS40.84.114.77"
+        },
+        {
+          "ipAddress": "57.154.100.96/32",
+          "action": "Allow",
+          "priority": 217,
+          "name": "MSaaS57.154.100.96"
+        },
+        {
+          "ipAddress": "57.154.100.97/32",
+          "action": "Allow",
+          "priority": 218,
+          "name": "MSaaS57.154.100.97"
+        },
+        {
+          "ipAddress": "48.214.136.240/32",
+          "action": "Allow",
+          "priority": 219,
+          "name": "MSaaS48.214.136.240"
+        },
+        {
+          "ipAddress": "48.214.136.241/32",
+          "action": "Allow",
+          "priority": 220,
+          "name": "MSaaS48.214.136.241"
+        },
+        {
+          "ipAddress": "40.84.114.128/32",
+          "action": "Allow",
+          "priority": 221,
+          "name": "MSaaS40.84.114.128"
+        },
+        {
+          "ipAddress": "40.84.114.129/32",
+          "action": "Allow",
+          "priority": 222,
+          "name": "MSaaS40.84.114.129"
+        },
+        {
+          "ipAddress": "4.208.160.32/32",
+          "action": "Allow",
+          "priority": 223,
+          "name": "MSaaS4.208.160.32"
+        },
+        {
+          "ipAddress": "4.208.160.33/32",
+          "action": "Allow",
+          "priority": 224,
+          "name": "MSaaS4.208.160.33"
+        },
+        {
+          "ipAddress": "72.145.138.0/32",
+          "action": "Allow",
+          "priority": 225,
+          "name": "MSaaS72.145.138.0"
+        },
+        {
+          "ipAddress": "72.145.138.1/32",
+          "action": "Allow",
+          "priority": 226,
+          "name": "MSaaS72.145.138.1"
+        },
+        {
+          "ipAddress": "57.155.137.240/32",
+          "action": "Allow",
+          "priority": 227,
+          "name": "MSaaS57.155.137.240"
+        },
+        {
+          "ipAddress": "57.155.137.241/32",
+          "action": "Allow",
+          "priority": 228,
+          "name": "MSaaS57.155.137.241"
+        },
+        {
+          "ipAddress": "48.214.136.192/32",
+          "action": "Allow",
+          "priority": 229,
+          "name": "MSaaS48.214.136.192"
+        },
+        {
+          "ipAddress": "48.214.136.193/32",
+          "action": "Allow",
+          "priority": 230,
+          "name": "MSaaS48.214.136.193"
+        },
+        {
+          "ipAddress": "40.84.114.224/32",
+          "action": "Allow",
+          "priority": 231,
+          "name": "MSaaS40.84.114.224"
+        },
+        {
+          "ipAddress": "40.84.114.225/32",
+          "action": "Allow",
+          "priority": 232,
+          "name": "MSaaS40.84.114.225"
+        },
+        {
+          "ipAddress": "4.208.160.65/32",
+          "action": "Allow",
+          "priority": 233,
+          "name": "MSaaS4.208.160.65"
+        },
+        {
+          "ipAddress": "4.208.160.66/32",
+          "action": "Allow",
+          "priority": 234,
+          "name": "MSaaS4.208.160.66"
+        },
+        {
+          "ipAddress": "48.209.100.225/32",
+          "action": "Allow",
+          "priority": 235,
+          "name": "MSaaS48.209.100.225"
+        },
+        {
+          "ipAddress": "48.209.100.29/32",
+          "action": "Allow",
+          "priority": 236,
+          "name": "MSaaS48.209.100.29"
+        }
+      ]
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2022-09-01",
+      "name": "[variables('appServiceName')]",
+      "location": "[parameters('Location')]",
+      "tags": {
+        "env": "[parameters('Environment')]",
+        "ComponentId": "[parameters('ComponentId')]"
+      },
+      "kind": "app",
+      "identity": {
+        "type": "UserAssigned",
+        "userAssignedIdentities": {
+          "[resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.ManagedIdentity/userAssignedIdentities/', variables('identityName'))]": {}
+        }
+      },
+      "properties": {
+        "enabled": true,
+        "httpsOnly": true,
+        "vnetRouteAllEnabled": true,
+        "hostNameSslStates": [
+          {
+            "name": "[concat(variables('appServiceName'), '.azurewebsites.net')]",
+            "sslState": "Disabled",
+            "hostType": "Standard"
+          },
+          {
+            "name": "[concat(variables('appServiceName'), '.scm.azurewebsites.net')]",
+            "sslState": "Disabled",
+            "hostType": "Repository"
+          }
+        ],
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanName'))]",
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.Insights/components', variables('applicationInsightsName')), '2015-05-01').InstrumentationKey]"
+            },
+            {
+              "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
+              "value": "~2"
+            },
+            {
+              "name": "AzureWebJobsStorage__accountName",
+              "value": "[variables('storageAccountName')]"
+            },
+            {
+              "name": "AzureWebJobsStorage__clientId",
+              "value": "[reference(resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2018-11-30').clientId]"
+            },
+            {
+              "name": "AzureWebJobsStorage__credential",
+              "value": "managedidentity"
+            },
+            {
+              "name": "BlobServiceUri",
+              "value": "[concat('https://',variables('storageAccountName'),'.blob.core.windows.net')]"
+            },
+            {
+              "name": "ASPNETCORE_ENVIRONMENT",
+              "value": "[parameters('Instance')]"
+            },
+            {
+              "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
+              "value": "true"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "type": "networkConfig",
+          "apiVersion": "2022-09-01",
+          "name": "virtualNetwork",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+          ],
+          "properties": {
+            "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]",
+            "isSwift": true
+          }
+        }
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+      "apiVersion": "2022-09-01",
+      "name": "[concat(variables('appServiceName'), '/ftp')]",
+      "location": "[parameters('Location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+      ],
+      "tags": {
+        "env": "[parameters('Environment')]",
+        "ComponentId": "[parameters('ComponentId')]"
+      },
+      "properties": {
+        "allow": false
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies",
+      "apiVersion": "2022-09-01",
+      "name": "[concat(variables('appServiceName'), '/scm')]",
+      "location": "[parameters('Location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+      ],
+      "tags": {
+        "env": "[parameters('Environment')]",
+        "ComponentId": "[parameters('ComponentId')]"
+      },
+      "properties": {
+        "allow": false
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2022-09-01",
+      "name": "[concat(variables('appServiceName'), '/web')]",
+      "location": "[parameters('Location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+      ],
+      "properties": {
+        "numberOfWorkers": 1,
+        "defaultDocuments": [
+          "Default.htm",
+          "Default.html",
+          "Default.asp",
+          "index.htm",
+          "index.html",
+          "iisstart.htm",
+          "default.aspx",
+          "index.php"
+        ],
+        "netFrameworkVersion": "v8.0",
+        "phpVersion": "5.6",
+        "requestTracingEnabled": false,
+        "remoteDebuggingEnabled": false,
+        "httpLoggingEnabled": false,
+        "logsDirectorySizeLimit": 35,
+        "detailedErrorLoggingEnabled": false,
+        "publishingUsername": "[concat('$', variables('appServiceName'))]",
+        "scmType": "None",
+        "use32BitWorkerProcess": false,
+        "webSocketsEnabled": false,
+        "alwaysOn": false,
+        "managedPipelineMode": "Integrated",
+        "virtualApplications": [
+          {
+            "virtualPath": "/",
+            "physicalPath": "site\\wwwroot",
+            "preloadEnabled": true
+          }
+        ],
+        "loadBalancing": "LeastRequests",
+        "experiments": {
+          "rampUpRules": []
+        },
+        "autoHealEnabled": false,
+        "cors": {
+          "allowedOrigins": [
+            "https://functions.azure.com",
+            "https://functions-staging.azure.com",
+            "https://functions-next.azure.com",
+            "https://localhost:5001",
+            "https://localhost:6001"
+          ],
+          "supportCredentials": false
+        },
+        "localMySqlEnabled": false,
+        "ipSecurityRestrictions": "[concat(variables('defaultIpRestrictions'), variables('environmentIpRestrictions')[parameters('GlobalResourceSuffix')])]",
+        "ipSecurityRestrictionsDefaultAction": "[if(or(equals(Parameters('Instance'), 'dev'), equals(Parameters('Instance'), 'int')), 'Allow', 'Deny')]",
+        "scmIpSecurityRestrictions": [
+          {
+            "ipAddress": "Any",
+            "action": "Allow",
+            "priority": 1,
+            "name": "Allow all",
+            "description": "Allow all access"
+          }
+        ],
+        "scmIpSecurityRestrictionsUseMain": false,
+        "scmIpSecurityRestrictionsDefaultAction": "Allow",
+        "http20Enabled": true,
+        "minTlsVersion": "1.2",
+        "ftpsState": "FtpsOnly",
+        "healthCheckPath": "/health"
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites/hostNameBindings",
+      "apiVersion": "2022-09-01",
+      "name": "[concat(variables('appServiceName'), '/', variables('appServiceName'), '.azurewebsites.net')]",
+      "location": "[parameters('Location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+      ],
+      "properties": {
+        "siteName": "variables('appServiceName')",
+        "hostNameType": "Verified"
+      }
+    },
+    {
+      // This is supported, there is a bug with the schema validation
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "name": "[concat(variables('appServiceName'), '-diagnosticSettings')]",
+      "scope": "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+      ],
+      "properties": {
+        "workspaceId": "[resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.OperationalInsights/workspaces', variables('logAnalyticsWorkspaceName'))]",
+        "logs": [
+          {
+            "categoryGroup": "allLogs",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "AllMetrics",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    // Modality Traffic Pattern Alert
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('[Traffic Pattern] {0}', variables('appServiceName'))]",
+      "location": "global",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+      ],
+      "properties": {
+        "description": "Detected anomaly in total request count.",
+        "severity": 4,
+        "enabled": true,
+        "autoMitigate": true,
+        "scopes": [
+          "[resourceId('Microsoft.Web/sites', variables('appServiceName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "criterionType": "DynamicThresholdCriterion",
+              "name": "Server requests",
+              "timeAggregation": "Total",
+              "metricNamespace": "Microsoft.Web/sites",
+              "metricName": "Requests",
+              "operator": "GreaterOrLessThan",
+              "alertSensitivity": "Low",
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": [
+          {
+            "actionGroupId": "[variables('actionGroupId')]"
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "appServiceName": {
+      "type": "string",
+      "value": "[variables('appServiceName')]"
+    }
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "ResourcePrefix": {
+      "type": "string"
+    },
+    "ResourceSuffix": {
+      "type": "string"
+    },
+    "GlobalResourceSuffix": {
+      "type": "string"
+    },
+    "SubscriptionId": {
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/trafficmanagerprofiles",
+      "apiVersion": "2022-04-01",
+      "name": "[concat(parameters('ResourcePrefix'),'-tmgr',parameters('ResourceSuffix'))]",
+      "location": "global",
+      "properties": {
+        "profileStatus": "Enabled",
+        "trafficRoutingMethod": "Performance",
+        "dnsConfig": {
+          "relativeName": "[concat(parameters('ResourcePrefix'),'-tmgr',parameters('ResourceSuffix'))]",
+          "ttl": 60
+        },
+        "monitorConfig": {
+          "protocol": "HTTPS",
+          "profileMonitorStatus": "Online",
+          "port": 443,
+          "path": "/health",
+          "intervalInSeconds": 30,
+          "timeoutInSeconds": 10,
+          "toleratedNumberOfFailures": 3,
+          "expectedStatusCodeRanges": [
+            {
+              "min": 200,
+              "max": 299
+            }
+          ]
+        },
+        "endpoints": [
+          {
+            "name": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-wus','-endpoint')]",
+            "type": "Microsoft.Network/trafficManagerProfiles/azureEndpoints",
+            "properties": {
+              "endpointStatus": "Enabled",
+              "targetResourceId": "[resourceId(parameters('SubscriptionId'),concat(parameters('ResourcePrefix'), '-rg', parameters('GlobalResourceSuffix'),'-wus'),'Microsoft.Web/sites', concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-wus'))]",
+              "target": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-wus','.azurewebsites.net')]",
+              "endpointLocation": "West US"
+            }
+          },
+          {
+            "name": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-eus','-endpoint')]",
+            "type": "Microsoft.Network/trafficManagerProfiles/azureEndpoints",
+            "properties": {
+              "endpointStatus": "Enabled",
+              "targetResourceId": "[resourceId(parameters('SubscriptionId'),concat(parameters('ResourcePrefix'), '-rg', parameters('GlobalResourceSuffix'),'-eus'),'Microsoft.Web/sites', concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-eus'))]",
+              "target": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-eus','.azurewebsites.net')]",
+              "endpointLocation": "East US"
+            }
+          },
+          {
+            "name": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-neu','-endpoint')]",
+            "type": "Microsoft.Network/trafficManagerProfiles/azureEndpoints",
+            "properties": {
+              "endpointStatus": "Enabled",
+              "targetResourceId": "[resourceId(parameters('SubscriptionId'),concat(parameters('ResourcePrefix'), '-rg', parameters('GlobalResourceSuffix'),'-neu'),'Microsoft.Web/sites', concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-neu'))]",
+              "target": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-neu','.azurewebsites.net')]",
+              "endpointLocation": "North Europe"
+            }
+          },
+          {
+            "name": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-weu','-endpoint')]",
+            "type": "Microsoft.Network/trafficManagerProfiles/azureEndpoints",
+            "properties": {
+              "endpointStatus": "Enabled",
+              "targetResourceId": "[resourceId(parameters('SubscriptionId'),concat(parameters('ResourcePrefix'), '-rg', parameters('GlobalResourceSuffix'),'-weu'),'Microsoft.Web/sites', concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-weu'))]",
+              "target": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-weu','.azurewebsites.net')]",
+              "endpointLocation": "West Europe"
+            }
+          },
+          {
+            "name": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-sea','-endpoint')]",
+            "type": "Microsoft.Network/trafficManagerProfiles/azureEndpoints",
+            "properties": {
+              "endpointStatus": "Enabled",
+              "targetResourceId": "[resourceId(parameters('SubscriptionId'),concat(parameters('ResourcePrefix'), '-rg', parameters('GlobalResourceSuffix'),'-sea'),'Microsoft.Web/sites', concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-sea'))]",
+              "target": "[concat(parameters('ResourcePrefix'), '-appservice', parameters('GlobalResourceSuffix'),'-sea','.azurewebsites.net')]",
+              "endpointLocation": "South East Asia"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

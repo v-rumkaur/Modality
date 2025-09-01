@@ -1,0 +1,1198 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "Location": {
+      "type": "string"
+    },
+    "ResourcePrefix": {
+      "type": "string"
+    },
+    "GlobalResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "APIEndpoints": {
+      "type": "array",
+      "metadata": {
+        "description": "List of API endpoints to monitor"
+      }
+    },
+    "GlobalResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCEscalationActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "Instance": {
+      "type": "string",
+      "defaultValue": "dev"
+    }
+  },
+  "variables": {
+    "applicationInsightsName": "[concat(parameters('ResourcePrefix'), '-appinsight', parameters('GlobalResourceSuffix'))]",
+    "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]",
+    "escalationactionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCEscalationActionGroupName'))]",
+    "copy": [
+      {
+        "name": "apiEndpointsAvgDurationMs",
+        "count": "[length(parameters('APIEndpoints'))]",
+        "input": "[concat(parameters('APIEndpoints')[copyIndex('apiEndpointsAvgDurationMs')], ' AvgDurationMs')]"
+      }
+    ]
+  },
+  "resources": [
+    // Modality Service Performance Alerts
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Performance] HTTP Response Time ({0}-Modality)', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Performance] HTTP Response Time ({0}-Modality)', parameters('ResourcePrefix'))]",
+        "description": "Average response time exceeding performance target.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('requests
+                                        | where name has ''Modality/''
+                                        | summarize 
+                                            totalRequests = count(), avgDuration = avg(duration)
+                                            by name, cloud_RoleName, bin(timestamp, 5m)
+                                        | where totalRequests >= 5')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "avgDuration",
+              "dimensions": [
+                {
+                  "name": "name",
+                  "operator": "include",
+                  "values": [ "*" ]
+                },
+                {
+                  "name": "cloud_RoleName",
+                  "operator": "Include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "GreaterThanOrEqual",
+              "threshold": 5000,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Modality Service Reliability < 99% / Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+        "description": "Modality reliability has dropped below 99%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('requests
+                                        | where name has ''Modality/''
+                                        | extend statusCode = toint(resultCode)
+                                        | summarize 
+                                            totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))
+                                            by name, bin(timestamp, 5m)
+                                        | where totalRequests >= 5
+                                        | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                                        | extend Reliability = 100 - FailureRate
+                                        | project timestamp, name, Reliability, systemErrors, totalRequests')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "name",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 99,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Modality Service Regionwise Reliability < 90% / Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-Modality-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-Modality-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+        "description": "Modality reliability has dropped below 90%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('requests
+                                        | where name has ''Modality/''
+                                        | extend statusCode = toint(resultCode)
+                                        | summarize 
+                                            totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))
+                                            by name, cloud_RoleName, bin(timestamp, 5m)
+                                        | where totalRequests >= 5
+                                        | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                                        | extend Reliability = 100 - FailureRate
+                                        | project timestamp, name, Reliability, systemErrors, totalRequests, cloud_RoleName')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "name",
+                  "operator": "include",
+                  "values": [ "*" ]
+                },
+                {
+                  "name": "cloud_RoleName",
+                  "operator": "Include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 90,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Modality Service Reliability < 95% / Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-Modality-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "Modality reliability has dropped below 95%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('requests
+                                        | where name has ''Modality/''
+                                        | extend statusCode = toint(resultCode)
+                                        | summarize 
+                                            totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))
+                                            by name, cloud_RoleName, bin(timestamp, 5m)
+                                        | where totalRequests >= 5
+                                        | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                                        | extend Reliability = 100 - FailureRate
+                                        | project timestamp, name, Reliability, systemErrors, totalRequests, cloud_RoleName')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "name",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 95,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
+        }
+      }
+    },
+    // Modality Service Usability
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Usability] {0}-Modality-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Usability] {0}-Modality-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+        "description": "Modality usability has dropped below 70%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('requests
+                                        | where name has ''Modality/''
+                                        | extend statusCode = toint(resultCode)
+                                        | summarize 
+                                            totalRequests = count(), systemErrors = todouble(countif(statusCode > 399 and statusCode < 500))
+                                            by name, bin(timestamp, 5m)
+                                        | where totalRequests >= 5
+                                        | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                                        | extend Usability = 100 - FailureRate
+                                        | project timestamp, name, Usability, systemErrors, totalRequests')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Usability",
+              "dimensions": [
+                {
+                  "name": "name",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 70,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Modality Service Usability Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Usability] {0}-Modality-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Usability] {0}-Modality-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "Modality usability has dropped below 50%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('requests
+                                        | where name has ''Modality/''
+                                        | extend statusCode = toint(resultCode)
+                                        | summarize 
+                                            totalRequests = count(), systemErrors = todouble(countif(statusCode > 399 and statusCode < 500))
+                                            by name, bin(timestamp, 5m)
+                                        | where totalRequests >= 5
+                                        | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                                        | extend Usability = 100 - FailureRate
+                                        | project timestamp, name, Usability, systemErrors, totalRequests')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Usability",
+              "dimensions": [
+                {
+                  "name": "name",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 50,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
+        }
+      }
+    },
+    // VDM Performance Alerts - Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Performance] HTTP Response Time ({0}-VDM)', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Performance] HTTP Response Time ({0}-VDM)', parameters('ResourcePrefix'))]",
+        "description": "Average response time exceeding performance target.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                                        | where target has ''vdmsdksvc''
+                                        | summarize 
+                                            totalrequests = count(),avgDurationMs = avg(duration) by target,cloud_RoleName,bin(timestamp,5min)
+                                        | where totalrequests >= 5')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "avgDurationMs",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                },
+                {
+                  "name": "cloud_RoleName",
+                  "operator": "Include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "GreaterThanOrEqual",
+              "threshold": 2000,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Omnichannel Performance Alerts - Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Performance] HTTP Response Time ({0}-Omnichannel)', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Performance] HTTP Response Time ({0}-Omnichannel)', parameters('ResourcePrefix'))]",
+        "description": "Average response time exceeding performance target.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                                        | where target has ''omnichannelengagementhub''
+                                        | summarize 
+                                            totalrequests = count(),avgDurationMs = avg(duration) by target,cloud_RoleName,bin(timestamp,5min)
+                                        | where totalrequests >= 5')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "avgDurationMs",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                },
+                {
+                  "name": "cloud_RoleName",
+                  "operator": "Include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "GreaterThanOrEqual",
+              "threshold": 2000,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // VDM Regionwise Reliability < 90% / Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-VDM-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-VDM-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+        "description": "VDM reliability has dropped below 90%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''vdmsdksvc''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))by target, cloud_RoleName, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Reliability = 100 - FailureRate
+                | project timestamp, target, Reliability, systemErrors, totalRequests,cloud_RoleName')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                },
+                {
+                  "name": "cloud_RoleName",
+                  "operator": "Include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 90,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Omnichannel Regionwise Reliability < 90% / Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-Omnichannel-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-Omnichannel-Regionwise-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+        "description": "Omnichannel reliability has dropped below 90%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''omnichannelengagementhub''
+                | extend statusCode = toint(resultCode)| summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))by target, cloud_RoleName, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Reliability = 100 - FailureRate
+                | project timestamp, target, Reliability, systemErrors, totalRequests,cloud_RoleName')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                },
+                {
+                  "name": "cloud_RoleName",
+                  "operator": "Include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 90,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // VDM Reliability < 99% / Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-VDM-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-VDM-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+        "description": "VDM reliability has dropped below 99%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''vdmsdksvc''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))by target, cloud_RoleName, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Reliability = 100 - FailureRate
+                | project timestamp, target, Reliability, systemErrors, totalRequests, cloud_RoleName')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 99,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // VDM Reliability < 95% / Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-VDM-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-VDM-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "VDM reliability has dropped below 95%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''vdmsdksvc''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))by target, cloud_RoleName, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Reliability = 100 - FailureRate
+                | project timestamp, target, Reliability, systemErrors, totalRequests, cloud_RoleName')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 95,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
+        }
+      }
+    },
+    // Omnichannel Reliability < 99% / Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-Omnichannel-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-Omnichannel-ReliabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+        "description": "Omnichannel reliability has dropped below 99%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''omnichannelengagementhub''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))by target, cloud_RoleName, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Reliability = 100 - FailureRate
+                | project timestamp, target, Reliability, systemErrors, totalRequests, cloud_RoleName')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 99,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Omnichannel Reliability < 95% / Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Reliability] {0}-Omnichannel-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Reliability] {0}-Omnichannel-ReliabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "Omnichannel reliability has dropped below 95%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''omnichannelengagementhub''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 499))by target, cloud_RoleName, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Reliability = 100 - FailureRate
+                | project timestamp, target, Reliability, systemErrors, totalRequests, cloud_RoleName')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Reliability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 95,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
+        }
+      }
+    },
+    // VDM Usability- Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Usability] {0}-VDM-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Usability] {0}-VDM-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+        "description": "VDM usability has dropped below 70%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''vdmsdksvc''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 399 and statusCode < 500))by target, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Usability = 100 - FailureRate
+                | project timestamp, target, Usability, systemErrors, totalRequests')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Usability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 70,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // VDM Usability- Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Usability] {0}-VDM-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Usability] {0}-VDM-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "VDM usability has dropped below 50%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''vdmsdksvc''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 399 and statusCode < 500))by target, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Usability = 100 - FailureRate
+                | project timestamp, target, Usability, systemErrors, totalRequests')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Usability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 50,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
+        }
+      }
+    },
+    // Omnichannel Usability-Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Usability] {0}-Omnichannel-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Usability] {0}-Omnichannel-UsabilityAlert-Sev3', parameters('ResourcePrefix'))]",
+        "description": "Omnichannel usability has dropped below 70%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''omnichannelengagementhub''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 399 and statusCode < 500))by target, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Usability = 100 - FailureRate
+                | project timestamp, target, Usability, systemErrors, totalRequests')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Usability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 70,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Omnichannel Usability-Sev 3 Escalation
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Usability] {0}-Omnichannel-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Usability] {0}-Omnichannel-UsabilityAlert-Sev3-Escalation', parameters('ResourcePrefix'))]",
+        "description": "Omnichannel usability has dropped below 50%.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('dependencies
+                | where target has ''omnichannelengagementhub''
+                | extend statusCode = toint(resultCode)
+                | summarize totalRequests = count(), systemErrors = todouble(countif(statusCode > 399 and statusCode < 500))by target, bin(timestamp, 5m)
+                | where totalRequests >= 5
+                | extend FailureRate = round((systemErrors / totalRequests) * 100, 3)
+                | extend Usability = 100 - FailureRate
+                | project timestamp, target, Usability, systemErrors, totalRequests')]",
+              "timeAggregation": "Average",
+              "metricMeasureColumn": "Usability",
+              "dimensions": [
+                {
+                  "name": "target",
+                  "operator": "include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "LessThan",
+              "threshold": 50,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('escalationactionGroupId')]" ]
+        }
+      }
+    },
+    // VDM Null Response- Regionwise-Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Null Response] {0}-VDM-Regionwise-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Null Response] {0}-VDM-Regionwise-Sev3', parameters('ResourcePrefix'))]",
+        "description": "VDM response is null for more than 5 requests.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('traces
+                | where message has ''VDM response is null''
+                | summarize totalRequests = count()by message ,cloud_RoleName,bin(timestamp, 5m)')]",
+              "timeAggregation": "Total",
+              "metricMeasureColumn": "totalRequests",
+              "dimensions": [
+                {
+                  "name": "cloud_RoleName",
+                  "operator": "Include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "GreaterThanOrEqual",
+              "threshold": 3,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    },
+    // Omnichannel Null Response- Regionwise-Sev 3
+    {
+      "type": "Microsoft.Insights/scheduledQueryRules",
+      "apiVersion": "2021-02-01-preview",
+      "name": "[format('[Null Response] {0}-Omnichannel-Regionwise-Sev3', parameters('ResourcePrefix'))]",
+      "location": "[parameters('Location')]",
+      "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+      "tags": {
+        "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+      },
+      "properties": {
+        "displayName": "[format('[Null Response] {0}-Omnichannel-Regionwise-Sev3', parameters('ResourcePrefix'))]",
+        "description": "Omnichannel response is null for more than 5 requests.",
+        "severity": 3,
+        "autoMitigate": false,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', variables('applicationInsightsName'))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT5M",
+        "criteria": {
+          "allOf": [
+            {
+              "query": "[concat('traces
+                | where message has ''Omnichannel response is null'' 
+                | summarize totalRequests = count()by message ,cloud_RoleName,bin(timestamp, 5m)')]",
+              "timeAggregation": "Total",
+              "metricMeasureColumn": "totalRequests",
+              "dimensions": [
+                {
+                  "name": "cloud_RoleName",
+                  "operator": "Include",
+                  "values": [ "*" ]
+                }
+              ],
+              "resourceIdColumn": "",
+              "operator": "GreaterThanOrEqual",
+              "threshold": 5,
+              "failingPeriods": {
+                "numberOfEvaluationPeriods": 3,
+                "minFailingPeriodsToAlert": 3
+              }
+            }
+          ]
+        },
+        "actions": {
+          "actionGroups": [ "[variables('actionGroupId')]" ]
+        }
+      }
+    }
+
+  ]
+}

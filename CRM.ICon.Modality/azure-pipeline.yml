@@ -1,0 +1,489 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - CRM.ICon.Modality/*
+
+variables:
+  CDP_DEFINITION_BUILD_COUNT: $[counter('', 0)]  # needed for onebranch.pipeline.version task https://aka.ms/obpipelines/versioning
+  REPOROOT: "$(Build.SourcesDirectory)"
+  OUTPUTROOT: "$(REPOROOT)/out"
+  solutionPath: 'CRM.ICon.Modality/CRM.ICon.Modality.sln'
+  projectPath: 'CRM.ICon.Modality/CRM.ICon.Modality.csproj'
+  BuildConfiguration: Release
+  WindowsContainerImage: 'onebranch.azurecr.io/windows/ltsc2022/vse2022:latest' # for Windows jobs https://aka.ms/obpipelines/containers
+
+resources:
+  repositories: 
+    - repository: templates
+      type: git
+      name: OneBranch.Pipelines/GovernedTemplates
+      ref: refs/heads/main
+
+extends:
+  template: v2/OneBranch.Official.CrossPlat.yml@templates # https://aka.ms/obpipelines/templates
+  parameters:
+    featureFlags:
+      WindowsHostVersion: 1ESWindows2022
+    globalSdl:  # https://aka.ms/obpipelines/sdl
+      tsa:
+        enabled: true  # onebranch publish all SDL results to TSA. If TSA is disabled all SDL tools will forced into 'break' build mode.
+      binskim:
+        break: true  # always break the build on binskim issues.
+      policheck:
+        break: true  # always break the build on policheck issues.
+    stages:
+    - stage: Build_Modality
+      displayName: "Build and Run Tests for Modality Service"
+      jobs:
+      - job: Build_Project
+        displayName: "Build and Publish Project"
+        pool:
+          type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+        - task: DotNetCoreCLI@2
+          displayName: 'Restore NuGet Packages'
+          inputs:
+            command: restore
+            projects: ${{ variables.solutionPath }}
+            feedsToUse: config
+            nugetConfigPath: nuget.config
+
+        - task: DotNetCoreCLI@2
+          displayName: "Build .NET project"
+          inputs:
+            command: "build"
+            projects: '**/*.sln'
+            arguments: "--configuration $(BuildConfiguration) /clp:ErrorsOnly"
+
+        - task: DotNetCoreCLI@2
+          displayName: 'DotNetCore publish'
+          inputs:
+            command: 'publish'
+            publishWebProjects: false
+            projects: ${{ variables.projectPath }}
+            arguments: '--no-build --no-restore --configuration $(BuildConfiguration) --output $(OUTPUTROOT)'
+            zipAfterPublish: true
+
+        - task: ExtractFiles@1
+          displayName: 'Extract Modality Zip File'
+          inputs:
+            archiveFilePatterns: '$(OUTPUTROOT)/CRM.ICon.Modality.zip'
+            destinationFolder: '$(OUTPUTROOT)/extracted'
+            cleanDestinationFolder: true 
+              
+        - task: onebranch.pipeline.signing@1
+          displayName: "Sign development build"
+          inputs:
+            command: "sign"
+            signing_environment: "azure-ado"
+            signing_profile: "internal_azure_service"
+            files_to_sign: "**/*.zip;**/*.exe;**/*.dll;**/*.ps1;**/*.psm1"
+            search_root: "$(OUTPUTROOT)/extracted"
+            disable_strong_name_signing: true
+
+        - task: ArchiveFiles@2
+          displayName: 'Create Zip Archive'
+          inputs:
+            rootFolderOrFile: '$(OUTPUTROOT)/extracted'
+            includeRootFolder: false
+            archiveType: 'zip'
+            archiveFile: '$(OUTPUTROOT)/CRM.ICon.Modality.zip'
+            replaceExistingArchive: true
+
+    - stage: Release_Modality_INT
+      displayName: "Deploy to INT (All Regions)"
+      dependsOn: Build_Modality
+      condition: succeeded()
+      jobs:
+      - job: Deploy_INT_WUS
+        displayName: "Deploy to INT - WUS"
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to INT WUS"
+            inputs:
+                azureSubscription: '$(ServiceConnection_INT)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-int-wus"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+      - job: Deploy_INT_EUS
+        displayName: "Deploy to INT - EUS"
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to INT EUS"
+            inputs:
+                azureSubscription: '$(ServiceConnection_INT)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-int-eus"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+    - stage: Release_Modality_PPE
+      displayName: "Deploy to PPE (All Regions)"
+      dependsOn: Release_Modality_INT
+      condition: succeeded()
+      jobs:
+      - job: Manual_Approval_WestUS
+        displayName: 'Approve Deployment to West US '
+        pool: 
+            type: agentless
+        variables:
+            ob_outputDirectory: '$(outputDirectory)'
+        steps:
+            - task: ManualValidation@0
+              timeoutInMinutes: 1440
+              inputs:
+                instructions: 'Please approve the deployment to PPE - US West '
+                notifyUsers: sxgchatall@microsoft.com
+                onTimeout: reject 
+                
+      - job: Deploy_PPE_WUS
+        displayName: "Deploy to PPE - WUS"
+        dependsOn: Manual_Approval_WestUS
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to PPE WUS"
+            inputs:
+                azureSubscription: '$(ServiceConnection_PPE)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-ppe-wus"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+      - job: Manual_Approval_EastUS
+        displayName: 'Approve Deployment to EAST US '
+        pool: 
+            type: agentless
+        variables:
+            ob_outputDirectory: '$(outputDirectory)'
+        steps:
+            - task: ManualValidation@0
+              timeoutInMinutes: 1440
+              inputs:
+                instructions: 'Please approve the deployment to PPE - US East '
+                notifyUsers: sxgchatall@microsoft.com
+                onTimeout: reject 
+
+      - job: Deploy_PPE_EUS
+        displayName: "Deploy to PPE - EUS"
+        dependsOn: Manual_Approval_EastUS
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to PPE EUS"
+            inputs:
+                azureSubscription: '$(ServiceConnection_PPE)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-ppe-eus"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+      - job: Manual_Approval_WestEurope
+        displayName: 'Approve Deployment to West Europe '
+        pool: 
+            type: agentless
+        variables:
+            ob_outputDirectory: '$(outputDirectory)'
+        steps:
+            - task: ManualValidation@0
+              timeoutInMinutes: 1440
+              inputs:
+                instructions: 'Please approve the deployment to PPE - West Europe '
+                notifyUsers: sxgchatall@microsoft.com
+                onTimeout: reject 
+                
+      - job: Deploy_PPE_WEU
+        displayName: "Deploy to PPE - WEU"
+        dependsOn: Manual_Approval_WestEurope
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to PPE WEU"
+            inputs:
+                azureSubscription: '$(ServiceConnection_PPE)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-ppe-weu"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+      - job: Manual_Approval_NorthEurope
+        displayName: 'Approve Deployment to North Europe '
+        pool: 
+            type: agentless
+        variables:
+            ob_outputDirectory: '$(outputDirectory)'
+        steps:
+            - task: ManualValidation@0
+              timeoutInMinutes: 1440
+              inputs:
+                instructions: 'Please approve the deployment to PPE - North Europe '
+                notifyUsers: sxgchatall@microsoft.com
+                onTimeout: reject 
+
+      - job: Deploy_PPE_NEU
+        displayName: "Deploy to PPE - NEU"
+        dependsOn: Manual_Approval_NorthEurope
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to PPE NEU"
+            inputs:
+                azureSubscription: '$(ServiceConnection_PPE)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-ppe-neu"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+      - job: Manual_Approval_SouthEastAsia
+        displayName: 'Approve Deployment to SouthEast Asia '
+        pool: 
+            type: agentless
+        variables:
+            ob_outputDirectory: '$(outputDirectory)'
+        steps:
+            - task: ManualValidation@0
+              timeoutInMinutes: 1440
+              inputs:
+                instructions: 'Please approve the deployment to PPE - South East Asia '
+                notifyUsers: sxgchatall@microsoft.com
+                onTimeout: reject 
+
+      - job: Deploy_PPE_SEA
+        displayName: "Deploy to PPE - SEA"
+        dependsOn: Manual_Approval_SouthEastAsia
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to PPE SEA"
+            inputs:
+                azureSubscription: '$(ServiceConnection_PPE)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-ppe-sea"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+    - stage: Release_Modality_PROD
+      displayName: "Deploy to PROD (All Regions)"
+      dependsOn: Release_Modality_PPE
+      condition: succeeded()
+      jobs:
+      - job: Manual_Approval_WestUS
+        displayName: 'Approve Deployment to West US '
+        pool: 
+            type: agentless
+        variables:
+            ob_outputDirectory: '$(outputDirectory)'
+        steps:
+            - task: ManualValidation@0
+              timeoutInMinutes: 1440
+              inputs:
+                instructions: 'Please approve the deployment to PROD - US West '
+                notifyUsers: sxgchatall@microsoft.com
+                onTimeout: reject 
+                
+      - job: Deploy_PROD_WUS
+        displayName: "Deploy to PROD - WUS"
+        dependsOn: Manual_Approval_WestUS
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to PPE WUS"
+            inputs:
+                azureSubscription: '$(ServiceConnection_PROD)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-prod-wus"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+      - job: Manual_Approval_EastUS
+        displayName: 'Approve Deployment to EAST US '
+        pool: 
+            type: agentless
+        variables:
+            ob_outputDirectory: '$(outputDirectory)'
+        steps:
+            - task: ManualValidation@0
+              timeoutInMinutes: 1440
+              inputs:
+                instructions: 'Please approve the deployment to PROD - US East '
+                notifyUsers: sxgchatall@microsoft.com
+                onTimeout: reject 
+
+      - job: Deploy_PROD_EUS
+        displayName: "Deploy to PROD - EUS"
+        dependsOn: Manual_Approval_EastUS
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to PROD EUS"
+            inputs:
+                azureSubscription: '$(ServiceConnection_PROD)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-prod-eus"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+      - job: Manual_Approval_WestEurope
+        displayName: 'Approve Deployment to West Europe '
+        pool: 
+            type: agentless
+        variables:
+            ob_outputDirectory: '$(outputDirectory)'
+        steps:
+            - task: ManualValidation@0
+              timeoutInMinutes: 1440
+              inputs:
+                instructions: 'Please approve the deployment to PROD - West Europe '
+                notifyUsers: sxgchatall@microsoft.com
+                onTimeout: reject 
+                
+      - job: Deploy_PROD_WEU
+        displayName: "Deploy to PROD - WEU"
+        dependsOn: Manual_Approval_WestEurope
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to PROD WEU"
+            inputs:
+                azureSubscription: '$(ServiceConnection_PROD)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-prod-weu"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+      - job: Manual_Approval_NorthEurope
+        displayName: 'Approve Deployment to North Europe '
+        pool: 
+            type: agentless
+        variables:
+            ob_outputDirectory: '$(outputDirectory)'
+        steps:
+            - task: ManualValidation@0
+              timeoutInMinutes: 1440
+              inputs:
+                instructions: 'Please approve the deployment to PROD - North Europe '
+                notifyUsers: sxgchatall@microsoft.com
+                onTimeout: reject 
+
+      - job: Deploy_PROD_NEU
+        displayName: "Deploy to PROD - NEU"
+        dependsOn: Manual_Approval_NorthEurope
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to PROD NEU"
+            inputs:
+                azureSubscription: '$(ServiceConnection_PROD)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-prod-neu"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'
+
+      - job: Manual_Approval_SouthEastAsia
+        displayName: 'Approve Deployment to SouthEast Asia '
+        pool: 
+            type: agentless
+        variables:
+            ob_outputDirectory: '$(outputDirectory)'
+        steps:
+            - task: ManualValidation@0
+              timeoutInMinutes: 1440
+              inputs:
+                instructions: 'Please approve the deployment to PROD - South East Asia '
+                notifyUsers: sxgchatall@microsoft.com
+                onTimeout: reject 
+
+      - job: Deploy_PROD_SEA
+        displayName: "Deploy to PROD - SEA"
+        dependsOn: Manual_Approval_SouthEastAsia
+        pool:
+         type: windows
+        variables:
+          ob_outputDirectory: '$(OUTPUTROOT)'
+        steps:
+          - download: current
+            artifact: drop_Build_Modality_Build_Project
+            patterns: '**/*.zip'
+
+          - task: AzureWebApp@1
+            displayName: "Deploy to PROD SEA"
+            inputs:
+                azureSubscription: '$(ServiceConnection_PROD)'
+                appType: "webApp"
+                appName: "modalityservice-appservice-prod-sea"
+                package: '$(Pipeline.Workspace)/drop_Build_Modality_Build_Project/**/*.zip'

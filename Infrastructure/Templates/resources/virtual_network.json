@@ -1,0 +1,224 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+  "parameters": {
+    "Location": {
+      "type": "string"
+    },
+    "Environment": {
+      "type": "string"
+    },
+    "ComponentId": {
+      "type": "string"
+    },
+    "ResourcePrefix": {
+      "type": "string"
+    },
+    "ResourceSuffix": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "RegionIPSegment": {
+      "type": "int",
+      "minValue": 0,
+      "maxValue": 255
+    },
+    "GlobalResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "Instance": {
+      "type": "string",
+      "defaultValue": "dev"
+    },
+    "OCCActionGroupResourceGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "OCCActionGroupName": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "vnetName": "[concat(parameters('ResourcePrefix'), '-vnet', parameters('ResourceSuffix'))]",
+    "subnetName": "[concat(parameters('ResourcePrefix'), '-subnet', parameters('ResourceSuffix'))]",
+    "nsgName": "[concat(parameters('ResourcePrefix'), '-nsg', parameters('ResourceSuffix'))]",
+    "outboundIpName": "[concat(parameters('ResourcePrefix'), '-outboundip', parameters('ResourceSuffix'))]",
+    "natGatewayName": "[concat(parameters('ResourcePrefix'), '-natgw', parameters('ResourceSuffix'))]",
+    "vnetPrefix": "[format('10.{0}.0.0/16', parameters('RegionIPSegment'))]",
+    "subnetPrefix": "[format('10.{0}.1.0/24', parameters('RegionIPSegment'))]",
+    "actionGroupId": "[resourceId(parameters('OCCActionGroupResourceGroupName'),'Microsoft.Insights/actionGroups', parameters('OCCActionGroupName'))]"
+  },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2020-11-01",
+            "name": "[variables('outboundIpName')]",
+            "location": "[parameters('Location')]",
+            "tags": {
+                "env": "[parameters('Environment')]",
+                "ComponentId": "[parameters('ComponentId')]"
+            },
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Static"
+            }
+        },
+        {
+            "type": "Microsoft.Network/natGateways",
+            "apiVersion": "2020-11-01",
+            "name": "[variables('natGatewayName')]",
+            "location": "[parameters('Location')]",
+            "tags": {
+                "env": "[parameters('Environment')]",
+                "ComponentId": "[parameters('ComponentId')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('outboundIpName'))]"
+            ],
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIpAddresses": [
+                    {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('outboundIpName'))]"
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-11-01",
+            "name": "[variables('vnetName')]",
+            "location": "[parameters('Location')]",
+            "tags": {
+                "env": "[parameters('Environment')]",
+                "ComponentId": "[parameters('ComponentId')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/natGateways', variables('natGatewayName'))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [ "[variables('vnetPrefix')]" ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('subnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('subnetPrefix')]",
+                            "serviceEndpoints": [
+                                {
+                                    "service": "Microsoft.KeyVault",
+                                    "locations": [ "*" ]
+                                },
+                                {
+                                    "service": "Microsoft.Storage",
+                                    "locations": [ "westus", "eastus" ]
+                                },
+                                {
+                                    "service": "Microsoft.AzureCosmosDB",
+                                    "locations": []
+                                }
+                            ],
+                            "delegations": [
+                                {
+                                    "name": "delegation",
+                                    "properties": {
+                                        "serviceName": "Microsoft.Web/serverfarms",
+                                        "actions": [
+                                            "Microsoft.Network/virtualNetworks/subnets/action"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "privateEndpointNetworkPolicies": "Enabled",
+                            "privateLinkServiceNetworkPolicies": "Enabled",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
+                            },
+                            "natGateway": {
+                                "id": "[resourceId('Microsoft.Network/natGateways', variables('natGatewayName'))]"
+                            }
+                        }
+                    }
+                ],
+                "virtualNetworkPeerings": [],
+                "enableDdosProtection": false,
+                "enableVmProtection": false
+            }
+        },
+      {
+        "type": "Microsoft.Insights/metricAlerts",
+        "apiVersion": "2018-03-01",
+        "name": "[format('[Security] Potential DDoS Attack Detected ({0})', variables('vnetName'))]",
+        "location": "global",
+        "condition": "[or(equals(parameters('Instance'), 'ppe'), equals(parameters('Instance'), 'prod'))]",
+        "tags": {
+          "TSG": "https://eng.ms/docs/cloud-ai-platform/business-and-industry-copilot/bic-customer-zero/sxg-intelligent-connections/sxg-icon-onecustomer-service/sxg-icon-onecustomer-service-tsg/troubleshooting/sxgchatsupport/newmodalityservice"
+        },
+        "dependsOn": [
+          "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        ],
+        "properties": {
+          "description": "Detected potential DDoS attack.",
+          "severity": 4,
+          "enabled": true,
+          "scopes": [
+            "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+          ],
+          "evaluationFrequency": "PT15M",
+          "windowSize": "PT15M",
+          "criteria": {
+            "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+            "allOf": [
+              {
+                "criterionType": "StaticThresholdCriterion",
+                "name": "DDoS Attack",
+                "timeAggregation": "Maximum",
+                "metricName": "IfUnderDDoSAttack",
+                "operator": "GreaterThan",
+                "threshold": 0
+              }
+            ]
+          },
+          "actions": [
+            {
+              "actionGroupId": "[variables('actionGroupId')]"
+            }
+          ]
+        }
+      }
+    ],
+    "outputs": {
+        "vnetName": {
+            "type": "string",
+            "value": "[variables('vnetName')]"
+        },
+        "subnetName": {
+            "type": "string",
+            "value": "[variables('subnetName')]"
+        },
+        "vnetPrefix": {
+            "type": "string",
+            "value": "[variables('vnetPrefix')]"
+        },
+        "subnetPrefix": {
+            "type": "string",
+            "value": "[variables('subnetPrefix')]"
+        },
+        "vnetResourceId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        },
+        "subnetResourceId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetName'))]"
+        }
+    }
+}

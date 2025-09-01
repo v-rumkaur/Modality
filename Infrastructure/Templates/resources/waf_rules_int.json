@@ -1,0 +1,31 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": { 
+        "WafCustomRules": {
+            "value": {
+              "rules": [
+                {
+                  "name": "RateLimitRule",
+                  "priority": 99,
+                  "ruleType": "RateLimitRule",
+                  "rateLimitDurationInMinutes": 5,
+                  "rateLimitThreshold": 2000,
+                  "matchConditions": [
+                    {
+                      "matchVariable": "SocketAddr",
+                      "operator": "IPMatch",
+                      "negateCondition": false,
+                      "matchValue": [
+                        "0.0.0.0/0",
+                        "::/0"
+                      ]
+                    }
+                  ],
+                  "action": "Block"
+                }
+              ]
+            }
+        }
+    }
+}
