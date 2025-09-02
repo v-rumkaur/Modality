@@ -9,6 +9,7 @@
     <PackageVersion Include="FluentAssertions" Version="6.12.0" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.46.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="9.0.8" />
     <PackageVersion Include="Microsoft.Identity.ServerAuthorization" Version="4.13.4" />
     <PackageVersion Include="Microsoft.Identity.ServiceEssentials.AspNetCore" Version="1.36.0" />
     <PackageVersion Include="Microsoft.Identity.Web" Version="3.9.3" />

@@ -1,21 +1,23 @@
-﻿using Azure.Identity;
+﻿using Azure.Extensions.AspNetCore.Configuration.Secrets;
+using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using CRM.ICon.Modality.Helpers.Cosmos;
 using CRM.ICon.Modality.Helpers.HttpContext;
+using CRM.ICon.Modality.Helpers.Identity;
+using CRM.ICon.Modality.Helpers.KeyvaultClient;
+using CRM.ICon.Modality.Helpers.KeyVaultClient;
+using CRM.ICon.Modality.Helpers.Logging;
+using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Repositories;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
+using CRM.ICon.Modality.Services.LiveChatSettings;
+using CRM.ICon.Modality.Services.Modality;
 using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
-using Microsoft.IdentityModel.S2S.Extensions.AspNetCore;
-using Azure.Extensions.AspNetCore.Configuration.Secrets;
-using CRM.ICon.Modality.Helpers.KeyVaultClient;
 using Microsoft.Extensions.Caching.Memory;
-using CRM.ICon.Modality.Helpers.KeyvaultClient;
 using Microsoft.Identity.ServiceEssentials.Extensions.AspNetCoreMiddleware;
-using CRM.ICon.Modality.Helpers.ModalityCosmos;
-using CRM.ICon.Modality.Helpers.Cosmos;
-using CRM.ICon.Modality.Services.LiveChatSettings;
-using CRM.ICon.Modality.Helpers.Identity;
+using Microsoft.IdentityModel.S2S.Extensions.AspNetCore;
 
 namespace CRM.ICon.Modality
 {
@@ -99,6 +101,9 @@ namespace CRM.ICon.Modality
             services.Configure<Dictionary<string, WorkstreamDetails>>(this.Configuration.GetSection("WorkstreamConfiguration"));
             services.Configure<CosmosDbConfiguration>(this.Configuration.GetSection("CosmosDbConfiguration"));
             services.Configure<ModalityCosmosDbConfiguration>(this.Configuration.GetSection("ModalityCosmosDbConfiguration"));
+            services.AddScoped<IModalitiesService, ModalitiesService>();
+            services.AddScoped<ISupportRepository, SupportRepository>();
+            services.AddScoped<ISllLogger, SllLogger>();
 
             // Initialize Telemetry - Use managed identity for compliance
             services.AddApplicationInsightsTelemetry(options =>

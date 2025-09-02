@@ -1,6 +1,8 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 
-namespace CRM.ICon.Modality.Model
+
+namespace CRM.ICon.Modality.Model.Modalities
 {
     /// <summary>
     /// Summary description for Class1

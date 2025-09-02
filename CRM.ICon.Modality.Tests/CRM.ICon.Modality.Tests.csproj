@@ -12,6 +12,7 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Identity.ServerAuthorization" />
     <PackageReference Include="Microsoft.Identity.ServiceEssentials.AspNetCore" />
     <PackageReference Include="Microsoft.Identity.Web" />

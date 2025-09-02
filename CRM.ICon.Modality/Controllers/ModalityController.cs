@@ -4,6 +4,8 @@ using CRM.ICon.Modality.Helpers.Cosmos;
 using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
+using CRM.ICon.Modality.Model.Modalities;
+using CRM.ICon.Modality.Services.Modality;
 using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
 using Microsoft.AspNetCore.Authorization;
@@ -28,6 +30,7 @@ namespace CRM.ICon.Modality.Controllers
         private readonly ITelemetryService _telemetryService;
         private readonly IOmnichannelEUService omnichannelEUService;
         private readonly ICosmosDbClient cosmosDbClient;
+        private readonly IModalitiesService _modalitiesService;
 
         private readonly bool IsMCS = false;
         private readonly string Ring = "Ring4";
@@ -615,6 +618,101 @@ namespace CRM.ICon.Modality.Controllers
 
             return Ok(widgetMappingResponse);
         }
+
+        //Begin Ruminder
+        [HttpGet]
+        [Route("~/api/products/{product}/issues/{issue}/modalities/v1.0")]
+        [ProducesResponseType(typeof(ModalitiesV1), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<IActionResult> GetV1(
+     [FromRoute] string product,
+     [FromRoute] string issue,
+     [FromQuery] string partnerId,
+     [FromQuery] string platform,
+     [FromQuery] string language,
+     [FromQuery] string country,
+     [FromQuery] string mode = "live",
+     [FromQuery] bool preview = false,
+     [FromQuery] string accessibility = "none",
+     [FromQuery] bool fallback = true,
+     [FromQuery] bool isVNext = false,
+     [FromQuery] bool isTest = false)
+        {
+            var logProperties = new Dictionary<string, string>
+            {
+                ["product"] = product ?? "",
+                ["issue"] = issue ?? "",
+                ["partnerId"] = partnerId ?? "",
+                ["platform"] = platform ?? "",
+                ["language"] = language ?? "",
+                ["country"] = country ?? "",
+                ["mode"] = mode ?? "",
+                ["preview"] = preview.ToString(),
+                ["accessibility"] = accessibility ?? "",
+                ["fallback"] = fallback.ToString(),
+                ["isVNext"] = isVNext.ToString(),
+                ["isTest"] = isTest.ToString()
+            };
+
+            try
+            {
+                _telemetryService.LogTrace<ModalityController>("Received GetV1 request", logProperties);
+            }
+            catch (Exception ex)
+            {
+                _telemetryService.LogError<ModalityController>($"Error logging GetV1 request: {ex.Message}", logProperties);
+            }
+
+            if (string.IsNullOrEmpty(product) ||
+                string.IsNullOrEmpty(issue) ||
+                string.IsNullOrEmpty(partnerId) ||
+                string.IsNullOrEmpty(platform) ||
+                string.IsNullOrEmpty(language) ||
+                string.IsNullOrEmpty(country))
+            {
+                return BadRequest("One or more required parameters are missing.");
+            }
+
+            product = product.ToLowerInvariant();
+            issue = issue.ToLowerInvariant();
+            partnerId = partnerId.ToLowerInvariant();
+            platform = platform.ToLowerInvariant();
+            language = language.ToLowerInvariant();
+            country = country.ToLowerInvariant();
+            mode = mode?.ToLowerInvariant();
+            accessibility = accessibility?.ToLowerInvariant();
+
+            var disability = !string.IsNullOrWhiteSpace(accessibility) && !accessibility.Equals("none") && !accessibility.Equals("false");
+
+            string host = Request?.Host.Value;
+
+            var result = await _modalitiesService.GetModalities(
+                product,
+                issue,
+                partnerId,
+                platform,
+                language,
+                country,
+                mode,
+                preview,
+                disability,
+                fallback,
+                host,
+                isVNext,
+                isTest);
+
+            if (result == null || result.SupportChannels == null || !result.SupportChannels.Any())
+            {
+                return NotFound("No modalities found matching the request.");
+            }
+
+            var modalities = new ModalitiesV1(result.SupportChannels);
+            // RemoveQueueLengthLinkForCallBackModality(ref modalities);
+
+            return Ok(modalities.Emit());
+        }
+        //End Ruminder
 
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
         {
