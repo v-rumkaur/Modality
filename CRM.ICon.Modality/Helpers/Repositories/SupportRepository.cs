@@ -5,7 +5,7 @@ using CRM.ICon.Modality.Helpers.Logging;
 using CRM.ICon.Modality.Model.Modalities;
 using CRM.ICon.Modality.Services.Modality;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Identity.ServiceEssentials.Telemetry.Abstractions;
+//using Microsoft.Identity.ServiceEssentials.Telemetry.Abstractions;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.RegularExpressions;

@@ -17,7 +17,7 @@ using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Identity.ServiceEssentials.Extensions.AspNetCoreMiddleware;
-using Microsoft.IdentityModel.S2S.Extensions.AspNetCore;
+//using Microsoft.IdentityModel.S2S.Extensions.AspNetCore;
 
 namespace CRM.ICon.Modality
 {
@@ -128,8 +128,9 @@ namespace CRM.ICon.Modality
                 authority = $"{authority}/{aadConfiguration.OAuthVersion}";
             }
 
-            services.AddAuthentication(S2SAuthenticationDefaults.AuthenticationScheme)
-                    .AddMiseWithDefaultModules(Configuration, authenticationSectionName: "AzureAdConfiguration");
+            //Comment Ruminder
+            //services.AddAuthentication(S2SAuthenticationDefaults.AuthenticationScheme)
+                    //.AddMiseWithDefaultModules(Configuration, authenticationSectionName: "AzureAdConfiguration");
 
             services.AddSingleton<AuthTokenClient>();
 

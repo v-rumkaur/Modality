@@ -1,0 +1,20 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.2.2" />
+    <PackageVersion Include="Azure.Identity" Version="1.12.0" />
+    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.39.2" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageVersion Include="Microsoft.Identity.ServerAuthorization" Version="1.0.2" />
+    <PackageVersion Include="Microsoft.Identity.ServiceEssentials.AspNetCore" Version="1.0.2" />
+    <PackageVersion Include="Microsoft.Identity.Web" Version="2.19.0" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="Geneva.Synthetics.Contracts" Version="1.0.23310.1" />
+    <PackageVersion Include="Geneva.Synthetics.OpenTelemetry" Version="1.0.23310.1" />
+    <!--<PackageVersion Include="MSEG.CMC.SupportProvisioning.Telemetry" Version="1.0.2825.3" /> -->
+   
+  </ItemGroup>
+</Project>

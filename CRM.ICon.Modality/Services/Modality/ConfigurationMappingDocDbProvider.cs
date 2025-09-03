@@ -49,13 +49,15 @@ namespace CRM.ICon.Modality.Services.Modality
             {
                 try
                 {
-                    this.sllLogger.TrackOutgoingRequest(
-                PartnerOps.ExecuteDocumentDbQueryOp.OpName,
-                PartnerOps.ExecuteDocumentDbQueryOp,
-                (qosEvent) =>
-                {
-                    var @customQosEvent = qosEvent as OutgoingQosEventWrapper<Microsoft.Telemetry.Data<Ms.Qos.OutgoingServiceRequest>>;
-                });
+                    
+                //Comment Ruminder Not Findind Reference
+                //this.sllLogger.TrackOutgoingRequest(
+                //PartnerOps.ExecuteDocumentDbQueryOp.OpName,
+                //PartnerOps.ExecuteDocumentDbQueryOp,
+                //(qosEvent) =>
+                //{
+                //    var @customQosEvent = qosEvent as OutgoingQosEventWrapper<Microsoft.Telemetry.Data<Ms.Qos.OutgoingServiceRequest>>;
+                //});
                     var documentQuery = await this.container.ReadItemAsync<T>(query, new PartitionKey(query)).ConfigureAwait(false);
 
 

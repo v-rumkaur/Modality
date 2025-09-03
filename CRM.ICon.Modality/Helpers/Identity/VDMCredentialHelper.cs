@@ -34,7 +34,7 @@ namespace CRM.ICon.Modality.Helpers.Identity
                 var credential = new ClientAssertionCredential(
                     vdmTenantId, 
                     appRegistrationId, //Can probably replace this with client Id?
-                    _ => new ManagedIdentityClientAssertion(managedIdentityId).GetSignedAssertionAsync(null)
+                    _ => new ManagedIdentityClientAssertion(managedIdentityId).GetSignedAssertion(CancellationToken.None)
                 );
 
                 telemetryService.LogTrace<object>("VDM GetCredential - ClientAssertionCredential created successfully", logProperties);
