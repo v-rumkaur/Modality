@@ -18,10 +18,6 @@ $GlobalResourceLocation            = "westus"
 $UsePremiumSku                     = $true
 $OCCActionGroupName                = "SxG ICon Chat Team"
 $OCCActionGroupResourceGroupName   = "modalityservice-rg-managedidentity-ppe-global"
-$networkSecurityPerimeterName      = "nsp"
-$profileName                       = "defaultProfile"
-$resourceAssociations              = "resourceAssociations"
-$associationMode                   = "Learning"
 
 .\deploy_azure_region_resources.ps1 `
     -SubscriptionName $SubscriptionName `
@@ -40,8 +36,4 @@ $associationMode                   = "Learning"
     -UsePremiumSku $UsePremiumSku `
 	-OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
 	-OCCActionGroupName $OCCActionGroupName `
-    -AccessToken $AccessToken `
-    -networkSecurityPerimeterName $networkSecurityPerimeterName `
-    -profileName $profileName `
-    -resourceAssociations $resourceAssociations `
-    -associationMode $associationMode
+    -AccessToken $AccessToken

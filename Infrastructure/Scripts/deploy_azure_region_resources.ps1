@@ -15,11 +15,7 @@ param(
 		[String]         $GlobalResourceLocation,          # Azure region of resources that are shared across all regions.
         [String]         $OCCActionGroupResourceGroupName,
         [String]         $OCCActionGroupName,
-        [String]         $AccessToken,
-        [string]         $networkSecurityPerimeterName,
-        [string]         $profileName,
-        [object]         $resourceAssociations,
-        [string]         $associationMode
+        [String]         $AccessToken
 )
 
 $TemplateName = $ResourcePrefix + $ResourceSuffix + "-deployment"
@@ -126,7 +122,6 @@ $StorageAccount = New-AzResourceGroupDeployment `
     -ResourcePrefix $ResourcePrefix `
     -ResourceSuffix $ResourceSuffix
 $StorageAccount
-$storageResourceId = $StorageAccount.Outputs["storageResourceId"].Value
 
 Write-Host "Setting up Modality App Service"
 New-AzResourceGroupDeployment `
@@ -146,9 +141,6 @@ New-AzResourceGroupDeployment `
     -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
     -OCCActionGroupName $OCCActionGroupName
 
-if (-not $keyVaultResourceId) {
-    $keyVaultResourceId = ""
-}
 Write-Host "Setting up Network Security Perimeter"
 New-AzResourceGroupDeployment `
     -Name $TemplateName `
@@ -158,12 +150,6 @@ New-AzResourceGroupDeployment `
     -Environment $Environment `
     -ResourcePrefix $ResourcePrefix `
     -ResourceSuffix $GlobalResourceSuffix `
-    -networkSecurityPerimeterName $networkSecurityPerimeterName `
-    -profileName $profileName `
-    -resourceAssociations $resourceAssociations `
-    -associationMode $associationMode `
-    -storageResourceId $storageResourceId `
-    -keyVaultResourceId $keyVaultResourceId `
-    -GlobalResourceLocation $GlobalResourceLocation
+    -ResourceSuffix $ResourceSuffix
 
 Write-Host "Azure Infrastructure deployment completed!"

@@ -112,7 +112,7 @@ $keyVaultDeployment = New-AzResourceGroupDeployment `
     -Instance $Instance `
     -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
     -OCCActionGroupName $OCCActionGroupName
-$keyVaultResourceId = $keyVaultDeployment.Outputs["keyVaultResourceId"].Value
+$keyVaultDeployment
 
 $WafCustomRulesFilePath = ""
 switch ($Instance) {

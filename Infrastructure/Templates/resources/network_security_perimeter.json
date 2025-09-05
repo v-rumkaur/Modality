@@ -2,21 +2,8 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "networkSecurityPerimeterName": {
-      "type": "string"
-    },
-    "profileName": {
-      "type": "string"
-    },
     "Location": {
       "type": "string"
-    },
-    "resourceAssociations": {
-      "type": "string"
-    },
-    "associationMode": {
-      "type": "string",
-      "defaultValue": "Learning"
     },
     "ResourcePrefix": {
       "type": "string"
@@ -24,18 +11,17 @@
     "GlobalResourceSuffix": {
       "type": "string"
     },
-    "storageResourceId": {
-      "type": "string"
-    },
-    "keyVaultResourceId": {
-      "type": "string"
-    },
-    "GlobalResourceLocation": {
+    "ResourceSuffix": {
       "type": "string"
     }
   },
   "variables": {
-    "networkSecurityPerimeterName": "[concat(parameters('ResourcePrefix'), parameters('GlobalResourceSuffix'), '-', parameters('Location'), '-nsp')]"
+    "networkSecurityPerimeterName": "[concat(parameters('ResourcePrefix'), parameters('GlobalResourceSuffix'), '-', parameters('Location'), '-nsp')]",
+    "keyVaultName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'kv', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
+    "storageAccountName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'st', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
+    "profileName": "defaultProfile",
+    "resourceAssociations": "resourceAssociations",
+    "associationMode": "Learning"
   },
   "resources": [
     {
@@ -48,7 +34,7 @@
     {
       "type": "Microsoft.Network/networkSecurityPerimeters/profiles",
       "apiVersion": "2024-06-01-preview",
-      "name": "[format('{0}/{1}', variables('networkSecurityPerimeterName'), parameters('profileName'))]",
+      "name": "[format('{0}/{1}', variables('networkSecurityPerimeterName'), variables('profileName'))]",
       "location": "[parameters('Location')]",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkSecurityPerimeters', variables('networkSecurityPerimeterName'))]"
@@ -58,38 +44,38 @@
     {
       "type": "Microsoft.Network/networkSecurityPerimeters/resourceAssociations",
       "apiVersion": "2024-06-01-preview",
-      "name": "[concat(variables('networkSecurityPerimeterName'), '/', concat(parameters('resourceAssociations'), '-storage'))]",
+      "name": "[concat(variables('networkSecurityPerimeterName'), '/', concat(variables('resourceAssociations'), '-storage'))]",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkSecurityPerimeters', variables('networkSecurityPerimeterName'))]",
-        "[resourceId('Microsoft.Network/networkSecurityPerimeters/profiles', variables('networkSecurityPerimeterName'), parameters('profileName'))]"
+        "[resourceId('Microsoft.Network/networkSecurityPerimeters/profiles', variables('networkSecurityPerimeterName'), variables('profileName'))]"
       ],
       "properties": {
         "privateLinkResource": {
-          "id": "[parameters('storageResourceId')]"
+          "id":"[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
         },
         "profile": {
-          "id": "[resourceId('Microsoft.Network/networkSecurityPerimeters/profiles', variables('networkSecurityPerimeterName'), parameters('profileName'))]"
+          "id": "[resourceId('Microsoft.Network/networkSecurityPerimeters/profiles', variables('networkSecurityPerimeterName'), variables('profileName'))]"
         },
-        "accessMode": "[parameters('associationMode')]"
+        "accessMode": "[variables('associationMode')]"
       }
     },
     {
-      "condition": "[and(equals(parameters('GlobalResourceLocation'), 'westus'), not(empty(parameters('keyVaultResourceId'))))]",
+      "condition": "[equals(parameters('Location'), 'westus')]",
       "type": "Microsoft.Network/networkSecurityPerimeters/resourceAssociations",
       "apiVersion": "2024-06-01-preview",
-      "name": "[concat(variables('networkSecurityPerimeterName'), '/', concat(parameters('resourceAssociations'), '-keyvault'))]",
+      "name": "[concat(variables('networkSecurityPerimeterName'), '/', concat(variables('resourceAssociations'), '-keyvault'))]",
       "dependsOn": [
         "[resourceId('Microsoft.Network/networkSecurityPerimeters', variables('networkSecurityPerimeterName'))]",
-        "[resourceId('Microsoft.Network/networkSecurityPerimeters/profiles', variables('networkSecurityPerimeterName'), parameters('profileName'))]"
+        "[resourceId('Microsoft.Network/networkSecurityPerimeters/profiles', variables('networkSecurityPerimeterName'), variables('profileName'))]"
       ],
       "properties": {
         "privateLinkResource": {
-          "id": "[parameters('keyVaultResourceId')]"
+          "id": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
         },
         "profile": {
-          "id": "[resourceId('Microsoft.Network/networkSecurityPerimeters/profiles', variables('networkSecurityPerimeterName'), parameters('profileName'))]"
+          "id": "[resourceId('Microsoft.Network/networkSecurityPerimeters/profiles', variables('networkSecurityPerimeterName'), variables('profileName'))]"
         },
-        "accessMode": "[parameters('associationMode')]"
+        "accessMode": "[variables('associationMode')]"
       }
     }
   ]

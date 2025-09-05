@@ -149,7 +149,7 @@
             "type": "string",
             "value": "[variables('storageAccountName')]"
         },
-        "storageResourceId": {
+        "StorageResourceId": {
             "type": "string",
             "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
         }
