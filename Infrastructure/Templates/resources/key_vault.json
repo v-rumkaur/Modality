@@ -249,6 +249,10 @@
     "keyVaultName": {
       "type": "string",
       "value": "[variables('keyVaultName')]"
+    },
+    "keyVaultResourceId": {
+    "type": "string",
+    "value": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
     }
   }
 }
