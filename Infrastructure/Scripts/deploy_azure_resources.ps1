@@ -154,8 +154,7 @@ New-AzResourceGroupDeployment `
     -ResourceGroupName $ResourceGroupName `
     -TemplateFile "../Templates/resources/traffic_manager.json" `
     -ResourcePrefix $ResourcePrefix `
-    -ResourceSuffix $GlobalResourceSuffix `
-    -GlobalResourceSuffix $GlobalResourceSuffix `
-    -SubscriptionId $SubscriptionId `
+    -ResourceSuffix $-ResourceSuffix `
+    -GlobalResourceSuffix $GlobalResourceSuffix
     
 Write-Host "Azure Infrastructure deployment completed!"
