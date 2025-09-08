@@ -149,6 +149,7 @@ New-AzResourceGroupDeployment `
     -Location $Location `
     -ResourceSuffix $ResourceSuffix `
     -ResourcePrefix $ResourcePrefix `
-    -GlobalResourceSuffix $GlobalResourceSuffix
+    -GlobalResourceSuffix $GlobalResourceSuffix `
+    -GlobalResourceGroupName $GlobalResourceGroupName
 
 Write-Host "Azure Infrastructure deployment completed!"

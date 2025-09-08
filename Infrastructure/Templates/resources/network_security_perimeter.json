@@ -13,6 +13,9 @@
     },
     "ResourceSuffix": {
       "type": "string"
+    },
+    "GlobalResourceGroupName": {
+      "type": "string"
     }
   },
   "variables": {
@@ -70,7 +73,7 @@
       ],
       "properties": {
         "privateLinkResource": {
-          "id": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+          "id": "[resourceId(parameters('GlobalResourceGroupName'), 'Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
         },
         "profile": {
           "id": "[resourceId('Microsoft.Network/networkSecurityPerimeters/profiles', variables('networkSecurityPerimeterName'), variables('profileName'))]"
