@@ -147,7 +147,7 @@ New-AzResourceGroupDeployment `
     -ResourceGroupName $ResourceGroupName `
     -TemplateFile "../Templates/resources/network_security_perimeter.json" `
     -Location $Location `
-    -Environment $Environment `
+    -ResourceSuffix $ResourceSuffix `
     -ResourcePrefix $ResourcePrefix `
     -GlobalResourceSuffix $GlobalResourceSuffix
 
