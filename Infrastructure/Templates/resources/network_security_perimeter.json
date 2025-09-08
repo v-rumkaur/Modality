@@ -20,7 +20,7 @@
   },
   "variables": {
     "networkSecurityPerimeterName": "[concat(parameters('ResourcePrefix'), parameters('GlobalResourceSuffix'), '-', parameters('Location'), '-nsp')]",
-    "keyVaultName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'kv', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
+    "keyVaultName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'kv', replace(parameters('GlobalResourceSuffix'), '-', '')), 24)]",
     "storageAccountName": "[take(concat(replace(parameters('ResourcePrefix'), '-', ''), 'st', replace(parameters('ResourceSuffix'), '-', '')), 24)]",
     "profileName": "defaultProfile",
     "resourceAssociations": "resourceAssociations",
