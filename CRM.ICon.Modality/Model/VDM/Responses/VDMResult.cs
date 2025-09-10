@@ -2,8 +2,9 @@
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 
-namespace CRM.ICon.Modality.Services.VDM
+namespace CRM.ICon.Modality.Model.VDM.Responses
 {
+    // Used for parsing VDM result into VDM response
     public class VDMResult
     {
         public VDMResultData? Result { get; set; }
