@@ -11,6 +11,8 @@ using System.Net.Http;
 using System.Runtime.Caching;
 using System.Text;
 using System.Threading.Tasks;
+using CRM.ICon.Modality.Model.VDM.Requests;
+using CRM.ICon.Modality.Model.VDM.Responses;
 
 namespace CRM.ICon.Modality.Services.VDM
 {
@@ -70,31 +72,31 @@ namespace CRM.ICon.Modality.Services.VDM
 
                 // Use the already-read response content and add detailed deserialization logging
                 logProperties["RawResponseForDeserialization"] = responseContent ?? "NULL_RESPONSE";
-                
+
                 try
                 {
                     // First, deserialize the outer response which has Result as a string
                     var outerResponse = JsonConvert.DeserializeObject<dynamic>(responseContent);
                     logProperties["OuterDeserializationSuccess"] = (outerResponse != null).ToString();
-                    
+
                     if (outerResponse?.Result != null)
                     {
                         // The Result property is a JSON string that needs to be deserialized again
                         string resultJsonString = outerResponse.Result.ToString();
                         logProperties["ResultJsonString"] = resultJsonString;
-                        
+
                         var deserializedResult = JsonConvert.DeserializeObject<VDMResultData>(resultJsonString);
                         logProperties["InnerDeserializationSuccess"] = (deserializedResult != null).ToString();
-                        
+
                         if (deserializedResult != null)
                         {
                             logProperties["PurposefulResultsCount"] = deserializedResult.purposefulResults?.Count().ToString() ?? "0";
                             logProperties["PurposefulResultsExists"] = (deserializedResult.purposefulResults != null).ToString();
                         }
-                        
+
                         var vdmResponse = deserializedResult?.purposefulResults?.FirstOrDefault();
                         logProperties["VDMResponseExtracted"] = (vdmResponse != null).ToString();
-                        
+
                         if (vdmResponse != null)
                         {
                             AddInMemoryCacheEntry(vdmKey, vdmResponse);
