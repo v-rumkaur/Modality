@@ -6,15 +6,13 @@ using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
 using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
+using CRM.ICon.Modality.Model.VDM.Requests;
+using CRM.ICon.Modality.Model.VDM.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using OpenTelemetry.Resources;
-using System;
-using System.Data.Common;
 using System.Globalization;
-using System.Linq;
 
 namespace CRM.ICon.Modality.Controllers
 {
