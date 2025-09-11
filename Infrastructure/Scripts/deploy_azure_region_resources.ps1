@@ -141,4 +141,15 @@ New-AzResourceGroupDeployment `
     -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
     -OCCActionGroupName $OCCActionGroupName
 
+Write-Host "Setting up Network Security Perimeter"
+New-AzResourceGroupDeployment `
+    -Name $TemplateName `
+    -ResourceGroupName $ResourceGroupName `
+    -TemplateFile "../Templates/resources/network_security_perimeter.json" `
+    -Location $Location `
+    -ResourceSuffix $ResourceSuffix `
+    -ResourcePrefix $ResourcePrefix `
+    -GlobalResourceSuffix $GlobalResourceSuffix `
+    -GlobalResourceGroupName $GlobalResourceGroupName
+
 Write-Host "Azure Infrastructure deployment completed!"

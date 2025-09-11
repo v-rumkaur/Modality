@@ -97,7 +97,7 @@ New-AzResourceGroupDeployment `
         -ResourceSuffix $GlobalResourceSuffix
 
 Write-Host "Setting up shared KeyVault"
-New-AzResourceGroupDeployment `
+$keyVaultDeployment = New-AzResourceGroupDeployment `
     -Name $TemplateName `
     -ResourceGroupName $ResourceGroupName `
     -TemplateFile "../Templates/resources/key_vault.json" `
@@ -112,6 +112,7 @@ New-AzResourceGroupDeployment `
     -Instance $Instance `
     -OCCActionGroupResourceGroupName $OCCActionGroupResourceGroupName `
     -OCCActionGroupName $OCCActionGroupName
+$keyVaultDeployment
 
 $WafCustomRulesFilePath = ""
 switch ($Instance) {
@@ -153,8 +154,8 @@ New-AzResourceGroupDeployment `
     -ResourceGroupName $ResourceGroupName `
     -TemplateFile "../Templates/resources/traffic_manager.json" `
     -ResourcePrefix $ResourcePrefix `
-    -ResourceSuffix $GlobalResourceSuffix `
+    -ResourceSuffix $ResourceSuffix `
     -GlobalResourceSuffix $GlobalResourceSuffix `
     -SubscriptionId $SubscriptionId
-
+    
 Write-Host "Azure Infrastructure deployment completed!"
