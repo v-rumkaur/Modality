@@ -48,5 +48,7 @@ namespace CRM.ICon.Modality.Helpers.Telemetry
         /// <param name="message">Event message</param>
         /// <param name="properties">Event properties</param>
         void LogCustomEvent<T>(string message, IDictionary<string, string> properties);
+        void LogAudit(string name, Microsoft.AspNetCore.Http.HttpContext context);
+        void LogInformation(string name, string message);
     }
 }
