@@ -21,5 +21,22 @@ namespace CRM.ICon.Modality.Services.Modality
             bool isVNext,
             bool isTest
         );
+        // Add this for direct access to raw modalities for V0/V1
+        Task<List<Dictionary<string, object>>> GetRawModalitiesAsync(
+            string product,
+            string issue,
+            string partnerId,
+            string platform,
+            string language,
+            string country,
+            string mode,
+            bool preview,
+            bool disability,
+            bool fallback,
+            string host,
+            bool isVNext,
+            bool isTest
+        );
+        Task<CircuitBreaker> UpdateCircuitBreakerAsync(CircuitBreaker circuitBreaker);
     }
 }
