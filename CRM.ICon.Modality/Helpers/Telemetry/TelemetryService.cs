@@ -1,6 +1,7 @@
 ﻿using CRM.ICon.Modality.Helpers.Repositories;
 using Microsoft.ApplicationInsights.DataContracts;
 using System.Diagnostics.Metrics;
+using Microsoft.AspNetCore.Http;
 
 namespace CRM.ICon.Modality.Helpers.Telemetry
 {
@@ -75,5 +76,26 @@ namespace CRM.ICon.Modality.Helpers.Telemetry
         {
             this.telemetryRepository.LogCustomEvent<T>(message, properties);
         }
+        public void LogAudit(string name, Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            var props = new Dictionary<string, string>
+            {
+                { "AuditName", name },
+                { "RemoteIp", context?.Connection?.RemoteIpAddress?.ToString() ?? "unknown" },
+                { "Path", context?.Request?.Path ?? "unknown" }
+            };
+            this.telemetryRepository.LogCustomEvent<TelemetryService>("Audit", props);
+        }
+
+        public void LogInformation(string name, string message)
+        {
+            var props = new Dictionary<string, string>
+            {
+                { "InfoName", name },
+                { "Message", message }
+            };
+            this.telemetryRepository.LogTrace<TelemetryService>(message, props, SeverityLevel.Information);
+        }
+
     }
 }
