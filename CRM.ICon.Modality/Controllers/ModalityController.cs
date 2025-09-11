@@ -727,6 +727,213 @@ namespace CRM.ICon.Modality.Controllers
                 return hostHeader;
             }
         }
+        [HttpGet]
+        [Route("api/products/{product}/issues/{issue}/modalities/v1.0")]
+        [ProducesResponseType(typeof(ModalitiesV1), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<ModalitiesV1>> GetModalitiesV1(
+            string product,
+            string issue,
+            [FromQuery] string partnerId,
+            [FromQuery] string platform,
+            [FromQuery] string language,
+            [FromQuery] string country,
+            [FromQuery] string mode = "live",
+            [FromQuery] bool preview = false,
+            [FromQuery] string accessibility = "none",
+            [FromQuery] bool fallback = true,
+            [FromQuery] bool isVNext = false,
+            [FromQuery] bool isTest = false
+        )
+        {
+            // Validate input
+            if (string.IsNullOrEmpty(product) ||
+                string.IsNullOrEmpty(issue) ||
+                string.IsNullOrEmpty(partnerId) ||
+                string.IsNullOrEmpty(platform) ||
+                string.IsNullOrEmpty(language) ||
+                string.IsNullOrEmpty(country))
+            {
+                return BadRequest("Missing required parameters.");
+            }
+
+            product = product.ToLowerInvariant();
+            issue = issue.ToLowerInvariant();
+            partnerId = partnerId.ToLowerInvariant();
+            platform = platform.ToLowerInvariant();
+            language = language.ToLowerInvariant();
+            country = country.ToLowerInvariant();
+            mode = mode?.ToLowerInvariant();
+            accessibility = accessibility?.ToLowerInvariant();
+
+            var disability = !string.IsNullOrWhiteSpace(accessibility)
+                             && !accessibility.Equals("none")
+                             && !accessibility.Equals("false");
+
+            var host = GetHostOverride(); // Implement this helper as in source
+
+            var result = await modalitiesService.GetModalitiesAsync(
+                product,
+                issue,
+                partnerId,
+                platform,
+                language,
+                country,
+                mode,
+                preview,
+                disability,
+                fallback,
+                host,
+                isVNext,
+                isTest
+            );
+
+            // Null or empty result handling
+            if (result == null || result.Modalities == null || !result.Modalities.Any())
+            {
+                return NotFound();
+            }
+
+            // Convert Dictionary<string, object> to Dictionary<string, string>
+            var modalitiesAsString = result.Modalities
+                .Select(dict => dict.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value?.ToString() ?? string.Empty
+                ))
+                .ToList();
+
+            var modalities = new ModalitiesV1(modalitiesAsString);
+
+            RemoveQueueLengthLinkForCallBackModality(ref modalities);
+
+            return Ok(modalities);
+        }
+
+        private void RemoveQueueLengthLinkForCallBackModality(ref ModalitiesV1 modalities)
+        {
+            if (modalities.Modalities != null && modalities.Modalities.Count() > 0)
+            {
+                var modalityList = modalities.Modalities.ToList();
+                if (modalityList.Where(m => m.ContainsKey("Name")).Count() > 0)
+                {
+                    var callbackModalityIndex = modalityList.FindIndex(m => string.Equals("callback", m["Name"], StringComparison.OrdinalIgnoreCase));
+                    if (callbackModalityIndex > -1)
+                    {
+                        modalityList[callbackModalityIndex].Remove("QueueLength");
+                    }
+                }
+            }
+        }
+        [HttpGet]
+        [Route("api/modalities/list")]
+        [ProducesResponseType(typeof(Dictionary<string, Dictionary<string, string>>), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<Dictionary<string, Dictionary<string, string>>>> GetModalitiesList(
+    [FromQuery] string product,
+    [FromQuery] string issue,
+    [FromQuery] string language,
+    [FromQuery] string country,
+    [FromQuery] string platform = "web",
+    [FromQuery] string partnerId = "",
+    [FromQuery] string mode = "live",
+    [FromQuery] bool usePreview = false,
+    [FromQuery] bool disability = false,
+    [FromQuery] bool fallback = true,
+    [FromQuery] bool isVNext = false,
+    [FromQuery] bool isTest = false
+)
+        {
+            // Validate input
+            if (string.IsNullOrEmpty(product) ||
+                string.IsNullOrEmpty(issue) ||
+                string.IsNullOrEmpty(language) ||
+                string.IsNullOrEmpty(country))
+            {
+                return BadRequest("Missing required parameters.");
+            }
+
+            product = product.ToLowerInvariant();
+            issue = issue.ToLowerInvariant();
+            partnerId = partnerId?.ToLowerInvariant();
+            platform = platform?.ToLowerInvariant();
+            language = language.ToLowerInvariant();
+            country = country.ToLowerInvariant();
+            mode = mode?.ToLowerInvariant();
+
+            var host = GetHostOverride();
+
+            var result = await modalitiesService.GetModalitiesAsync(
+                product,
+                issue,
+                partnerId,
+                platform,
+                language,
+                country,
+                mode,
+                usePreview,
+                disability,
+                fallback,
+                host,
+                isVNext,
+                isTest
+            );
+
+            if (result == null || result.Modalities == null || !result.Modalities.Any())
+            {
+                return NotFound();
+            }
+
+            // Convert Dictionary<string, object> to Dictionary<string, string>
+            var modalitiesAsString = result.Modalities
+                .Select(dict => dict.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value?.ToString() ?? string.Empty
+                ))
+                .ToList();
+
+            var modalities = new ModalitiesV0(modalitiesAsString);
+
+            RemoveQueueLengthLinkForCallBackModality(ref modalities);
+
+            return Ok(modalities.Emit());
+        }
+        private void RemoveQueueLengthLinkForCallBackModality(ref ModalitiesV0 modalities)
+        {
+            if (modalities.Modalities != null && modalities.Modalities.Count > 0)
+            {
+                var modalityList = modalities.Modalities.ToList();
+                int callbackModalityIndex = modalityList.FindIndex(m =>
+                    string.Equals(m.Key, "callback", System.StringComparison.OrdinalIgnoreCase));
+                if (callbackModalityIndex > -1)
+                {
+                    modalityList[callbackModalityIndex].Value.Remove("QueueLength");
+                }
+                modalities.Modalities = modalityList.ToDictionary(m => m.Key, m => m.Value);
+            }
+        }
+
+        [HttpPut]
+        [Route("api/modalities/circuitbreaker")]
+        [ProducesResponseType(typeof(CircuitBreaker), 200)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<CircuitBreaker>> PutCircuitBreaker([FromBody] CircuitBreaker circuitBreaker)
+        {
+            if (circuitBreaker == null || string.IsNullOrEmpty(circuitBreaker.Product) || string.IsNullOrEmpty(circuitBreaker.Issue))
+            {
+                return BadRequest("Missing required parameters.");
+            }
+
+            var result = await modalitiesService.UpdateCircuitBreakerAsync(circuitBreaker);
+
+            if (result == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(result);
+        }
         //End Ruminder
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
         {
