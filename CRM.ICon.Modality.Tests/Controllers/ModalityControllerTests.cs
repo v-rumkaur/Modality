@@ -2,11 +2,14 @@ using CRM.ICon.Modality.Controllers;
 using CRM.ICon.Modality.Helpers.Cosmos;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
+using CRM.ICon.Modality.Services;
+using CRM.ICon.Modality.Services.Modality;
 using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Identity.ServiceEssentials.Extensions.AspNetCoreMiddleware;
 using NSubstitute;
 using Xunit;
 
@@ -21,7 +24,10 @@ namespace CRM.ICon.Modality.Tests.Controllers
             var telemetryService = Substitute.For<ITelemetryService>();
             var omniChannelEUService = Substitute.For<IOmnichannelEUService>();
             var cosmosDbClient = Substitute.For<ICosmosDbClient>();
-            return new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient);
+            var modalitiesService = Substitute.For<IModalitiesService>();
+            var serviceConfig = Substitute.For<ServiceConfiguration>();
+
+            return new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient, modalitiesService, serviceConfig);
         }
 
         [Theory]

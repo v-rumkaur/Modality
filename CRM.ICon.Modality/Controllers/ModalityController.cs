@@ -4,6 +4,7 @@ using CRM.ICon.Modality.Helpers.Cosmos;
 using CRM.ICon.Modality.Helpers.ModalityCosmos;
 using CRM.ICon.Modality.Helpers.Telemetry;
 using CRM.ICon.Modality.Model;
+using CRM.ICon.Modality.Services.Modality;
 using CRM.ICon.Modality.Services.Omnichannel;
 using CRM.ICon.Modality.Services.VDM;
 using Microsoft.AspNetCore.Authorization;
@@ -27,17 +28,21 @@ namespace CRM.ICon.Modality.Controllers
         private readonly IOmnichannelService omnichannelService;
         private readonly ITelemetryService _telemetryService;
         private readonly IOmnichannelEUService omnichannelEUService;
+        private readonly IModalitiesService modalitiesService;
         private readonly ICosmosDbClient cosmosDbClient;
+        private readonly ServiceConfiguration _serviceConfig;
 
         private readonly bool IsMCS = false;
         private readonly string Ring = "Ring4";
-        public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService, ITelemetryService telemetryService, IOmnichannelEUService omnichannelEUService, ICosmosDbClient cosmosDbClient)
+        public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService, ITelemetryService telemetryService, IOmnichannelEUService omnichannelEUService, ICosmosDbClient cosmosDbClient, IModalitiesService modalitiesService, ServiceConfiguration serviceConfig)
         {
             this.vdmService = vdmService;
             this.omnichannelService = omnichannelService;
             this.omnichannelEUService = omnichannelEUService;
             this._telemetryService = telemetryService ?? throw new ArgumentNullException(nameof(telemetryService));
             this.cosmosDbClient = cosmosDbClient;
+            this.modalitiesService = modalitiesService; 
+            this._serviceConfig = serviceConfig;
         }
 
         [Authorize]
@@ -616,7 +621,113 @@ namespace CRM.ICon.Modality.Controllers
             return Ok(widgetMappingResponse);
         }
 
-        [Route("/api/v1.0/modalities")]
+
+        //Begin Ruminder
+        [HttpPost]
+        [Route("api/v1.0/modalities")]
+        [ProducesResponseType(typeof(ModalitiesV2), 200)]
+        [ProducesResponseType(400)]
+        [ProducesResponseType(404)]
+        public async Task<ActionResult<ModalitiesV2>> Modalities([FromBody] LookupModalityRequest lookupModalityRequest)
+        {
+            try
+            {
+                _telemetryService.LogAudit("Modalities", HttpContext);
+            }
+            catch (Exception ex)
+            {
+                _telemetryService.LogInformation("Modalities", ex.Message);
+            }
+
+            if (!ModelState.IsValid)
+            {
+                _telemetryService.LogInformation("PostV1",
+                    $"Missing parameters: product:{lookupModalityRequest.Product}-issue:{lookupModalityRequest.Issue}-partnerId:{lookupModalityRequest.PartnerId}-platform:{lookupModalityRequest.Platform}-language:{lookupModalityRequest.Language}-country:{lookupModalityRequest.Country}");
+                return BadRequest();
+            }
+
+            var product = lookupModalityRequest.Product?.ToLowerInvariant() ?? string.Empty;
+            var issue = lookupModalityRequest.Issue?.ToLowerInvariant() ?? string.Empty;
+            var partnerId = lookupModalityRequest.PartnerId?.ToLowerInvariant() ?? string.Empty;
+            var platform = lookupModalityRequest.Platform?.ToLowerInvariant() ?? string.Empty;
+            var language = lookupModalityRequest.Language?.ToLowerInvariant() ?? string.Empty;
+            var country = lookupModalityRequest.Country?.ToLowerInvariant() ?? string.Empty;
+            var mode = lookupModalityRequest.Mode?.ToLowerInvariant() ?? string.Empty;
+            var accessibility = lookupModalityRequest.Accessibility?.ToLowerInvariant() ?? string.Empty;
+            var disability = !string.IsNullOrWhiteSpace(accessibility) && !accessibility.Equals("none") && !accessibility.Equals("false");
+            var isVNext = lookupModalityRequest.IsVNext;
+            var isTest = lookupModalityRequest.IsTest;
+
+            var host = GetHostOverride(); // Implement or adapt this helper if not present
+
+            var result = await modalitiesService.GetModalitiesAsync(
+                product,
+                issue,
+                partnerId,
+                platform,
+                language,
+                country,
+                mode,
+                lookupModalityRequest.Preview,
+                disability,
+                lookupModalityRequest.Fallback,
+                host,
+                isVNext,
+                isTest
+            );
+
+            if (result == null || result.Modalities == null || !result.Modalities.Any())
+            {
+                _telemetryService.LogInformation("PostV1",
+                    $"No modalities found for: product:{product}-issue:{issue}-partnerId:{partnerId}-platform:{platform}-language:{language}-country:{country}-host:{host}-mode:{mode}-preview:{lookupModalityRequest.Preview}-accessibility:{accessibility}-fallback:{lookupModalityRequest.Fallback}");
+                return NotFound();
+            }
+
+            var modalities = new ModalitiesV2(result.Modalities);
+
+            RemoveQueueLengthLinkForCallBackModality(ref modalities); // Implement or adapt this helper if not present
+
+            return Ok(modalities);
+        }
+
+        private void RemoveQueueLengthLinkForCallBackModality(ref ModalitiesV2 modalities)
+        {
+            if (modalities.Modalities != null && modalities.Modalities.Count() > 0)
+            {
+                var modalityList = modalities.Modalities.ToList();
+                if (modalityList.Where(m => m.ContainsKey("Name")).Count() > 0)
+                {
+                    var callbackModalityIndex = modalityList.FindIndex(m =>
+                    string.Equals("callback", m["Name"]?.ToString(), StringComparison.OrdinalIgnoreCase));
+                   // var callbackModalityIndex = modalityList.FindIndex(m => string.Equals("callback", m["Name"], StringComparison.OrdinalIgnoreCase));
+                    if (callbackModalityIndex > -1)
+                    {
+                        modalityList[callbackModalityIndex].Remove("QueueLength");
+                    }
+                }
+            }
+        }
+        private string GetHostOverride()
+        {
+            // That means that we treat any non-support channels domain as an SMC domain, and will return modality links
+            // in that domain.
+            //var hostHeader = this.Request?.Headers?.Host;
+            var hostHeader = this.Request?.Headers["Host"].ToString();
+            
+
+            if (hostHeader != null &&
+                this._serviceConfig.SupportChannelsHostNames != null &&
+                this._serviceConfig.SupportChannelsHostNames.Any(h => string.Equals(h, hostHeader, System.StringComparison.InvariantCultureIgnoreCase)))
+            {
+                // Host header matches one of the support channels's known host names.  Don't honor the host header
+                return null;
+            }
+            else
+            {
+                return hostHeader;
+            }
+        }
+        //End Ruminder
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
         {
             if (modalityRequest.ExtensionAttributes != null && modalityRequest.ExtensionAttributes.ContainsKey("Theme"))
