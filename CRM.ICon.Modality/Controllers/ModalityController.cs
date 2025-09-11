@@ -614,6 +614,7 @@ namespace CRM.ICon.Modality.Controllers
             return Ok(widgetMappingResponse);
         }
 
+        [Route("/api/v1.0/modalities")]
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
         {
             if (modalityRequest.ExtensionAttributes != null && modalityRequest.ExtensionAttributes.ContainsKey("Theme"))
