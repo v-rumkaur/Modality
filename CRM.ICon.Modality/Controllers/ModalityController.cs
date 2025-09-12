@@ -621,6 +621,7 @@ namespace CRM.ICon.Modality.Controllers
 
 
         //Begin Ruminder
+        [Authorize]
         [HttpPost]
         [Route("api/v1.0/modalities")]
         [ProducesResponseType(typeof(ModalitiesV2), 200)]
@@ -725,6 +726,7 @@ namespace CRM.ICon.Modality.Controllers
                 return hostHeader;
             }
         }
+        [Authorize]
         [HttpGet]
         [Route("api/products/{product}/issues/{issue}/modalities/v1.0")]
         [ProducesResponseType(typeof(ModalitiesV1), 200)]
@@ -823,6 +825,7 @@ namespace CRM.ICon.Modality.Controllers
                 }
             }
         }
+        [Authorize]
         [HttpGet]
         [Route("api/modalities/list")]
         [ProducesResponseType(typeof(Dictionary<string, Dictionary<string, string>>), 200)]
@@ -912,6 +915,7 @@ namespace CRM.ICon.Modality.Controllers
             }
         }
 
+        [Authorize]
         [HttpPut]
         [Route("api/modalities/circuitbreaker")]
         [ProducesResponseType(typeof(CircuitBreaker), 200)]
