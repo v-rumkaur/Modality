@@ -26,6 +26,7 @@ namespace CRM.ICon.Modality
 
         private const string KeyVaultBaseAddress = "KeyVaultConfiguration:BaseAddress";
         private const string ManagedIdentityClientId = "KeyVaultConfiguration:ManagedIdentityClientId";
+        string preferredLocations = ""; // If you know you don't use it
         /// <summary>
         /// Gets the configuration object
         /// </summary>
@@ -191,8 +192,21 @@ namespace CRM.ICon.Modality
             services.AddScoped<ICompassService, CompassService>();
             services.AddScoped<IKeyVaultSecretProvider, KeyVaultSecretProvider>();
             services.AddScoped<ISllLogger, SllLogger>();
-            services.AddScoped<IConfigurationMappingProvider, ConfigurationMappingDocDbProvider>();
-            services.AddScoped<IVNextConfiguration, VNextConfiguration>();        
+            services.AddScoped<IVNextConfiguration, VNextConfiguration>();
+            services.AddScoped<IConfigurationMappingProvider>(sp =>
+            {
+                var config = sp.GetRequiredService<IConfiguration>();
+                string endpointUri = config["ModalityCosmosDbConfiguration:CosmosDbEndpoint"];
+                string preferredLocations = ""; // Not using PreferredLocations
+                string database = config["ModalityCosmosDbConfiguration:DatabaseId"];
+                string container = config["ModalityCosmosDbConfiguration:ContainerIds:WidgetMapping"];
+                var sllLogger = sp.GetRequiredService<ISllLogger>();
+                var token = new ManagedIdentityCredential(config["AzureAdConfiguration:ManagedIdentityClientId"]);
+
+                return new ConfigurationMappingDocDbProvider(
+                    endpointUri, token, preferredLocations, sllLogger, database, container
+                );
+            });
 
         }
     }
