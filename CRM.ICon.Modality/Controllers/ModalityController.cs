@@ -624,7 +624,7 @@ namespace CRM.ICon.Modality.Controllers
         //Begin Ruminder
         [Authorize]
         [HttpPost]
-        [Route("api/v1.0/modalities")]
+        [Route("modalities")]
         [ProducesResponseType(typeof(ModalitiesV2), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -828,7 +828,7 @@ namespace CRM.ICon.Modality.Controllers
         }
         [Authorize]
         [HttpGet]
-        [Route("api/modalities/list")]
+        [Route("getModalitiesList")]
         [ProducesResponseType(typeof(Dictionary<string, Dictionary<string, string>>), 200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
@@ -918,7 +918,7 @@ namespace CRM.ICon.Modality.Controllers
 
         [Authorize]
         [HttpPut]
-        [Route("api/modalities/circuitbreaker")]
+        [Route("putCircuitbreaker")]
         [ProducesResponseType(typeof(CircuitBreaker), 200)]
         [ProducesResponseType(404)]
         public async Task<ActionResult<CircuitBreaker>> PutCircuitBreaker([FromBody] CircuitBreaker circuitBreaker)
