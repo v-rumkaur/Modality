@@ -4,12 +4,13 @@
 
     public class ModalitiesV2
     {
-        public List<Dictionary<string, object>> Modalities { get; set; }
+       // public List<Dictionary<string, object>> Modalities { get; set; }
+        public IEnumerable<Dictionary<string, string>> Modalities { get; set; }
 
         // Optional: Add RenderingContext if needed for your scenario
         public RenderingContext RenderingContext { get; set; }
 
-        public ModalitiesV2(List<Dictionary<string, object>> supportChannels)
+        public ModalitiesV2(IEnumerable<Dictionary<string, string>> supportChannels)
         {
             Modalities = supportChannels;
             RenderingContext = new RenderingContext(); // If you have a RenderingContext class, otherwise omit
