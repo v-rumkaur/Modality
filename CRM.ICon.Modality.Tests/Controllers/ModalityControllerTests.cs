@@ -9,6 +9,7 @@ using CRM.ICon.Modality.Services.VDM;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.Identity.ServiceEssentials.Extensions.AspNetCoreMiddleware;
 using NSubstitute;
 using Xunit;
@@ -19,6 +20,10 @@ namespace CRM.ICon.Modality.Tests.Controllers
     {
         private ModalityController CreateController()
         {
+            var configInstance = new ServiceConfiguration
+            {
+                SupportChannelsHostNames = new[] { "host1.example.com", "host2.example.com" }
+            };
             var vdmService = Substitute.For<IVDMService>();
             var omnichannelService = Substitute.For<IOmnichannelService>();
             var telemetryService = Substitute.For<ITelemetryService>();
@@ -26,8 +31,10 @@ namespace CRM.ICon.Modality.Tests.Controllers
             var cosmosDbClient = Substitute.For<ICosmosDbClient>();
             var modalitiesService = Substitute.For<IModalitiesService>();
             var serviceConfig = Substitute.For<ServiceConfiguration>();
+            var serviceConfigOptions = Substitute.For<IOptions<ServiceConfiguration>>();
+            serviceConfigOptions.Value.Returns(configInstance);
 
-            return new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient, modalitiesService, serviceConfig);
+            return new ModalityController(vdmService, omnichannelService, telemetryService, omniChannelEUService, cosmosDbClient, modalitiesService, serviceConfigOptions);
         }
 
         [Theory]

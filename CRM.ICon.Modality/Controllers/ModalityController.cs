@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Globalization;
+using Microsoft.Extensions.Options;
 
 namespace CRM.ICon.Modality.Controllers
 {
@@ -32,15 +33,15 @@ namespace CRM.ICon.Modality.Controllers
 
         private readonly bool IsMCS = false;
         private readonly string Ring = "Ring4";
-        public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService, ITelemetryService telemetryService, IOmnichannelEUService omnichannelEUService, ICosmosDbClient cosmosDbClient, IModalitiesService modalitiesService, ServiceConfiguration serviceConfig)
+        public ModalityController(IVDMService vdmService, IOmnichannelService omnichannelService, ITelemetryService telemetryService, IOmnichannelEUService omnichannelEUService, ICosmosDbClient cosmosDbClient, IModalitiesService modalitiesService, IOptions<ServiceConfiguration> serviceConfig)
         {
             this.vdmService = vdmService;
             this.omnichannelService = omnichannelService;
             this.omnichannelEUService = omnichannelEUService;
             this._telemetryService = telemetryService ?? throw new ArgumentNullException(nameof(telemetryService));
             this.cosmosDbClient = cosmosDbClient;
-            this.modalitiesService = modalitiesService; 
-            this._serviceConfig = serviceConfig;
+            this.modalitiesService = modalitiesService;
+            this._serviceConfig = serviceConfig.Value;
         }
 
         [Authorize]
@@ -698,7 +699,7 @@ namespace CRM.ICon.Modality.Controllers
                 {
                     var callbackModalityIndex = modalityList.FindIndex(m =>
                     string.Equals("callback", m["Name"]?.ToString(), StringComparison.OrdinalIgnoreCase));
-                   // var callbackModalityIndex = modalityList.FindIndex(m => string.Equals("callback", m["Name"], StringComparison.OrdinalIgnoreCase));
+                    // var callbackModalityIndex = modalityList.FindIndex(m => string.Equals("callback", m["Name"], StringComparison.OrdinalIgnoreCase));
                     if (callbackModalityIndex > -1)
                     {
                         modalityList[callbackModalityIndex].Remove("QueueLength");
@@ -712,7 +713,7 @@ namespace CRM.ICon.Modality.Controllers
             // in that domain.
             //var hostHeader = this.Request?.Headers?.Host;
             var hostHeader = this.Request?.Headers["Host"].ToString();
-            
+
 
             if (hostHeader != null &&
                 this._serviceConfig.SupportChannelsHostNames != null &&
@@ -832,19 +833,19 @@ namespace CRM.ICon.Modality.Controllers
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
         public async Task<ActionResult<Dictionary<string, Dictionary<string, string>>>> GetModalitiesList(
-    [FromQuery] string product,
-    [FromQuery] string issue,
-    [FromQuery] string language,
-    [FromQuery] string country,
-    [FromQuery] string platform = "web",
-    [FromQuery] string partnerId = "",
-    [FromQuery] string mode = "live",
-    [FromQuery] bool usePreview = false,
-    [FromQuery] bool disability = false,
-    [FromQuery] bool fallback = true,
-    [FromQuery] bool isVNext = false,
-    [FromQuery] bool isTest = false
-)
+            [FromQuery] string product,
+            [FromQuery] string issue,
+            [FromQuery] string language,
+            [FromQuery] string country,
+            [FromQuery] string platform = "web",
+            [FromQuery] string partnerId = "",
+            [FromQuery] string mode = "live",
+            [FromQuery] bool usePreview = false,
+            [FromQuery] bool disability = false,
+            [FromQuery] bool fallback = true,
+            [FromQuery] bool isVNext = false,
+            [FromQuery] bool isTest = false
+        )
         {
             // Validate input
             if (string.IsNullOrEmpty(product) ||
