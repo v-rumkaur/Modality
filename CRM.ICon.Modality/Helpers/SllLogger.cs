@@ -4,17 +4,30 @@
     {
         public void WriteInformationalTelemetry(string key, string message, params object[] args)
         {
-            Console.WriteLine($"Info: {key} - {string.Format(message, args)}");
+            try
+            {
+                Console.WriteLine($"Info: {key} - {string.Format(message, args)}");
+            }
+            catch (FormatException ex)
+            {
+                Console.WriteLine($"Info: {key} - [FormatException] Message='{message}' Args='{string.Join(",", args ?? new object[0])}' Exception={ex}");
+            }
         }
 
         public void WriteErrorTelemetry(string eventName, string message, params object[] args)
         {
-            Console.WriteLine($"Error: {eventName} - {string.Format(message, args)}");
+            try
+            {
+                Console.WriteLine($"Error: {eventName} - {string.Format(message, args)}");
+            }
+            catch (FormatException ex)
+            {
+                Console.WriteLine($"Error: {eventName} - [FormatException] Message='{message}' Args='{string.Join(",", args ?? new object[0])}' Exception={ex}");
+            }
         }
-        // Stub implementation (does nothing)
+
         public void TrackOutgoingRequest(string opName, object op, Action<object> qosEventCallback)
         {
-            // If you want, you can invoke the callback with null or a dummy object
             qosEventCallback?.Invoke(null);
         }
     }
