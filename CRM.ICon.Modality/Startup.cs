@@ -1,6 +1,7 @@
 ﻿using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using CRM.ICon.Modality.Helpers;
 using CRM.ICon.Modality.Helpers.Cosmos;
 using CRM.ICon.Modality.Helpers.HttpContext;
 using CRM.ICon.Modality.Helpers.Identity;
@@ -176,7 +177,17 @@ namespace CRM.ICon.Modality
             services.AddSingleton<IModalityCosmosDbClient, ModalityCosmosDbClient>();
             services.AddScoped<ILiveChatSettingsService, LiveChatSettingsService>();
             services.AddScoped<IModalitiesService, ModalitiesService>();
+            services.AddScoped<IPartnerConfiguration, PartnerConfiguration>();
+            services.AddScoped<ICompassService, CompassService>();
+            services.AddScoped<IKeyVaultSecretProvider, KeyVaultSecretProvider>();
+            services.AddScoped<ISllLogger, SllLogger>();
+            services.AddScoped<IConfigurationMappingProvider, ConfigurationMappingDocDbProvider>();
+            services.AddScoped<IVNextConfiguration, VNextConfiguration>();
             
+
+
+
+
         }
     }
 }
