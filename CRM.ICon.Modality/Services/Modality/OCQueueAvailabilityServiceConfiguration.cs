@@ -54,7 +54,10 @@ namespace CRM.ICon.Modality.Services.Modality
             this.AAdRegion = aadregion;
         }
 
-
+        public OCQueueAvailabilityServiceConfiguration()
+        {
+            // This enables config binding. You can leave it empty.
+        }
         /// <summary>
         /// Initializes a new instance of the <see cref="OCQueueAvailabilityServiceConfiguration"/> class.
         /// </summary>
