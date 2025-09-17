@@ -3,6 +3,7 @@ using CRM.ICon.Modality.Model;
 using CRM.ICon.Modality.Services.Modality;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -61,8 +62,8 @@ namespace CRM.ICon.Modality.Services.Modality
         private readonly IPartnerConfiguration _partnerConfig;
         private readonly IVNextConfiguration _vNextConfig;
         private readonly ISllLogger _sllLogger;
-        private readonly OCQueueAvailabilityServiceConfiguration _ocQueueAvailabilityServiceConfiguration;
-        private readonly ConfigurationMappingDocDbProvider _configurationMappingDocDbProvider;
+        private readonly OCQueueAvailabilityServiceConfiguration _ocQueueAvailabilityServiceConfiguration;       
+        private readonly IConfigurationMappingProvider _configurationMappingDocDbProvider;
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
 
@@ -71,8 +72,8 @@ namespace CRM.ICon.Modality.Services.Modality
             IPartnerConfiguration partnerConfig,
             IVNextConfiguration vNextConfig,
             ISllLogger sllLogger,
-            OCQueueAvailabilityServiceConfiguration ocQueueAvailabilityServiceConfiguration,
-            ConfigurationMappingDocDbProvider configurationMappingDocDbProvider,
+            IOptions<OCQueueAvailabilityServiceConfiguration> ocQueueAvailabilityServiceConfiguration,
+            IConfigurationMappingProvider configurationMappingProvider,
             HttpClient httpClient,
             IConfiguration configuration)
         {
@@ -81,8 +82,8 @@ namespace CRM.ICon.Modality.Services.Modality
             _partnerConfig = partnerConfig;
             _vNextConfig = vNextConfig;
             _sllLogger = sllLogger;
-            _ocQueueAvailabilityServiceConfiguration = ocQueueAvailabilityServiceConfiguration;
-            _configurationMappingDocDbProvider = configurationMappingDocDbProvider;
+            _ocQueueAvailabilityServiceConfiguration = ocQueueAvailabilityServiceConfiguration.Value;
+            _configurationMappingDocDbProvider = configurationMappingProvider;
             _httpClient = httpClient;
             _configuration = configuration;
         }

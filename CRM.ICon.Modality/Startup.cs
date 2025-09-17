@@ -102,6 +102,15 @@ namespace CRM.ICon.Modality
             services.Configure<CosmosDbConfiguration>(this.Configuration.GetSection("CosmosDbConfiguration"));
             services.Configure<ModalityCosmosDbConfiguration>(this.Configuration.GetSection("ModalityCosmosDbConfiguration"));
             services.Configure<ServiceConfiguration>(Configuration.GetSection("ServiceConfiguration"));
+            // Bind config section to the class
+            services.Configure<OCQueueAvailabilityServiceConfiguration>(
+                Configuration.GetSection("OCQueueAvailabilityServiceConfiguration")
+            );
+
+        // Register the instance so DI can inject the class itself,
+        // not just IOptions<T>
+        services.AddSingleton(resolver =>
+        resolver.GetRequiredService<Microsoft.Extensions.Options.IOptions<OCQueueAvailabilityServiceConfiguration>>().Value);
 
 
             // Initialize Telemetry - Use managed identity for compliance
@@ -176,17 +185,14 @@ namespace CRM.ICon.Modality
             services.AddSingleton<ICosmosDbClient, CosmosDbClient>();
             services.AddSingleton<IModalityCosmosDbClient, ModalityCosmosDbClient>();
             services.AddScoped<ILiveChatSettingsService, LiveChatSettingsService>();
-            services.AddScoped<IModalitiesService, ModalitiesService>();
+            //services.AddScoped<IModalitiesService, ModalitiesService>();
+            services.AddHttpClient<IModalitiesService, ModalitiesService>();
             services.AddScoped<IPartnerConfiguration, PartnerConfiguration>();
             services.AddScoped<ICompassService, CompassService>();
             services.AddScoped<IKeyVaultSecretProvider, KeyVaultSecretProvider>();
             services.AddScoped<ISllLogger, SllLogger>();
             services.AddScoped<IConfigurationMappingProvider, ConfigurationMappingDocDbProvider>();
-            services.AddScoped<IVNextConfiguration, VNextConfiguration>();
-            
-
-
-
+            services.AddScoped<IVNextConfiguration, VNextConfiguration>();        
 
         }
     }

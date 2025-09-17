@@ -11,5 +11,6 @@ namespace CRM.ICon.Modality.Services.Modality
      /// <param name="sllLogger"></param>
      /// <returns></returns>
         Task<Tuple<string, T>> ExecuteQueryAsync<T>(String query, ISllLogger sllLogger);
+        Task<T> ExecuteUpdateQueryAsync<T>(T query, ISllLogger sllLogger, string id);
     }
 }
