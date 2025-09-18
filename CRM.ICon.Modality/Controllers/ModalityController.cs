@@ -646,6 +646,7 @@ namespace CRM.ICon.Modality.Controllers
                 return BadRequest();
             }
 
+            // Normalize parameters
             var product = lookupModalityRequest.Product?.ToLowerInvariant() ?? string.Empty;
             var issue = lookupModalityRequest.Issue?.ToLowerInvariant() ?? string.Empty;
             var partnerId = lookupModalityRequest.PartnerId?.ToLowerInvariant() ?? string.Empty;
@@ -658,8 +659,9 @@ namespace CRM.ICon.Modality.Controllers
             var isVNext = lookupModalityRequest.IsVNext;
             var isTest = lookupModalityRequest.IsTest;
 
-            var host = GetHostOverride(); // Implement or adapt this helper if not present
+            var host = GetHostOverride();
 
+            // Call the service dynamically, just like the source repo
             var result = await modalitiesService.GetModalitiesAsync(
                 product,
                 issue,
@@ -683,9 +685,17 @@ namespace CRM.ICon.Modality.Controllers
                 return NotFound();
             }
 
-            var modalities = new ModalitiesV2(result.Modalities);
+            // Map/convert output for ASP.NET Core
+            var modalitiesAsString = result.Modalities
+                .Select(dict => dict.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value?.ToString() ?? string.Empty
+                ))
+                .ToList();
 
-            RemoveQueueLengthLinkForCallBackModality(ref modalities); // Implement or adapt this helper if not present
+            var modalities = new ModalitiesV2(modalitiesAsString);
+
+            RemoveQueueLengthLinkForCallBackModality(ref modalities);
 
             return Ok(modalities);
         }
