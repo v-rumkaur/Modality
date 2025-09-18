@@ -361,6 +361,92 @@ namespace CRM.ICon.Modality.Controllers
             _telemetryService.LogTrace<ModalityController>("Returning modality response", logProperties);
             return Ok(modalityResponse);
         }
+        //start Ruminder
+        [Authorize]
+        [HttpPost]
+        [Route("modalities")]
+        public async Task<IActionResult> Modalities([FromBody] LookupModalityRequest request)
+        {
+            var logProperties = ModalityExtensions.GetRequestProperties();
+            logProperties["RequestBody"] = JsonConvert.SerializeObject(request);
+
+            _telemetryService.LogTrace<ModalityController>(
+                "Received Modalities request",
+                logProperties);
+
+            // Validate request
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.Product) ||
+                string.IsNullOrWhiteSpace(request.Issue) ||
+                string.IsNullOrWhiteSpace(request.PartnerId) ||
+                string.IsNullOrWhiteSpace(request.Platform) ||
+                string.IsNullOrWhiteSpace(request.Language) ||
+                string.IsNullOrWhiteSpace(request.Country))
+            {
+                logProperties["Reason"] = "Request body is null or required properties missing.";
+                _telemetryService.LogTrace<ModalityController>("Validation failed", logProperties);
+                return BadRequest("One or more required parameters are missing.");
+            }
+
+            // Map/normalize parameters
+            var product = request.Product.ToLowerInvariant();
+            var issue = request.Issue.ToLowerInvariant();
+            var partnerId = request.PartnerId.ToLowerInvariant();
+            var platform = request.Platform.ToLowerInvariant();
+            var language = request.Language.ToLowerInvariant();
+            var country = request.Country.ToLowerInvariant();
+            var mode = request.Mode?.ToLowerInvariant();
+            var accessibility = request.Accessibility?.ToLowerInvariant() ?? "none";
+            var disability = !string.IsNullOrWhiteSpace(accessibility) && !accessibility.Equals("none") && !accessibility.Equals("false");
+            var isVNext = request.IsVNext;
+            var isTest = request.IsTest;
+            var host = GetHostOverride(); // Use your helper for host
+
+            // Call business logic service
+            var result = await modalitiesService.GetModalities(
+                product,
+                issue,
+                partnerId,
+                platform,
+                language,
+                country,
+                mode,
+                request.Preview,
+                disability,
+                request.Fallback,
+                host,
+                isVNext,
+                isTest);
+
+            if (result == null || result.SupportChannels == null || !result.SupportChannels.Any())
+            {
+                logProperties["Reason"] = "No modalities found";
+                _telemetryService.LogTrace<ModalityController>(
+                    "No modalities found for request",
+                    logProperties);
+                return NotFound();
+            }
+
+            // Convert Dictionary<string, object> to Dictionary<string, string>
+            var modalitiesAsString = result.SupportChannels
+                .Select(dict => dict.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value?.ToString() ?? string.Empty
+                ))
+                .ToList();
+
+            var modalities = new ModalitiesV2(modalitiesAsString);
+
+            RemoveQueueLengthLinkForCallBackModality(ref modalities);
+
+            logProperties["ModalitiesResponse"] = JsonConvert.SerializeObject(modalities.Emit());
+            _telemetryService.LogTrace<ModalityController>(
+                "Returning modalities response",
+                logProperties);
+
+            return Ok(modalities.Emit());
+        }
+        //end Ruminder
 
         [Authorize]
         [HttpPost]
@@ -622,83 +708,83 @@ namespace CRM.ICon.Modality.Controllers
 
 
         //Begin Ruminder
-        [Authorize]
-        [HttpPost]
-        [Route("modalities")]
-        [ProducesResponseType(typeof(ModalitiesV2), 200)]
-        [ProducesResponseType(400)]
-        [ProducesResponseType(404)]
-        public async Task<ActionResult<ModalitiesV2>> Modalities([FromBody] LookupModalityRequest lookupModalityRequest)
-        {
-            try
-            {
-                _telemetryService.LogAudit("Modalities", HttpContext);
-            }
-            catch (Exception ex)
-            {
-                _telemetryService.LogInformation("Modalities", ex.Message);
-            }
+        //[Authorize]
+        //[HttpPost]
+        //[Route("modalities")]
+        //[ProducesResponseType(typeof(ModalitiesV2), 200)]
+        //[ProducesResponseType(400)]
+        //[ProducesResponseType(404)]
+        //public async Task<ActionResult<ModalitiesV2>> Modalities([FromBody] LookupModalityRequest lookupModalityRequest)
+        //{
+        //    try
+        //    {
+        //        _telemetryService.LogAudit("Modalities", HttpContext);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _telemetryService.LogInformation("Modalities", ex.Message);
+        //    }
 
-            if (!ModelState.IsValid)
-            {
-                _telemetryService.LogInformation("PostV1",
-                    $"Missing parameters: product:{lookupModalityRequest.Product}-issue:{lookupModalityRequest.Issue}-partnerId:{lookupModalityRequest.PartnerId}-platform:{lookupModalityRequest.Platform}-language:{lookupModalityRequest.Language}-country:{lookupModalityRequest.Country}");
-                return BadRequest();
-            }
+        //    if (!ModelState.IsValid)
+        //    {
+        //        _telemetryService.LogInformation("PostV1",
+        //            $"Missing parameters: product:{lookupModalityRequest.Product}-issue:{lookupModalityRequest.Issue}-partnerId:{lookupModalityRequest.PartnerId}-platform:{lookupModalityRequest.Platform}-language:{lookupModalityRequest.Language}-country:{lookupModalityRequest.Country}");
+        //        return BadRequest();
+        //    }
 
-            // Normalize parameters
-            var product = lookupModalityRequest.Product?.ToLowerInvariant() ?? string.Empty;
-            var issue = lookupModalityRequest.Issue?.ToLowerInvariant() ?? string.Empty;
-            var partnerId = lookupModalityRequest.PartnerId?.ToLowerInvariant() ?? string.Empty;
-            var platform = lookupModalityRequest.Platform?.ToLowerInvariant() ?? string.Empty;
-            var language = lookupModalityRequest.Language?.ToLowerInvariant() ?? string.Empty;
-            var country = lookupModalityRequest.Country?.ToLowerInvariant() ?? string.Empty;
-            var mode = lookupModalityRequest.Mode?.ToLowerInvariant() ?? string.Empty;
-            var accessibility = lookupModalityRequest.Accessibility?.ToLowerInvariant() ?? string.Empty;
-            var disability = !string.IsNullOrWhiteSpace(accessibility) && !accessibility.Equals("none") && !accessibility.Equals("false");
-            var isVNext = lookupModalityRequest.IsVNext;
-            var isTest = lookupModalityRequest.IsTest;
+        //    // Normalize parameters
+        //    var product = lookupModalityRequest.Product?.ToLowerInvariant() ?? string.Empty;
+        //    var issue = lookupModalityRequest.Issue?.ToLowerInvariant() ?? string.Empty;
+        //    var partnerId = lookupModalityRequest.PartnerId?.ToLowerInvariant() ?? string.Empty;
+        //    var platform = lookupModalityRequest.Platform?.ToLowerInvariant() ?? string.Empty;
+        //    var language = lookupModalityRequest.Language?.ToLowerInvariant() ?? string.Empty;
+        //    var country = lookupModalityRequest.Country?.ToLowerInvariant() ?? string.Empty;
+        //    var mode = lookupModalityRequest.Mode?.ToLowerInvariant() ?? string.Empty;
+        //    var accessibility = lookupModalityRequest.Accessibility?.ToLowerInvariant() ?? string.Empty;
+        //    var disability = !string.IsNullOrWhiteSpace(accessibility) && !accessibility.Equals("none") && !accessibility.Equals("false");
+        //    var isVNext = lookupModalityRequest.IsVNext;
+        //    var isTest = lookupModalityRequest.IsTest;
 
-            var host = GetHostOverride();
+        //    var host = GetHostOverride();
 
-            // Call the service dynamically, just like the source repo
-            var result = await modalitiesService.GetModalitiesAsync(
-                product,
-                issue,
-                partnerId,
-                platform,
-                language,
-                country,
-                mode,
-                lookupModalityRequest.Preview,
-                disability,
-                lookupModalityRequest.Fallback,
-                host,
-                isVNext,
-                isTest
-            );
+        //    // Call the service dynamically, just like the source repo
+        //    var result = await modalitiesService.GetModalitiesAsync(
+        //        product,
+        //        issue,
+        //        partnerId,
+        //        platform,
+        //        language,
+        //        country,
+        //        mode,
+        //        lookupModalityRequest.Preview,
+        //        disability,
+        //        lookupModalityRequest.Fallback,
+        //        host,
+        //        isVNext,
+        //        isTest
+        //    );
 
-            if (result == null || result.Modalities == null || !result.Modalities.Any())
-            {
-                _telemetryService.LogInformation("PostV1",
-                    $"No modalities found for: product:{product}-issue:{issue}-partnerId:{partnerId}-platform:{platform}-language:{language}-country:{country}-host:{host}-mode:{mode}-preview:{lookupModalityRequest.Preview}-accessibility:{accessibility}-fallback:{lookupModalityRequest.Fallback}");
-                return NotFound();
-            }
+        //    if (result == null || result.Modalities == null || !result.Modalities.Any())
+        //    {
+        //        _telemetryService.LogInformation("PostV1",
+        //            $"No modalities found for: product:{product}-issue:{issue}-partnerId:{partnerId}-platform:{platform}-language:{language}-country:{country}-host:{host}-mode:{mode}-preview:{lookupModalityRequest.Preview}-accessibility:{accessibility}-fallback:{lookupModalityRequest.Fallback}");
+        //        return NotFound();
+        //    }
 
-            // Map/convert output for ASP.NET Core
-            var modalitiesAsString = result.Modalities
-                .Select(dict => dict.ToDictionary(
-                    kvp => kvp.Key,
-                    kvp => kvp.Value?.ToString() ?? string.Empty
-                ))
-                .ToList();
+        //    // Map/convert output for ASP.NET Core
+        //    var modalitiesAsString = result.Modalities
+        //        .Select(dict => dict.ToDictionary(
+        //            kvp => kvp.Key,
+        //            kvp => kvp.Value?.ToString() ?? string.Empty
+        //        ))
+        //        .ToList();
 
-            var modalities = new ModalitiesV2(modalitiesAsString);
+        //    var modalities = new ModalitiesV2(modalitiesAsString);
 
-            RemoveQueueLengthLinkForCallBackModality(ref modalities);
+        //    RemoveQueueLengthLinkForCallBackModality(ref modalities);
 
-            return Ok(modalities);
-        }
+        //    return Ok(modalities);
+        //}
 
         private void RemoveQueueLengthLinkForCallBackModality(ref ModalitiesV2 modalities)
         {
@@ -784,7 +870,7 @@ namespace CRM.ICon.Modality.Controllers
 
             var host = GetHostOverride(); // Implement this helper as in source
 
-            var result = await modalitiesService.GetModalitiesAsync(
+            var result = await modalitiesService.GetModalities(
                 product,
                 issue,
                 partnerId,
@@ -801,13 +887,13 @@ namespace CRM.ICon.Modality.Controllers
             );
 
             // Null or empty result handling
-            if (result == null || result.Modalities == null || !result.Modalities.Any())
+            if (result == null || result.SupportChannels == null || !result.SupportChannels.Any())
             {
                 return NotFound();
             }
 
             // Convert Dictionary<string, object> to Dictionary<string, string>
-            var modalitiesAsString = result.Modalities
+            var modalitiesAsString = result.SupportChannels
                 .Select(dict => dict.ToDictionary(
                     kvp => kvp.Key,
                     kvp => kvp.Value?.ToString() ?? string.Empty
@@ -876,7 +962,7 @@ namespace CRM.ICon.Modality.Controllers
 
             var host = GetHostOverride();
 
-            var result = await modalitiesService.GetModalitiesAsync(
+            var result = await modalitiesService.GetModalities(
                 product,
                 issue,
                 partnerId,
@@ -892,13 +978,13 @@ namespace CRM.ICon.Modality.Controllers
                 isTest
             );
 
-            if (result == null || result.Modalities == null || !result.Modalities.Any())
+            if (result == null || result.SupportChannels == null || !result.SupportChannels.Any())
             {
                 return NotFound();
             }
 
             // Convert Dictionary<string, object> to Dictionary<string, string>
-            var modalitiesAsString = result.Modalities
+            var modalitiesAsString = result.SupportChannels
                 .Select(dict => dict.ToDictionary(
                     kvp => kvp.Key,
                     kvp => kvp.Value?.ToString() ?? string.Empty
@@ -926,27 +1012,20 @@ namespace CRM.ICon.Modality.Controllers
             }
         }
 
-        [Authorize]
-        [HttpPut]
-        [Route("putCircuitbreaker")]
-        [ProducesResponseType(typeof(CircuitBreaker), 200)]
-        [ProducesResponseType(404)]
-        public async Task<ActionResult<CircuitBreaker>> PutCircuitBreaker([FromBody] CircuitBreaker circuitBreaker)
-        {
-            if (circuitBreaker == null || string.IsNullOrEmpty(circuitBreaker.Product) || string.IsNullOrEmpty(circuitBreaker.Issue))
-            {
-                return BadRequest("Missing required parameters.");
-            }
-
-            var result = await modalitiesService.UpdateCircuitBreakerAsync(circuitBreaker);
-
-            if (result == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(result);
-        }
+        //[Authorize]
+        //[HttpPut]
+        //[Route("circuitbreaker")]
+        //[ProducesResponseType(typeof(CircuitBreaker), 200)]
+        //[ProducesResponseType(404)]
+        //public async Task<IHttpActionResult> UpdateCircuitBeakerModalities([FromBody] CircuitBreaker circuitBreakerRequest)
+        //{
+        //    var response = await this.ModalitiesService.UpdateCircuitBreakerForModalities(circuitBreakerRequest, this.Request.Headers);
+        //    if (response != null)
+        //    {
+        //        return this.Json(response);
+        //    }
+        //    return this.NotFound();
+        //}
         //End Ruminder
         private static bool ValidateConciergeChat(ModalityRequest modalityRequest, string language)
         {
