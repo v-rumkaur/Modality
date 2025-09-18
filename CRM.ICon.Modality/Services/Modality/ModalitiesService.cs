@@ -41,6 +41,7 @@ namespace CRM.ICon.Modality.Services.Modality
         private const string InstantAnswer = "instantanswer";
         private readonly ModalitiesConfiguration _modalitiesConfig;
 
+
         private static readonly Dictionary<string, string> metaTagMap = new Dictionary<string, string>
         {
             {"schedule-call", "schedulecallback"},
@@ -104,7 +105,6 @@ namespace CRM.ICon.Modality.Services.Modality
             string requestId = null;
             try
             {
-                var token = await GenerateToken();
                 string isPreview = preview.ToString().ToLowerInvariant();
                 var uriBuilder = new UriBuilder(fullProductPath);
                 var query = HttpUtility.ParseQueryString(uriBuilder.Query);
@@ -112,7 +112,7 @@ namespace CRM.ICon.Modality.Services.Modality
                 uriBuilder.Query = query.ToString();
                 var message = new HttpRequestMessage(HttpMethod.Get, uriBuilder.Uri);
 
-                message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                // Authorization header is handled by HttpClient authentication handler in DI.
                 requestId = Guid.NewGuid().ToString();
                 message.Headers.TryAddWithoutValidation("X-RequesT-ID", requestId);
                 message.Headers.TryAddWithoutValidation("X-Application-ID", "c1413fd6-4a0d-4cbc-83d1-79bd0898cb02");
@@ -141,7 +141,7 @@ namespace CRM.ICon.Modality.Services.Modality
             string requestId = null;
             try
             {
-                var token = await GenerateToken();
+                //var token = await GenerateToken();
                 string isPreview = preview.ToString().ToLowerInvariant();
                 var uriBuilder = new UriBuilder(fullProductPath);
                 var query = HttpUtility.ParseQueryString(uriBuilder.Query);
@@ -149,7 +149,7 @@ namespace CRM.ICon.Modality.Services.Modality
                 uriBuilder.Query = query.ToString();
                 var message = new HttpRequestMessage(HttpMethod.Get, uriBuilder.Uri);
 
-                message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                //message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 requestId = Guid.NewGuid().ToString();
                 message.Headers.TryAddWithoutValidation("X-RequesT-ID", requestId);
                 message.Headers.TryAddWithoutValidation("X-Application-ID", "c1413fd6-4a0d-4cbc-83d1-79bd0898cb02");
@@ -436,13 +436,13 @@ namespace CRM.ICon.Modality.Services.Modality
             return null;
         }
 
-        private async Task<string> GenerateToken()
-        {
-            var managedIdentityId = _configuration.GetSection("KeyvaultConfigSectionName")["ManagedIdentityId"];
-            var credential = new Azure.Identity.ManagedIdentityCredential(managedIdentityId);
-            var result = await credential.GetTokenAsync(new Azure.Core.TokenRequestContext(new[] { _ocQueueAvailabilityServiceConfiguration.BueScopeId })).ConfigureAwait(false);
-            var token = result.Token;
-            return token.ToString();
-        }
+        //private async Task<string> GenerateToken()
+        //{
+        //    var managedIdentityId = _configuration.GetSection("KeyvaultConfigSectionName")["ManagedIdentityId"];
+        //    var credential = new Azure.Identity.ManagedIdentityCredential(managedIdentityId);
+        //    var result = await credential.GetTokenAsync(new Azure.Core.TokenRequestContext(new[] { _ocQueueAvailabilityServiceConfiguration.BueScopeId })).ConfigureAwait(false);
+        //    var token = result.Token;
+        //    return token.ToString();
+        //}
     }
 }
