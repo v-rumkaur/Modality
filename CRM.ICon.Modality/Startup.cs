@@ -186,8 +186,8 @@ namespace CRM.ICon.Modality
             services.AddSingleton<ICosmosDbClient, CosmosDbClient>();
             services.AddSingleton<IModalityCosmosDbClient, ModalityCosmosDbClient>();
             services.AddScoped<ILiveChatSettingsService, LiveChatSettingsService>();
-            //services.AddScoped<IModalitiesService, ModalitiesService>();
-            services.AddHttpClient<IModalitiesService, ModalitiesService>();
+            services.AddScoped<IModalitiesService, ModalitiesService>();
+            //services.AddHttpClient<IModalitiesService, ModalitiesService>();
             services.Configure<ModalitiesConfiguration>(Configuration.GetSection("ModalitiesConfiguration"));
 
             //services.AddHttpClient<IModalitiesService, ModalitiesService>()
@@ -205,6 +205,7 @@ namespace CRM.ICon.Modality
             services.AddScoped<IKeyVaultSecretProvider, KeyVaultSecretProvider>();
             services.AddScoped<ISllLogger, SllLogger>();
             services.AddScoped<IVNextConfiguration, VNextConfiguration>();
+            services.AddScoped<ISupportRepository, SupportRepository>();
             services.AddScoped<IConfigurationMappingProvider>(sp =>
             {
                 var config = sp.GetRequiredService<IConfiguration>();
