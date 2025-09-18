@@ -220,6 +220,8 @@ namespace CRM.ICon.Modality
                     endpointUri, token, preferredLocations, sllLogger, database, container
                 );
             });
+            services.AddScoped<ConfigurationMappingDocDbProvider>(sp =>
+                (ConfigurationMappingDocDbProvider)sp.GetRequiredService<IConfigurationMappingProvider>());
 
         }
     }
