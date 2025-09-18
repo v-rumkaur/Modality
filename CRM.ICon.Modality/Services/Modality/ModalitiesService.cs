@@ -39,6 +39,8 @@ namespace CRM.ICon.Modality.Services.Modality
         private const string ScheduleCallback = "schedulecallback";
         private const string TollFree = "tollfree";
         private const string InstantAnswer = "instantanswer";
+        private readonly ModalitiesConfiguration _modalitiesConfig;
+
         private static readonly Dictionary<string, string> metaTagMap = new Dictionary<string, string>
         {
             {"schedule-call", "schedulecallback"},
@@ -75,7 +77,8 @@ namespace CRM.ICon.Modality.Services.Modality
             IOptions<OCQueueAvailabilityServiceConfiguration> ocQueueAvailabilityServiceConfiguration,
             IConfigurationMappingProvider configurationMappingProvider,
             HttpClient httpClient,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IOptions<ModalitiesConfiguration> modalitiesConfig)
         {
             _compassService = compassService;
             _fallbackLocales = compassService.GetFallbackLocales();
@@ -86,6 +89,7 @@ namespace CRM.ICon.Modality.Services.Modality
             _configurationMappingDocDbProvider = configurationMappingProvider;
             _httpClient = httpClient;
             _configuration = configuration;
+            _modalitiesConfig = modalitiesConfig.Value;
         }
 
         public async Task<ModalitiesV2> GetModalitiesAsync(

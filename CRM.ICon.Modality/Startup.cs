@@ -187,7 +187,19 @@ namespace CRM.ICon.Modality
             services.AddSingleton<IModalityCosmosDbClient, ModalityCosmosDbClient>();
             services.AddScoped<ILiveChatSettingsService, LiveChatSettingsService>();
             //services.AddScoped<IModalitiesService, ModalitiesService>();
-            services.AddHttpClient<IModalitiesService, ModalitiesService>();
+            //services.AddHttpClient<IModalitiesService, ModalitiesService>();
+            services.Configure<ModalitiesConfiguration>(Configuration.GetSection("ModalitiesConfiguration"));
+
+            services.AddHttpClient<IModalitiesService, ModalitiesService>()
+                .ConfigureServiceAuthHandler<ModalitiesConfiguration>((options) => new ServiceAuthHandlerParams
+                {
+                    FPAClientId = aadConfiguration.FPAClientId,
+                    Resource = options.Resource,
+                    TenantId = options.TenantId,
+                    OrgId = options.OrgId,
+                    DFMTenantId = options.DFMTenantId,
+                    AuthMethod = "Certificate"   // Use "ClientAssertion" if that's correct for Modalities
+                });
             services.AddScoped<IPartnerConfiguration, PartnerConfiguration>();
             services.AddScoped<ICompassService, CompassService>();
             services.AddScoped<IKeyVaultSecretProvider, KeyVaultSecretProvider>();
